@@ -715,20 +715,25 @@ const VendorRegistrationApproval: React.FC = () => {
                 })()}
 
                 {/* Action Buttons */}
-                {(vendorDetail.status === 1 || vendorDetail.status === 2) && isAuthorized && (
-                  <div className='action-buttons d-flex justify-content-end align-items-start gap-3 mt-4 pt-4 border-top'>
-                    <div ref={approveFormRef}>
-                      <Button className='btn-approve' onClick={handleApprove} disabled={submitting}>
-                        <FontAwesomeIcon icon={faCheck} className='me-2' />
-                        {submitting
-                          ? 'Memproses...'
-                          : vendorDetail.status === 1
-                          ? 'Proses Pitching'
-                          : 'Setujui Final'}
-                      </Button>
-                    </div>
+                {(vendorDetail.status === 1 || vendorDetail.status === 2) &&
+                  isAuthorized &&
+                  !showRejectForm && (
+                    <div className='action-buttons d-flex justify-content-end align-items-center gap-3 mt-4 pt-4 border-top flex-wrap'>
+                      <div ref={approveFormRef}>
+                        <Button
+                          className='btn-approve'
+                          onClick={handleApprove}
+                          disabled={submitting}
+                        >
+                          <FontAwesomeIcon icon={faCheck} className='me-2' />
+                          {submitting
+                            ? 'Memproses...'
+                            : vendorDetail.status === 1
+                            ? 'Proses Pitching'
+                            : 'Setujui Final'}
+                        </Button>
+                      </div>
 
-                    {!showRejectForm ? (
                       <Button
                         className='btn-reject'
                         onClick={() => setShowRejectForm(true)}
@@ -737,44 +742,57 @@ const VendorRegistrationApproval: React.FC = () => {
                         <FontAwesomeIcon icon={faTimes} className='me-2' />
                         Tolak Pendaftaran
                       </Button>
-                    ) : (
-                      <div
-                        ref={rejectFormRef}
-                        className='reject-form w-100'
-                        style={{maxWidth: '400px'}}
-                      >
-                        <Form.Group>
-                          <Form.Control
-                            as='textarea'
-                            rows={3}
-                            placeholder='Masukkan alasan penolakan...'
-                            value={rejectReason}
-                            onChange={(e: any) => setRejectReason(e.target.value)}
-                          />
-                        </Form.Group>
-                        <div className='d-flex justify-content-end gap-2 mt-3'>
-                          <Button
-                            variant='light'
-                            className='btn-active-light-primary'
-                            onClick={() => {
-                              setShowRejectForm(false)
-                              setRejectReason('')
-                            }}
-                          >
-                            Batal
-                          </Button>
-                          <Button
-                            className='btn-reject'
-                            onClick={handleReject}
-                            disabled={submitting}
-                          >
-                            {submitting ? 'Menolak...' : 'Konfirmasi Tolak'}
-                          </Button>
-                        </div>
+                    </div>
+                  )}
+
+                {showRejectForm &&
+                  (vendorDetail.status === 1 || vendorDetail.status === 2) &&
+                  isAuthorized && (
+                    <div
+                      ref={rejectFormRef}
+                      className='reject-form mt-4 pt-4 border-top'
+                    >
+                      <h6 className='fw-bold mb-3'>Form Penolakan Pendaftaran</h6>
+                      <p className='text-muted mb-3' style={{fontSize: '13px'}}>
+                        Masukkan alasan penolakan. Pendaftaran yang ditolak akan
+                        otomatis mengunci email/phone PIC selama 30 hari.
+                      </p>
+                      <Form.Group>
+                        <Form.Label className='fw-semibold required'>
+                          Alasan Penolakan
+                        </Form.Label>
+                        <Form.Control
+                          as='textarea'
+                          rows={4}
+                          placeholder='Contoh: Dokumen KTP tidak terbaca, mohon upload ulang...'
+                          value={rejectReason}
+                          onChange={(e: any) => setRejectReason(e.target.value)}
+                          autoFocus
+                        />
+                      </Form.Group>
+                      <div className='d-flex justify-content-end gap-2 mt-3'>
+                        <Button
+                          variant='light'
+                          className='btn-active-light-primary'
+                          onClick={() => {
+                            setShowRejectForm(false)
+                            setRejectReason('')
+                          }}
+                          disabled={submitting}
+                        >
+                          Batal
+                        </Button>
+                        <Button
+                          className='btn-reject'
+                          onClick={handleReject}
+                          disabled={submitting || !rejectReason.trim()}
+                        >
+                          <FontAwesomeIcon icon={faTimes} className='me-2' />
+                          {submitting ? 'Menolak...' : 'Konfirmasi Tolak'}
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
 
                 {vendorDetail.status === 2 && (
                   <div className='alert alert-info mt-4'>
@@ -808,6 +826,7 @@ const VendorRegistrationApproval: React.FC = () => {
                 <h5 className='fw-bold mb-4'>DOKUMEN & FOTO</h5>
                 <Row className='g-3'>
                   {[
+                    {label: 'Foto Vendor', value: vendorDetail.vendor_photo, icon: faImage},
                     {label: 'Foto KTP', value: vendorDetail.ktp_photo, icon: faIdCard},
                     {label: 'Foto NPWP', value: vendorDetail.npwp_photo, icon: faIdCard},
                     {label: 'Foto COMPRO', value: vendorDetail.compro_photo, icon: faImage},
@@ -849,40 +868,56 @@ const VendorRegistrationApproval: React.FC = () => {
                           </span>
                         </div>
                         {doc.value ? (
-                          <div
+                          <a
+                            href={getImageUrl(doc.value)}
+                            target='_blank'
+                            rel='noopener noreferrer'
                             style={{
-                              height: '140px',
+                              display: 'block',
+                              height: '180px',
                               background: '#f8f9fa',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
                               overflow: 'hidden',
+                              position: 'relative',
                             }}
+                            title={`Buka ${doc.label} di tab baru`}
                           >
                             <img
                               src={getImageUrl(doc.value)}
                               alt={doc.label}
                               style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
+                                width: '100%',
+                                height: '100%',
                                 objectFit: 'cover',
+                                transition: 'transform 0.2s ease',
                               }}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement
                                 target.style.display = 'none'
-                                target.parentElement!.innerHTML = `
-                                  <div style="text-align:center; color:#6c757d;">
-                                    <i class="fas fa-image" style="font-size:32px; margin-bottom:8px;"></i>
-                                    <p style="font-size:11px; margin:0;">Gambar tidak dapat dimuat</p>
-                                  </div>
-                                `
+                                const parent = target.parentElement
+                                if (parent && !parent.querySelector('.img-fallback')) {
+                                  const fallback = document.createElement('div')
+                                  fallback.className = 'img-fallback'
+                                  fallback.style.cssText =
+                                    'text-align:center; color:#6c757d; padding:20px;'
+                                  fallback.innerHTML =
+                                    '<i class="fas fa-image" style="font-size:32px; margin-bottom:8px; display:block;"></i>' +
+                                    '<p style="font-size:11px; margin:0;">Gambar tidak dapat dimuat</p>'
+                                  parent.appendChild(fallback)
+                                }
+                              }}
+                              onMouseEnter={(e) => {
+                                ;(e.target as HTMLImageElement).style.transform =
+                                  'scale(1.05)'
+                              }}
+                              onMouseLeave={(e) => {
+                                ;(e.target as HTMLImageElement).style.transform = 'scale(1)'
                               }}
                             />
-                          </div>
+                          </a>
                         ) : (
                           <div
                             style={{
-                              height: '100px',
+                              height: '140px',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
