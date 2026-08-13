@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react'
 import {useParams, useNavigate, useSearchParams} from 'react-router-dom'
 import {vendorRegistrationService} from '../../../services/vendorRegistrationService'
+import apiClient from '../../../services/apiClient'
 import {PageTitle} from '../../../../_metronic/layout/core'
 import Swal from 'sweetalert2'
 import {Form, Row, Col, Button} from 'react-bootstrap'
@@ -16,7 +17,6 @@ import {
   faImage,
   faHistory,
 } from '@fortawesome/free-solid-svg-icons'
-import axios from 'axios'
 import './VendorRegistrationApproval.css'
 
 interface VendorRegistrationDetail {
@@ -79,9 +79,7 @@ const VendorRegistrationApproval: React.FC = () => {
   useEffect(() => {
     const fetchServiceTypes = async () => {
       try {
-        const res = await axios.get(`${apiUrl}/service-type/public/list`, {
-          headers: {'ngrok-skip-browser-warning': 'true'},
-        })
+        const res = await apiClient.get('/service-type')
         const data = res.data?.data?.data || res.data?.data || []
         const map: Record<number, string> = {}
         data.forEach((item: any) => {
@@ -93,7 +91,7 @@ const VendorRegistrationApproval: React.FC = () => {
       }
     }
     fetchServiceTypes()
-  }, [apiUrl])
+  }, [])
 
   useEffect(() => {
     if (id) {
