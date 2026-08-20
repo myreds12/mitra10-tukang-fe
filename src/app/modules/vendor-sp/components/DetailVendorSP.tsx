@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
-import {Button, Descriptions, Empty, Spin, Table} from 'antd'
+import {Button, Descriptions, Empty, Space, Spin, Table, Tag} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
-import {ArrowLeftOutlined} from '@ant-design/icons'
+import {ArrowLeftOutlined, FilePdfOutlined, FileTextOutlined} from '@ant-design/icons'
 import Swal from 'sweetalert2'
 import {vendorSpService} from '../../../services/vendorSpService'
 import {
@@ -41,6 +41,59 @@ const DetailVendorSP: React.FC = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [detail, setDetail] = useState<any>(null)
+  const [exportingPenalty, setExportingPenalty] = useState(false)
+  const [exportingCertificate, setExportingCertificate] = useState(false)
+
+  // [POIN 3] Cetak Bukti SP PDF
+  const handleExportPenalty = async () => {
+    if (!detail?.vendor?.id || !detail?.quarter || !detail?.year) return
+    setExportingPenalty(true)
+    try {
+      await vendorSpService.generatePenaltyReceipt({
+        vendor_id: detail.vendor.id,
+        quarter: detail.quarter,
+        year: detail.year,
+      })
+      Swal.fire('Sukses', 'Bukti SP PDF berhasil di-generate dan di-download', 'success')
+    } catch (error: any) {
+      Swal.fire(
+        'Error',
+        error?.message || 'Gagal generate Bukti SP PDF',
+        'error',
+      )
+    } finally {
+      setExportingPenalty(false)
+    }
+  }
+
+  // [POIN 4] Cetak Surat Bebas Pelanggaran PDF
+  // Disabled kalau vendor punya pelanggaran aktif di quarter yang dipilih.
+  const handleExportCertificate = async () => {
+    if (!detail?.vendor?.id || !detail?.quarter || !detail?.year) return
+    setExportingCertificate(true)
+    try {
+      await vendorSpService.generateNoViolationCertificate({
+        vendor_id: detail.vendor.id,
+        quarter: detail.quarter,
+        year: detail.year,
+      })
+      Swal.fire('Sukses', 'Surat Bebas Pelanggaran PDF berhasil di-generate dan di-download', 'success')
+    } catch (error: any) {
+      // Backend akan return 400 untuk dua skenario:
+      // 1) Vendor punya pelanggaran aktif di quarter tsb
+      // 2) Quarter masih berjalan (bukan lampau)
+      Swal.fire(
+        'Tidak Bisa Generate',
+        error?.message || 'Gagal generate Surat Bebas Pelanggaran PDF',
+        'warning',
+      )
+    } finally {
+      setExportingCertificate(false)
+    }
+  }
+
+  const hasActiveViolationsInQuarter =
+    Array.isArray(detail?.sp_details) && detail.sp_details.length > 0
 
   const fetchDetail = async () => {
     if (!id) return
@@ -101,6 +154,21 @@ const DetailVendorSP: React.FC = () => {
       render: (_, record) => `Q${record.quarter || '-'} ${record.year || ''}`,
     },
     {
+      // [POIN 6] Badge evidence — untuk legacy data (evidence_path=null) atau
+      // tampilkan provenance (Sistem vs Upload) untuk data baru.
+      title: 'Evidence',
+      key: 'evidence',
+      width: 130,
+      render: (_, record) =>
+        !record.evidence_path ? (
+          <Tag color='warning'>⚠ Tanpa Evidence</Tag>
+        ) : record.evidence_provenance === 'SYSTEM_GENERATED' ? (
+          <Tag color='blue' title='Snapshot kejadian sistem (JSON)'>Sistem</Tag>
+        ) : (
+          <Tag color='green' title={record.evidence_path}>Upload</Tag>
+        ),
+    },
+    {
       title: 'Tanggal',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -117,9 +185,39 @@ const DetailVendorSP: React.FC = () => {
           <span className='text-muted'>Informasi vendor, status SP, dan daftar pelanggaran terkait.</span>
         </div>
         <div className='card-toolbar'>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/vendor-sp/view')}>
-            Kembali
-          </Button>
+          <Space>
+            <Button
+              type='primary'
+              danger
+              icon={<FilePdfOutlined />}
+              loading={exportingPenalty}
+              onClick={handleExportPenalty}
+              disabled={!detail?.vendor?.id || !detail?.quarter || !detail?.year}
+            >
+              Cetak Bukti SP (PDF)
+            </Button>
+            <Button
+              icon={<FileTextOutlined />}
+              loading={exportingCertificate}
+              onClick={handleExportCertificate}
+              disabled={
+                !detail?.vendor?.id ||
+                !detail?.quarter ||
+                !detail?.year ||
+                hasActiveViolationsInQuarter
+              }
+              title={
+                hasActiveViolationsInQuarter
+                  ? 'Tidak bisa cetak surat bebas — vendor punya pelanggaran aktif di quarter ini'
+                  : 'Generate Surat Keterangan Bebas Pelanggaran'
+              }
+            >
+              Cetak Surat Bebas Pelanggaran (PDF)
+            </Button>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/vendor-sp/view')}>
+              Kembali
+            </Button>
+          </Space>
         </div>
       </div>
 

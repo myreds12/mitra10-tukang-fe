@@ -10,16 +10,22 @@ import {
   Form,
   Alert,
   Descriptions,
+  Select,
+  DatePicker,
+  Empty,
 } from 'antd'
+import type { ColumnsType } from 'antd/es/table'
+import type { RangePickerProps } from 'antd/es/date-picker'
 import {
   ReloadOutlined,
   CheckCircleOutlined,
   StopOutlined,
   ExclamationCircleOutlined,
+  ClearOutlined,
 } from '@ant-design/icons'
-import type { ColumnsType } from 'antd/es/table'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import dayjs, { Dayjs } from 'dayjs'
 import {
   VendorSpPill,
   vendorSpPagination,
@@ -52,6 +58,19 @@ interface InactiveVendor {
   is_active: boolean
 }
 
+// [POIN 5] Filter state — semua optional, kalau kosong artinya "no filter"
+interface ReactivationFilter {
+  search: string
+  status: 1 | 2 | 3 | undefined
+  dateRange: [Dayjs | null, Dayjs | null] | null
+}
+
+const emptyFilter: ReactivationFilter = {
+  search: '',
+  status: undefined,
+  dateRange: null,
+}
+
 const VendorReactivation: React.FC = () => {
   const [data, setData] = useState<ReactivationLog[]>([])
   const [inactiveVendors, setInactiveVendors] = useState<InactiveVendor[]>([])
@@ -64,13 +83,46 @@ const VendorReactivation: React.FC = () => {
     total: 0,
   })
 
+  // [POIN 5] Filter state + debounced search input
+  const [filter, setFilter] = useState<ReactivationFilter>(emptyFilter)
+  const [searchInput, setSearchInput] = useState<string>('')
+  const [inactiveSearch, setInactiveSearch] = useState<string>('')
+
+  // Debounce search untuk log table (300ms sesuai requirement)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilter((prev) => ({ ...prev, search: searchInput }))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  // Debounce search untuk inactive vendors (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // local filter only — tidak dikirim ke backend
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [inactiveSearch])
+
+  // Re-fetch log ketika filter atau pagination berubah
+  useEffect(() => {
+    fetchReactivationLogs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, pagination.pageSize, filter])
+
   const fetchReactivationLogs = async () => {
     setLoading(true)
     try {
-      const response = await vendorSpService.getReactivationLogs({
+      const params: any = {
         page: pagination.current,
         take: pagination.pageSize,
-      })
+      }
+      if (filter.search.trim()) params.search = filter.search.trim()
+      if (filter.status) params.status = filter.status
+      if (filter.dateRange?.[0]) params.date_from = filter.dateRange[0].format('YYYY-MM-DD')
+      if (filter.dateRange?.[1]) params.date_to = filter.dateRange[1].format('YYYY-MM-DD')
+
+      const response = await vendorSpService.getReactivationLogs(params)
       const payload = response.data?.data && response.data?.meta
         ? response.data
         : response.data?.data || response.data
@@ -109,11 +161,6 @@ const VendorReactivation: React.FC = () => {
     }
   }
 
-  useEffect(() => {
-    fetchReactivationLogs()
-    fetchInactiveVendors()
-  }, [])
-
   const handleReactivate = async (values: any) => {
     try {
       await vendorSpService.reactivate({
@@ -134,6 +181,22 @@ const VendorReactivation: React.FC = () => {
     setSelectedVendor(vendor)
     setReactivateModal(true)
   }
+
+  const resetFilter = () => {
+    setSearchInput('')
+    setFilter(emptyFilter)
+    setPagination((prev) => ({ ...prev, current: 1 }))
+  }
+
+  // Filter inactive vendors secara lokal (client-side) by company_name / pic_name
+  const filteredInactiveVendors = inactiveVendors.filter((v) => {
+    if (!inactiveSearch.trim()) return true
+    const q = inactiveSearch.toLowerCase()
+    return (
+      v.company_name?.toLowerCase().includes(q) ||
+      v.pic_name?.toLowerCase().includes(q)
+    )
+  })
 
   const columns: ColumnsType<ReactivationLog> = [
     {
@@ -212,8 +275,19 @@ const VendorReactivation: React.FC = () => {
           className='mb-4'
         />
 
+        {/* [POIN 5] Search untuk inactive vendors grid */}
+        <div className='mb-3' style={{maxWidth: 400}}>
+          <Input.Search
+            placeholder='Cari nama vendor atau PIC...'
+            allowClear
+            value={inactiveSearch}
+            onChange={(e) => setInactiveSearch(e.target.value)}
+            onSearch={(val) => setInactiveSearch(val)}
+          />
+        </div>
+
         <div className='row mb-4'>
-          {inactiveVendors.map((vendor) => (
+          {filteredInactiveVendors.map((vendor) => (
             <div key={vendor.id} className='col-md-4 mb-3'>
               <Card
                 size='small'
@@ -243,9 +317,19 @@ const VendorReactivation: React.FC = () => {
               </Card>
             </div>
           ))}
-          {inactiveVendors.length === 0 && (
-            <div className='col-12 text-center text-muted py-4'>
-              Tidak ada vendor nonaktif
+          {filteredInactiveVendors.length === 0 && (
+            <div className='col-12'>
+              <Empty
+                description={
+                  inactiveSearch.trim()
+                    ? `Tidak ada vendor nonaktif sesuai pencarian "${inactiveSearch}"`
+                    : 'Tidak ada vendor nonaktif'
+                }
+              >
+                {inactiveSearch.trim() && (
+                  <Button onClick={() => setInactiveSearch('')}>Reset Pencarian</Button>
+                )}
+              </Empty>
             </div>
           )}
         </div>
@@ -253,6 +337,58 @@ const VendorReactivation: React.FC = () => {
         <hr />
 
         <h5 className='mb-3'>Log Reaktivasi</h5>
+
+        {/* [POIN 5] Filter bar untuk log reaktivasi */}
+        <div className='row mb-3 g-2'>
+          <div className='col-md-4'>
+            <Input.Search
+              placeholder='Cari nama vendor / PIC...'
+              allowClear
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onSearch={(val) => setSearchInput(val)}
+            />
+          </div>
+          <div className='col-md-3'>
+            <Select
+              placeholder='Status reaktivasi'
+              allowClear
+              style={{width: '100%'}}
+              value={filter.status}
+              onChange={(val) => {
+                setFilter((prev) => ({...prev, status: val}))
+                setPagination((prev) => ({...prev, current: 1}))
+              }}
+              options={[
+                {value: 1, label: 'Pending'},
+                {value: 2, label: 'Disetujui'},
+                {value: 3, label: 'Ditolak'},
+              ]}
+            />
+          </div>
+          <div className='col-md-4'>
+            <DatePicker.RangePicker
+              style={{width: '100%'}}
+              value={filter.dateRange}
+              onChange={(val) => {
+                setFilter((prev) => ({...prev, dateRange: val}))
+                setPagination((prev) => ({...prev, current: 1}))
+              }}
+              format='YYYY-MM-DD'
+              placeholder={['Dari tanggal', 'Sampai tanggal']}
+            />
+          </div>
+          <div className='col-md-1'>
+            <Button
+              icon={<ClearOutlined />}
+              onClick={resetFilter}
+              title='Reset semua filter'
+            >
+              Reset
+            </Button>
+          </div>
+        </div>
+
         <Table
           className={vendorSpTableClassName}
           columns={columns}
@@ -267,6 +403,17 @@ const VendorReactivation: React.FC = () => {
               pageSize: newPagination.pageSize || prev.pageSize,
             }))
           }
+          locale={{
+            emptyText: (
+              <Empty
+                description='Tidak ada log reaktivasi sesuai filter'
+              >
+                <Button type='primary' onClick={resetFilter}>
+                  Reset Filter
+                </Button>
+              </Empty>
+            ),
+          }}
         />
       </div>
 

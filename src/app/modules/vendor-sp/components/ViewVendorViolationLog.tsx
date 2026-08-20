@@ -17,6 +17,7 @@ import {
   PlusOutlined,
   EyeOutlined,
   ReloadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -25,6 +26,7 @@ import {
   vendorSpPagination,
   vendorSpTableClassName,
 } from './VendorSpTable'
+import { vendorViolationService } from '../../../services/vendorViolationService'
 
 const { Option } = Select
 
@@ -68,6 +70,7 @@ const CATEGORIES = [
 const ViewVendorViolationLog: React.FC = () => {
   const [data, setData] = useState<ViolationLog[]>([])
   const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -174,6 +177,57 @@ const ViewVendorViolationLog: React.FC = () => {
     }
   }
 
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const response = await vendorViolationService.exportLogs({
+        search: filters.search,
+        category: filters.category,
+        vendor_id: filters.vendor_id,
+      })
+      const blob = response.data as Blob
+      const disposition = (response.headers as Record<string, string>)?.[
+        'content-disposition'
+      ]
+      const filenameMatch = disposition?.match(/filename="?([^";]+)"?/i)
+      const filename =
+        filenameMatch?.[1] ?? `log-pelanggaran-${Date.now()}.xlsx`
+
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      message.success(`Berhasil mendownload ${filename}`)
+    } catch (error) {
+      const axiosErr = error as {
+        response?: { data?: { message?: string }; status?: number }
+      }
+      if (axiosErr?.response?.status === 403) {
+        message.error('Anda tidak punya akses untuk export data ini.')
+      } else if (axiosErr?.response?.status === 400) {
+        const detail = (axiosErr.response.data as { message?: string })?.message
+        message.error(detail || 'Filter export tidak valid.')
+      } else {
+        message.error('Gagal mendownload Excel. Silakan coba lagi.')
+      }
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const canExport = (() => {
+    const role =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('userRole')
+        : null
+    return role === 'Admin HO' || role === 'Super User'
+  })()
+
   const getCategoryColor = (category: string) => {
     const found = CATEGORIES.find((c) => c.value === category)
     return found?.color || 'default'
@@ -233,6 +287,23 @@ const ViewVendorViolationLog: React.FC = () => {
           <VendorSpPill>{record.orders.project_number}</VendorSpPill>
         ) : (
           <span className='text-muted'>-</span>
+        ),
+    },
+    {
+      // [POIN 6] Badge untuk legacy data yang evidence_path masih null
+      // (data sebelum fix Poin 6). Data baru setelah fix tidak akan pernah null.
+      title: 'Evidence',
+      key: 'evidence',
+      width: 130,
+      render: (_, record) =>
+        !record.evidence_path ? (
+          <Tag color='warning'>
+            ⚠ Tanpa Evidence
+          </Tag>
+        ) : record.evidence_provenance === 'SYSTEM_GENERATED' ? (
+          <Tag color='blue' title='Snapshot kejadian sistem (JSON)'>Sistem</Tag>
+        ) : (
+          <Tag color='green' title={record.evidence_path}>Upload</Tag>
         ),
     },
     {
@@ -308,6 +379,15 @@ const ViewVendorViolationLog: React.FC = () => {
               <Button icon={<ReloadOutlined />} onClick={fetchData}>
                 Refresh
               </Button>
+              {canExport && (
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={handleExport}
+                  loading={exporting}
+                >
+                  Download Excel
+                </Button>
+              )}
               <Button
                 type='primary'
                 icon={<PlusOutlined />}
@@ -447,6 +527,15 @@ const AddViolationForm: React.FC<{
 
       <Form.Item name='description' label='Deskripsi'>
         <Input.TextArea rows={3} placeholder='Keterangan tambahan' />
+      </Form.Item>
+
+      {/* [POIN 6] Lapis 3 UI guard — evidence_path WAJIB diisi. */}
+      <Form.Item
+        name='evidence_path'
+        label='Path Evidence (wajib)'
+        rules={[{ required: true, message: 'Path evidence wajib diisi' }]}
+      >
+        <Input placeholder='/uploads/evidence/nama-file.png' />
       </Form.Item>
 
       <Form.Item className='mb-0 text-end'>

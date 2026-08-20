@@ -18,6 +18,18 @@ export const vendorViolationService = {
       params: { quarter, year },
     }),
 
+  exportLogs: (filters: Record<string, unknown> = {}) => {
+    const params: Record<string, unknown> = { format: 'excel' };
+    for (const k of ['vendor_id', 'quarter', 'year', 'category', 'search', 'date_from', 'date_to']) {
+      const v = filters[k];
+      if (v !== undefined && v !== null && v !== '') params[k] = v;
+    }
+    return apiClient.get('/vendor-violation/log/export', {
+      params,
+      responseType: 'blob',
+    });
+  },
+
   // Violation Revision / Reset Requests
   getRevisionRequests: (params?: any) => apiClient.get('/vendor-violation/revision-request', { params }),
   getRevisionRequestById: (id: string | number) => apiClient.get(`/vendor-violation/revision-request/${id}`),
