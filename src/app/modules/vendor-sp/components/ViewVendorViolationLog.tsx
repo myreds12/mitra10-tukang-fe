@@ -39,6 +39,9 @@ interface ViolationLog {
   year: number
   description: string | null
   evidence_path: string | null
+  // [POIN 6] Provenance bukti: MANUAL_UPLOAD | SYSTEM_GENERATED | LEGACY.
+  // LEGACY = data lama (nullable kolom DB, default "LEGACY").
+  evidence_provenance: string | null
   adjusted_point?: number | null
   is_active: boolean
   created_at: string
