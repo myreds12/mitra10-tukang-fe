@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import apiClient from '../../../services/apiClient'
 import {
   Table,
   Button,
@@ -149,11 +150,11 @@ const ViewVendorViolationLog: React.FC = () => {
 
   const fetchViolationTypes = async () => {
     try {
-      const token = localStorage.getItem('accessToken')
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/vendor-violation/type?take=100&is_active=true`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const response = await apiClient.get('/vendor-violation/type', {
+        params: {take: 100, is_active: true},
+      })
+      // eslint-disable-next-line no-console
+      console.log('[ViolationTypes] raw response:', response.data)
       const payload = response.data?.data && response.data?.meta
         ? response.data
         : response.data?.data || response.data
@@ -162,9 +163,21 @@ const ViewVendorViolationLog: React.FC = () => {
         : Array.isArray(payload)
         ? payload
         : []
+      // eslint-disable-next-line no-console
+      console.log('[ViolationTypes] parsed types count:', types.length)
       setViolationTypes(types)
-    } catch (error) {
-      console.error('Failed to fetch violation types')
+    } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[ViolationTypes] fetch failed:',
+        error?.response?.status,
+        error?.response?.data,
+      )
+      message.error(
+        `Gagal mengambil jenis pelanggaran${
+          error?.response?.status ? ` (HTTP ${error.response.status})` : ''
+        }`,
+      )
     }
   }
 
@@ -429,25 +442,24 @@ const ViewVendorViolationLog: React.FC = () => {
                   {loadingButton ? 'Filtering..' : 'Submit'}
                 </Button>
               </div>
-              <div className='col-md-3 d-flex justify-content-end'>
-                <Space>
-                  {canExport && (
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={handleExport}
-                      loading={exporting}
-                    >
-                      Download Excel
-                    </Button>
-                  )}
+              <div className='col-md-3 d-flex flex-column align-items-stretch align-items-md-end gap-2'>
+                {canExport && (
                   <Button
-                    type='primary'
-                    icon={<PlusOutlined />}
-                    onClick={() => setAddModal(true)}
+                    icon={<DownloadOutlined />}
+                    onClick={handleExport}
+                    loading={exporting}
                   >
-                    Catat Pelanggaran
+                    Download Excel
                   </Button>
-                </Space>
+                )}
+                <Button
+                  type='primary'
+                  icon={<PlusOutlined />}
+                  onClick={() => setAddModal(true)}
+                >
+                  <span className='d-none d-md-inline'>Catat Pelanggaran</span>
+                  <span className='d-md-none'>Tambah</span>
+                </Button>
               </div>
             </div>
           </div>
@@ -636,7 +648,18 @@ const AddViolationForm: React.FC<{
         label='Jenis Pelanggaran'
         rules={[{ required: true, message: 'Pilih jenis pelanggaran' }]}
       >
-        <Select placeholder='Pilih Pelanggaran'>
+        <Select
+          placeholder={
+            violationTypes.length === 0
+              ? 'Tidak ada jenis pelanggaran aktif'
+              : 'Pilih Pelanggaran'
+          }
+          notFoundContent={
+            violationTypes.length === 0
+              ? 'Belum ada jenis pelanggaran. Tambahkan di menu Jenis Pelanggaran (Admin → Vendor SP → Jenis Pelanggaran).'
+              : 'Tidak ada hasil'
+          }
+        >
           {violationTypes.map((vt) => (
             <Option key={vt.id} value={vt.id}>
               [{vt.code}] {vt.name} ({vt.point} poin)

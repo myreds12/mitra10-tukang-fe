@@ -380,7 +380,8 @@ const ViewVendorSP: React.FC = () => {
                   onClick={openRecapModal}
                   loading={exportingRecap}
                 >
-                  Download Rekap Vendor Bersih
+                  <span className='d-none d-md-inline'>Download Rekap Vendor Bersih</span>
+                  <span className='d-md-none'>Rekap</span>
                 </Button>
               </div>
             </div>

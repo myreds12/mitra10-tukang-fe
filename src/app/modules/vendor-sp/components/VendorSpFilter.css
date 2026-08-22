@@ -44,10 +44,10 @@
   pointer-events: none;
 }
 
-#vendor-sp-list input.vendor-sp-search.ant-input,
-#vendor-sp-violations input.vendor-sp-search.ant-input,
-#vendor-sp-revisions input.vendor-sp-search.ant-input,
-#vendor-sp-reactivation input.vendor-sp-search.ant-input {
+#vendor-sp-list .vendor-sp-search input.ant-input,
+#vendor-sp-violations .vendor-sp-search input.ant-input,
+#vendor-sp-revisions .vendor-sp-search input.ant-input,
+#vendor-sp-reactivation .vendor-sp-search input.ant-input {
   height: 45px !important;
   padding-left: 35px !important;
 }
