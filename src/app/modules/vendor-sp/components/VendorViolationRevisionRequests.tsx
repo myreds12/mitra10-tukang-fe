@@ -1,22 +1,33 @@
 import React, {useEffect, useState} from 'react'
-import {Button, Card, Input, Modal, Select, Space, Table} from 'antd'
+import {Button, Card, Input, Modal, Select, Space, Table, Pagination} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
 import {vendorViolationService} from '../../../services/vendorViolationService'
 import Swal from 'sweetalert2'
-import {CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined} from '@ant-design/icons'
+import {CheckCircleOutlined, CloseCircleOutlined} from '@ant-design/icons'
 import {
   VendorSpActionButton,
   VendorSpPill,
-  vendorSpPagination,
   vendorSpTableClassName,
 } from './VendorSpTable'
+import './VendorSpFilter.css'
 
 const {Option} = Select
 
 const VendorViolationRevisionRequests: React.FC = () => {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState<string | undefined>('PENDING')
+  const [loadingButton, setLoadingButton] = useState(false)
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  })
+  const [filtersInput, setFiltersInput] = useState<{
+    status: string | undefined
+  }>({status: 'PENDING'})
+  const [appliedFilters, setAppliedFilters] = useState<{
+    status: string | undefined
+  }>({status: 'PENDING'})
   const [reviewTarget, setReviewTarget] = useState<any>(null)
   const [reviewAction, setReviewAction] = useState<'APPROVE' | 'REJECT' | null>(null)
   const [reviewNote, setReviewNote] = useState('')
@@ -27,20 +38,39 @@ const VendorViolationRevisionRequests: React.FC = () => {
     try {
       const response = await vendorViolationService.getRevisionRequests({
         take: 100,
-        ...(status ? {status} : {}),
+        ...(appliedFilters.status ? {status: appliedFilters.status} : {}),
       })
-      setData(response.data?.data || response.data || [])
+      const payload = response.data?.data && response.data?.meta
+        ? response.data
+        : response.data?.data || response.data
+      const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : []
+      const total = payload?.meta?.total ?? rows.length
+      setData(rows)
+      setPagination((prev) => ({...prev, total}))
     } catch (error) {
       Swal.fire('Error', 'Gagal mengambil request revisi/reset', 'error')
     } finally {
       setLoading(false)
+      setLoadingButton(false)
     }
   }
 
   useEffect(() => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }, [pagination.current, pagination.pageSize, appliedFilters.status])
+
+  const handleSubmitFilter = () => {
+    setLoadingButton(true)
+    setAppliedFilters(filtersInput)
+    setPagination((prev) => ({...prev, current: 1}))
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      handleSubmitFilter()
+    }
+  }
 
   const openReview = (record: any, action: 'APPROVE' | 'REJECT') => {
     setReviewTarget(record)
@@ -158,36 +188,68 @@ const VendorViolationRevisionRequests: React.FC = () => {
   ]
 
   return (
-    <Card
-      className='vendor-sp-table'
-      title='Approval Revisi / Reset Poin Vendor'
-      extra={
-        <Space className='vendor-sp-action-group'>
-          <Select
-            className='vendor-sp-filter-control'
-            value={status}
-            allowClear
-            placeholder='Semua status'
-            style={{width: 180}}
-            onChange={(value) => setStatus(value)}
-          >
-            <Option value='PENDING'>PENDING</Option>
-            <Option value='APPROVED'>APPROVED</Option>
-            <Option value='REJECTED'>REJECTED</Option>
-          </Select>
-          <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
-        </Space>
-      }
-    >
+    <div id='vendor-sp-revisions'>
+    <Card className='vendor-sp-table' title='Approval Revisi / Reset Poin Vendor'>
+      <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+        <div className='row g-2 mb-3'>
+          <div className='col-md-3'>
+            <Select
+              className='vendor-sp-filter-select'
+              value={filtersInput.status}
+              allowClear
+              placeholder='Semua status'
+              style={{width: '100%'}}
+              onChange={(value) =>
+                setFiltersInput((prev) => ({...prev, status: value}))
+              }
+            >
+              <Option value='PENDING'>PENDING</Option>
+              <Option value='APPROVED'>APPROVED</Option>
+              <Option value='REJECTED'>REJECTED</Option>
+            </Select>
+          </div>
+          <div className='col-md-2'>
+            <Button
+              className='btn-dark-primary'
+              onClick={handleSubmitFilter}
+              loading={loadingButton}
+            >
+              {loadingButton ? 'Filtering..' : 'Submit'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <Table
         className={vendorSpTableClassName}
         rowKey='id'
         loading={loading}
         columns={columns}
         dataSource={data}
-        pagination={vendorSpPagination({pageSize: 10})}
+        pagination={false}
         scroll={{x: 1000}}
       />
+
+      <div className='pagination-container'>
+        <span className='pagination-total'>
+          {pagination.total === 0
+            ? 'Showing 0 of 0 Request'
+            : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+                pagination.current * pagination.pageSize,
+                pagination.total,
+              )} of ${pagination.total} Request`}
+        </span>
+        <Pagination
+          current={pagination.current}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          showSizeChanger
+          pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+          onChange={(page, size) =>
+            setPagination((prev) => ({...prev, current: page, pageSize: size}))
+          }
+        />
+      </div>
 
       <Modal
         title={`${reviewAction === 'APPROVE' ? 'Approve' : 'Reject'} Request`}
@@ -207,6 +269,7 @@ const VendorViolationRevisionRequests: React.FC = () => {
         />
       </Modal>
     </Card>
+    </div>
   )
 }
 

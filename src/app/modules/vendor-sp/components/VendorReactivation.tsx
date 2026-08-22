@@ -13,24 +13,25 @@ import {
   Select,
   DatePicker,
   Empty,
+  Pagination,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { RangePickerProps } from 'antd/es/date-picker'
 import {
-  ReloadOutlined,
   CheckCircleOutlined,
   StopOutlined,
   ExclamationCircleOutlined,
   ClearOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import dayjs, { Dayjs } from 'dayjs'
 import {
   VendorSpPill,
-  vendorSpPagination,
   vendorSpTableClassName,
 } from './VendorSpTable'
+import './VendorSpFilter.css'
 
 interface ReactivationLog {
   id: number
@@ -83,32 +84,17 @@ const VendorReactivation: React.FC = () => {
     total: 0,
   })
 
-  // [POIN 5] Filter state + debounced search input
-  const [filter, setFilter] = useState<ReactivationFilter>(emptyFilter)
-  const [searchInput, setSearchInput] = useState<string>('')
+  const [loadingButton, setLoadingButton] = useState(false)
+
+  const [filtersInput, setFiltersInput] = useState<ReactivationFilter>(emptyFilter)
+  const [appliedFilters, setAppliedFilters] = useState<ReactivationFilter>(emptyFilter)
+
   const [inactiveSearch, setInactiveSearch] = useState<string>('')
 
-  // Debounce search untuk log table (300ms sesuai requirement)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilter((prev) => ({ ...prev, search: searchInput }))
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchInput])
-
-  // Debounce search untuk inactive vendors (300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // local filter only — tidak dikirim ke backend
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [inactiveSearch])
-
-  // Re-fetch log ketika filter atau pagination berubah
   useEffect(() => {
     fetchReactivationLogs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.current, pagination.pageSize, filter])
+  }, [pagination.current, pagination.pageSize, appliedFilters])
 
   const fetchReactivationLogs = async () => {
     setLoading(true)
@@ -117,10 +103,10 @@ const VendorReactivation: React.FC = () => {
         page: pagination.current,
         take: pagination.pageSize,
       }
-      if (filter.search.trim()) params.search = filter.search.trim()
-      if (filter.status) params.status = filter.status
-      if (filter.dateRange?.[0]) params.date_from = filter.dateRange[0].format('YYYY-MM-DD')
-      if (filter.dateRange?.[1]) params.date_to = filter.dateRange[1].format('YYYY-MM-DD')
+      if (appliedFilters.search.trim()) params.search = appliedFilters.search.trim()
+      if (appliedFilters.status) params.status = appliedFilters.status
+      if (appliedFilters.dateRange?.[0]) params.date_from = appliedFilters.dateRange[0].format('YYYY-MM-DD')
+      if (appliedFilters.dateRange?.[1]) params.date_to = appliedFilters.dateRange[1].format('YYYY-MM-DD')
 
       const response = await vendorSpService.getReactivationLogs(params)
       const payload = response.data?.data && response.data?.meta
@@ -138,6 +124,7 @@ const VendorReactivation: React.FC = () => {
       Swal.fire('Error', 'Gagal mengambil data log reaktivasi', 'error')
     } finally {
       setLoading(false)
+      setLoadingButton(false)
     }
   }
 
@@ -177,14 +164,26 @@ const VendorReactivation: React.FC = () => {
     }
   }
 
+  const handleSubmitFilter = () => {
+    setLoadingButton(true)
+    setAppliedFilters(filtersInput)
+    setPagination((prev) => ({ ...prev, current: 1 }))
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      handleSubmitFilter()
+    }
+  }
+
   const openReactivateModal = (vendor: InactiveVendor) => {
     setSelectedVendor(vendor)
     setReactivateModal(true)
   }
 
   const resetFilter = () => {
-    setSearchInput('')
-    setFilter(emptyFilter)
+    setFiltersInput(emptyFilter)
+    setAppliedFilters(emptyFilter)
     setPagination((prev) => ({ ...prev, current: 1 }))
   }
 
@@ -248,6 +247,7 @@ const VendorReactivation: React.FC = () => {
   ]
 
   return (
+    <div id='vendor-sp-reactivation'>
     <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
       <div className='card-header border-0 pt-5'>
         <div className='card-title d-flex flex-column'>
@@ -256,11 +256,6 @@ const VendorReactivation: React.FC = () => {
             Vendor yang dinonaktifkan akibat SP3 dapat diaktifkan kembali melalui
             menu ini
           </span>
-        </div>
-        <div className='card-toolbar'>
-          <Button icon={<ReloadOutlined />} onClick={fetchReactivationLogs}>
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -275,15 +270,18 @@ const VendorReactivation: React.FC = () => {
           className='mb-4'
         />
 
-        {/* [POIN 5] Search untuk inactive vendors grid */}
-        <div className='mb-3' style={{maxWidth: 400}}>
-          <Input.Search
-            placeholder='Cari nama vendor atau PIC...'
-            allowClear
-            value={inactiveSearch}
-            onChange={(e) => setInactiveSearch(e.target.value)}
-            onSearch={(val) => setInactiveSearch(val)}
-          />
+        {/* Search untuk inactive vendors grid (client-side filter, live) */}
+        <div className='mb-3' style={{maxWidth: 450}}>
+          <div className='vendor-sp-search-wrapper'>
+            <SearchOutlined className='vendor-sp-search-icon' />
+            <Input
+              className='vendor-sp-search'
+              placeholder='Cari nama vendor atau PIC...'
+              allowClear
+              value={inactiveSearch}
+              onChange={(e) => setInactiveSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className='row mb-4'>
@@ -338,54 +336,67 @@ const VendorReactivation: React.FC = () => {
 
         <h5 className='mb-3'>Log Reaktivasi</h5>
 
-        {/* [POIN 5] Filter bar untuk log reaktivasi */}
-        <div className='row mb-3 g-2'>
-          <div className='col-md-4'>
-            <Input.Search
-              placeholder='Cari nama vendor / PIC...'
-              allowClear
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onSearch={(val) => setSearchInput(val)}
-            />
-          </div>
-          <div className='col-md-3'>
-            <Select
-              placeholder='Status reaktivasi'
-              allowClear
-              style={{width: '100%'}}
-              value={filter.status}
-              onChange={(val) => {
-                setFilter((prev) => ({...prev, status: val}))
-                setPagination((prev) => ({...prev, current: 1}))
-              }}
-              options={[
-                {value: 1, label: 'Pending'},
-                {value: 2, label: 'Disetujui'},
-                {value: 3, label: 'Ditolak'},
-              ]}
-            />
-          </div>
-          <div className='col-md-4'>
-            <DatePicker.RangePicker
-              style={{width: '100%'}}
-              value={filter.dateRange}
-              onChange={(val) => {
-                setFilter((prev) => ({...prev, dateRange: val}))
-                setPagination((prev) => ({...prev, current: 1}))
-              }}
-              format='YYYY-MM-DD'
-              placeholder={['Dari tanggal', 'Sampai tanggal']}
-            />
-          </div>
-          <div className='col-md-1'>
-            <Button
-              icon={<ClearOutlined />}
-              onClick={resetFilter}
-              title='Reset semua filter'
-            >
-              Reset
-            </Button>
+        <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+          <div className='row g-2 mb-3'>
+            <div className='col-md-4'>
+              <div className='vendor-sp-search-wrapper'>
+                <SearchOutlined className='vendor-sp-search-icon' />
+                <Input
+                  className='vendor-sp-search'
+                  placeholder='Cari nama vendor / PIC...'
+                  allowClear
+                  value={filtersInput.search}
+                  onChange={(e) =>
+                    setFiltersInput((prev) => ({...prev, search: e.target.value}))
+                  }
+                />
+              </div>
+            </div>
+            <div className='col-md-2'>
+              <Select
+                className='vendor-sp-filter-select'
+                placeholder='Status reaktivasi'
+                allowClear
+                value={filtersInput.status}
+                onChange={(val) =>
+                  setFiltersInput((prev) => ({...prev, status: val}))
+                }
+                options={[
+                  {value: 1, label: 'Pending'},
+                  {value: 2, label: 'Disetujui'},
+                  {value: 3, label: 'Ditolak'},
+                ]}
+              />
+            </div>
+            <div className='col-md-3'>
+              <DatePicker.RangePicker
+                style={{width: '100%'}}
+                value={filtersInput.dateRange}
+                onChange={(val) =>
+                  setFiltersInput((prev) => ({...prev, dateRange: val}))
+                }
+                format='YYYY-MM-DD'
+                placeholder={['Dari tanggal', 'Sampai tanggal']}
+              />
+            </div>
+            <div className='col-md-2'>
+              <Button
+                className='btn-dark-primary'
+                onClick={handleSubmitFilter}
+                loading={loadingButton}
+              >
+                {loadingButton ? 'Filtering..' : 'Submit'}
+              </Button>
+            </div>
+            <div className='col-md-1'>
+              <Button
+                icon={<ClearOutlined />}
+                onClick={resetFilter}
+                title='Reset semua filter'
+              >
+                Reset
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -395,14 +406,7 @@ const VendorReactivation: React.FC = () => {
           dataSource={data}
           rowKey='id'
           loading={loading}
-          pagination={vendorSpPagination(pagination)}
-          onChange={(newPagination: any) =>
-            setPagination((prev) => ({
-              ...prev,
-              current: newPagination.current || 1,
-              pageSize: newPagination.pageSize || prev.pageSize,
-            }))
-          }
+          pagination={false}
           locale={{
             emptyText: (
               <Empty
@@ -415,6 +419,26 @@ const VendorReactivation: React.FC = () => {
             ),
           }}
         />
+        <div className='pagination-container'>
+          <span className='pagination-total'>
+            {pagination.total === 0
+              ? 'Showing 0 of 0 Log Reaktivasi'
+              : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+                  pagination.current * pagination.pageSize,
+                  pagination.total,
+                )} of ${pagination.total} Log Reaktivasi`}
+          </span>
+          <Pagination
+            current={pagination.current}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            showSizeChanger
+            pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+            onChange={(page, size) =>
+              setPagination((prev) => ({...prev, current: page, pageSize: size}))
+            }
+          />
+        </div>
       </div>
 
       {/* Reactivate Modal */}
@@ -491,6 +515,7 @@ const VendorReactivation: React.FC = () => {
           </Form>
         )}
       </Modal>
+    </div>
     </div>
   )
 }

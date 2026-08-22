@@ -104,4 +104,36 @@ export const vendorSpService = {
     }
     await downloadPdf(response, `Surat_Bebas_Pelanggaran_${params.vendor_id}.pdf`);
   },
+
+  // Poin 4 (varian aggregate): PDF rekap LIST vendor tanpa pelanggaran.
+  generateCleanVendorRecap: async (params: {
+    quarter: number;
+    year: number;
+    category?: string;
+  }): Promise<void> => {
+    const response = await fetch(
+      `${process.env.REACT_APP_API_URL}/vendor-sp/clean-vendor-recap/export`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify(params),
+      },
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      let msg = `HTTP ${response.status}`;
+      try {
+        const json = JSON.parse(text);
+        msg = json.message ?? msg;
+      } catch {}
+      throw new Error(msg);
+    }
+    await downloadPdf(
+      response,
+      `Rekap_Vendor_Bersih_Q${params.quarter}_${params.year}.pdf`,
+    );
+  },
 };

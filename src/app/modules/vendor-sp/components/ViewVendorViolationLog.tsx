@@ -12,21 +12,24 @@ import {
   message,
   Badge,
   Descriptions,
+  Upload,
+  Pagination,
 } from 'antd'
 import {
   PlusOutlined,
   EyeOutlined,
-  ReloadOutlined,
   DownloadOutlined,
+  UploadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
   VendorSpActionButton,
   VendorSpPill,
-  vendorSpPagination,
   vendorSpTableClassName,
 } from './VendorSpTable'
 import { vendorViolationService } from '../../../services/vendorViolationService'
+import './VendorSpFilter.css'
 
 const { Option } = Select
 
@@ -83,11 +86,17 @@ const ViewVendorViolationLog: React.FC = () => {
   const [addModal, setAddModal] = useState(false)
   const [vendors, setVendors] = useState<any[]>([])
   const [violationTypes, setViolationTypes] = useState<any[]>([])
-  const [filters, setFilters] = useState({
+  const [filtersInput, setFiltersInput] = useState({
     search: '',
     category: undefined as string | undefined,
     vendor_id: undefined as number | undefined,
   })
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    category: undefined as string | undefined,
+    vendor_id: undefined as number | undefined,
+  })
+  const [loadingButton, setLoadingButton] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -96,9 +105,9 @@ const ViewVendorViolationLog: React.FC = () => {
       const params = new URLSearchParams({
         page: pagination.current.toString(),
         take: pagination.pageSize.toString(),
-        ...(filters.search && { search: filters.search }),
-        ...(filters.category && { category: filters.category }),
-        ...(filters.vendor_id && { vendor_id: filters.vendor_id.toString() }),
+        ...(appliedFilters.search && { search: appliedFilters.search }),
+        ...(appliedFilters.category && { category: appliedFilters.category }),
+        ...(appliedFilters.vendor_id && { vendor_id: appliedFilters.vendor_id.toString() }),
       })
 
       const response = await axios.get(
@@ -121,6 +130,7 @@ const ViewVendorViolationLog: React.FC = () => {
       message.error('Gagal mengambil data')
     } finally {
       setLoading(false)
+      setLoadingButton(false)
     }
   }
 
@@ -144,7 +154,15 @@ const ViewVendorViolationLog: React.FC = () => {
         `${process.env.REACT_APP_API_URL}/vendor-violation/type?take=100&is_active=true`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
-      setViolationTypes(response.data.data)
+      const payload = response.data?.data && response.data?.meta
+        ? response.data
+        : response.data?.data || response.data
+      const types = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+        ? payload
+        : []
+      setViolationTypes(types)
     } catch (error) {
       console.error('Failed to fetch violation types')
     }
@@ -154,7 +172,19 @@ const ViewVendorViolationLog: React.FC = () => {
     fetchData()
     fetchVendors()
     fetchViolationTypes()
-  }, [pagination.current, pagination.pageSize, filters])
+  }, [pagination.current, pagination.pageSize, appliedFilters.search, appliedFilters.category, appliedFilters.vendor_id])
+
+  const handleSubmitFilter = () => {
+    setLoadingButton(true)
+    setAppliedFilters(filtersInput)
+    setPagination((prev) => ({ ...prev, current: 1 }))
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      handleSubmitFilter()
+    }
+  }
 
   const handleTableChange = (newPagination: any) => {
     setPagination((prev) => ({
@@ -184,9 +214,9 @@ const ViewVendorViolationLog: React.FC = () => {
     setExporting(true)
     try {
       const response = await vendorViolationService.exportLogs({
-        search: filters.search,
-        category: filters.category,
-        vendor_id: filters.vendor_id,
+        search: appliedFilters.search,
+        category: appliedFilters.category,
+        vendor_id: appliedFilters.vendor_id,
       })
       const blob = response.data as Blob
       const disposition = (response.headers as Record<string, string>)?.[
@@ -332,73 +362,94 @@ const ViewVendorViolationLog: React.FC = () => {
   ]
 
   return (
+    <div id='vendor-sp-violations'>
     <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
       <div className='card-header border-0 pt-5'>
         <div className='card-title d-flex flex-column'>
-          <div className='vendor-sp-toolbar'>
-            <div className='vendor-sp-filter-group'>
-              <Input.Search
-                className='vendor-sp-filter-control'
-                placeholder='Cari vendor...'
-                onSearch={(value) =>
-                  setFilters((prev) => ({ ...prev, search: value }))
-                }
-                style={{ width: 200 }}
-              />
-              <Select
-                className='vendor-sp-filter-control'
-                placeholder='Kategori'
-                allowClear
-                style={{ width: 150 }}
-                onChange={(value) =>
-                  setFilters((prev) => ({ ...prev, category: value }))
-                }
-              >
-                {CATEGORIES.map((cat) => (
-                  <Option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </Option>
-                ))}
-              </Select>
-              <Select
-                className='vendor-sp-filter-control'
-                placeholder='Pilih Vendor'
-                allowClear
-                showSearch
-                style={{ width: 200 }}
-                onChange={(value) =>
-                  setFilters((prev) => ({ ...prev, vendor_id: value }))
-                }
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-                options={vendors.map((v) => ({
-                  value: v.id,
-                  label: v.company_name,
-                }))}
-              />
-            </div>
-            <Space className='vendor-sp-action-group'>
-              <Button icon={<ReloadOutlined />} onClick={fetchData}>
-                Refresh
-              </Button>
-              {canExport && (
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={handleExport}
-                  loading={exporting}
+          <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+            <div className='row g-2 mb-3'>
+              <div className='col-md-3'>
+                <div className='vendor-sp-search-wrapper'>
+                  <SearchOutlined className='vendor-sp-search-icon' />
+                  <Input
+                    className='vendor-sp-search'
+                    placeholder='Cari vendor...'
+                    allowClear
+                    value={filtersInput.search}
+                    onChange={(e) =>
+                      setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className='col-md-2'>
+                <Select
+                  className='vendor-sp-filter-select'
+                  placeholder='Kategori'
+                  allowClear
+                  value={filtersInput.category}
+                  onChange={(value) =>
+                    setFiltersInput((prev) => ({ ...prev, category: value }))
+                  }
+                  style={{ width: '100%' }}
                 >
-                  Download Excel
+                  {CATEGORIES.map((cat) => (
+                    <Option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+              <div className='col-md-2'>
+                <Select
+                  className='vendor-sp-filter-select'
+                  placeholder='Pilih Vendor'
+                  allowClear
+                  showSearch
+                  value={filtersInput.vendor_id}
+                  onChange={(value) =>
+                    setFiltersInput((prev) => ({ ...prev, vendor_id: value }))
+                  }
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={vendors.map((v) => ({
+                    value: v.id,
+                    label: v.company_name,
+                  }))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div className='col-md-2'>
+                <Button
+                  className='btn-dark-primary'
+                  onClick={handleSubmitFilter}
+                  loading={loadingButton}
+                >
+                  {loadingButton ? 'Filtering..' : 'Submit'}
                 </Button>
-              )}
-              <Button
-                type='primary'
-                icon={<PlusOutlined />}
-                onClick={() => setAddModal(true)}
-              >
-                Catat Pelanggaran
-              </Button>
-            </Space>
+              </div>
+              <div className='col-md-3 d-flex justify-content-end'>
+                <Space>
+                  {canExport && (
+                    <Button
+                      icon={<DownloadOutlined />}
+                      onClick={handleExport}
+                      loading={exporting}
+                    >
+                      Download Excel
+                    </Button>
+                  )}
+                  <Button
+                    type='primary'
+                    icon={<PlusOutlined />}
+                    onClick={() => setAddModal(true)}
+                  >
+                    Catat Pelanggaran
+                  </Button>
+                </Space>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -410,10 +461,29 @@ const ViewVendorViolationLog: React.FC = () => {
           dataSource={data}
           rowKey='id'
           loading={loading}
-          pagination={vendorSpPagination(pagination)}
-          onChange={handleTableChange}
+          pagination={false}
           scroll={{ x: 1000 }}
         />
+        <div className='pagination-container'>
+          <span className='pagination-total'>
+            {pagination.total === 0
+              ? 'Showing 0 of 0 Pelanggaran'
+              : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+                  pagination.current * pagination.pageSize,
+                  pagination.total,
+                )} of ${pagination.total} Pelanggaran`}
+          </span>
+          <Pagination
+            current={pagination.current}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            showSizeChanger
+            pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+            onChange={(page, size) =>
+              setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
+            }
+          />
+        </div>
       </div>
 
       {/* Detail Modal */}
@@ -478,6 +548,7 @@ const ViewVendorViolationLog: React.FC = () => {
         />
       </Modal>
     </div>
+    </div>
   )
 }
 
@@ -489,9 +560,59 @@ const AddViolationForm: React.FC<{
   onCancel: () => void
 }> = ({ vendors, violationTypes, onSubmit, onCancel }) => {
   const [form] = Form.useForm()
+  const [uploading, setUploading] = useState(false)
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
+  const [evidencePath, setEvidencePath] = useState<string | null>(null)
+
+  const handleEvidenceUpload = async (file: any): Promise<boolean> => {
+    const actualFile: File = file.originFileObj || file
+    const allowedPrefixes = ['image/', 'application/pdf']
+    if (!allowedPrefixes.some((p) => actualFile.type.startsWith(p))) {
+      message.error('Tipe file tidak didukung. Hanya gambar atau PDF.')
+      return false
+    }
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', actualFile)
+      const token = localStorage.getItem('accessToken')
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/vendor-violation/log/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      )
+      setEvidencePath(res.data.data.path)
+      setEvidenceFile(actualFile)
+      message.success('File berhasil diupload')
+      return false
+    } catch (err) {
+      message.error('Gagal upload file')
+      return false
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleFinish = (values: any) => {
+    if (!evidencePath) {
+      message.error('Upload bukti pelanggaran terlebih dahulu')
+      return
+    }
+    onSubmit({ ...values, evidence_path: evidencePath })
+  }
+
+  const handleEvidenceRemove = () => {
+    setEvidenceFile(null)
+    setEvidencePath(null)
+  }
 
   return (
-    <Form form={form} layout='vertical' onFinish={onSubmit}>
+    <Form form={form} layout='vertical' onFinish={handleFinish}>
       <Form.Item
         name='vendor_id'
         label='Vendor'
@@ -532,19 +653,39 @@ const AddViolationForm: React.FC<{
         <Input.TextArea rows={3} placeholder='Keterangan tambahan' />
       </Form.Item>
 
-      {/* [POIN 6] Lapis 3 UI guard — evidence_path WAJIB diisi. */}
-      <Form.Item
-        name='evidence_path'
-        label='Path Evidence (wajib)'
-        rules={[{ required: true, message: 'Path evidence wajib diisi' }]}
-      >
-        <Input placeholder='/uploads/evidence/nama-file.png' />
+      <Form.Item label='Bukti Pelanggaran (wajib)' required>
+        <Upload
+          maxCount={1}
+          accept='image/*,application/pdf'
+          beforeUpload={handleEvidenceUpload}
+          onRemove={handleEvidenceRemove}
+          fileList={
+            evidenceFile
+              ? [
+                  {
+                    uid: '-1',
+                    name: evidenceFile.name,
+                    status: 'done',
+                  },
+                ]
+              : []
+          }
+        >
+          <Button icon={<UploadOutlined />} loading={uploading}>
+            {evidencePath ? 'Ganti File' : 'Pilih File'}
+          </Button>
+        </Upload>
+        {evidencePath && (
+          <div className='small text-muted mt-1'>
+            Path: {evidencePath}
+          </div>
+        )}
       </Form.Item>
 
       <Form.Item className='mb-0 text-end'>
         <Space>
           <Button onClick={onCancel}>Batal</Button>
-          <Button type='primary' htmlType='submit'>
+          <Button type='primary' htmlType='submit' disabled={!evidencePath}>
             Simpan
           </Button>
         </Space>
