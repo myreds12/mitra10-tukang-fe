@@ -316,9 +316,15 @@ export function AsideMenuMain() {
             role={['Admin HO', 'Super User']}
             hasBullet={true}
           >
-            <AsideMenuItem
+<AsideMenuItem
               to='/vendor-sp/view'
               title='Daftar SP Vendor'
+              role={['Admin HO', 'Super User']}
+              hasBullet={true}
+            />
+            <AsideMenuItem
+              to='/vendor-sp/violation-type'
+              title='Jenis Pelanggaran'
               role={['Admin HO', 'Super User']}
               hasBullet={true}
             />
