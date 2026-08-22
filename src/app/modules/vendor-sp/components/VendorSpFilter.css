@@ -1,22 +1,40 @@
-/* Vendor SP Filter / Pagination styling — disusun agar konsisten dengan
+/* Vendor SP Filter / Pagination styling — disusun konsisten dengan
    pattern List Vendor (admin-ho/vendor/view_vendor/ViewVendor.css).
-   Scoped per-halaman via ID selector (#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation, dst) supaya tidak
-   bocor ke halaman lain.
+   Scoped per-halaman via ID selector dengan descendant eksplisit di
+   belakang tiap ID supaya tidak match ke wrapper div itu sendiri.
+
+   PENTING: jangan pakai comma-only syntax seperti
+     `#a, #b .descendant { ... }`
+   karena `#a` akan match sebagai standalone ID — apply ke wrapper
+   (bukan ke descendant-nya). Itu yg bikin bug layout rusak.
+   SELALU tulis full selector per ID, contoh:
+     `#a .descendant, #b .descendant { ... }`
 */
 
 /* ================================
-   (a) Daftar SP Vendor — #vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation
+   Table head margin
    ================================ */
-
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-table-head {
+#vendor-sp-list .vendor-sp-table-head,
+#vendor-sp-violations .vendor-sp-table-head,
+#vendor-sp-revisions .vendor-sp-table-head,
+#vendor-sp-reactivation .vendor-sp-table-head {
   margin-bottom: 20px;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-search-wrapper {
+/* ================================
+   Search box (icon overlay wrapper + icon)
+   ================================ */
+#vendor-sp-list .vendor-sp-search-wrapper,
+#vendor-sp-violations .vendor-sp-search-wrapper,
+#vendor-sp-revisions .vendor-sp-search-wrapper,
+#vendor-sp-reactivation .vendor-sp-search-wrapper {
   position: relative;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-search-icon {
+#vendor-sp-list .vendor-sp-search-icon,
+#vendor-sp-violations .vendor-sp-search-icon,
+#vendor-sp-revisions .vendor-sp-search-icon,
+#vendor-sp-reactivation .vendor-sp-search-icon {
   position: absolute;
   left: 11px;
   top: 50%;
@@ -26,22 +44,46 @@
   pointer-events: none;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation input.vendor-sp-search.ant-input {
+#vendor-sp-list input.vendor-sp-search.ant-input,
+#vendor-sp-violations input.vendor-sp-search.ant-input,
+#vendor-sp-revisions input.vendor-sp-search.ant-input,
+#vendor-sp-reactivation input.vendor-sp-search.ant-input {
   height: 45px !important;
   padding-left: 35px !important;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-filter-select .ant-select-selector,
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-filter-select.ant-select {
+/* ================================
+   Filter Select dropdown height
+   ================================ */
+#vendor-sp-list .vendor-sp-filter-select .ant-select-selector,
+#vendor-sp-list .vendor-sp-filter-select.ant-select,
+#vendor-sp-violations .vendor-sp-filter-select .ant-select-selector,
+#vendor-sp-violations .vendor-sp-filter-select.ant-select,
+#vendor-sp-revisions .vendor-sp-filter-select .ant-select-selector,
+#vendor-sp-revisions .vendor-sp-filter-select.ant-select,
+#vendor-sp-reactivation .vendor-sp-filter-select .ant-select-selector,
+#vendor-sp-reactivation .vendor-sp-filter-select.ant-select {
   height: 45px !important;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-filter-select .ant-select-selection-item,
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .vendor-sp-filter-select .ant-select-selection-placeholder {
+#vendor-sp-list .vendor-sp-filter-select .ant-select-selection-item,
+#vendor-sp-list .vendor-sp-filter-select .ant-select-selection-placeholder,
+#vendor-sp-violations .vendor-sp-filter-select .ant-select-selection-item,
+#vendor-sp-violations .vendor-sp-filter-select .ant-select-selection-placeholder,
+#vendor-sp-revisions .vendor-sp-filter-select .ant-select-selection-item,
+#vendor-sp-revisions .vendor-sp-filter-select .ant-select-selection-placeholder,
+#vendor-sp-reactivation .vendor-sp-filter-select .ant-select-selection-item,
+#vendor-sp-reactivation .vendor-sp-filter-select .ant-select-selection-placeholder {
   line-height: 45px !important;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .btn-dark-primary.ant-btn {
+/* ================================
+   Submit button — dark blue primary
+   ================================ */
+#vendor-sp-list .btn-dark-primary.ant-btn,
+#vendor-sp-violations .btn-dark-primary.ant-btn,
+#vendor-sp-revisions .btn-dark-primary.ant-btn,
+#vendor-sp-reactivation .btn-dark-primary.ant-btn {
   background-color: #183383;
   border-color: #183383;
   color: #fff;
@@ -50,53 +92,98 @@
   font-weight: 500;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .btn-dark-primary.ant-btn:hover,
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .btn-dark-primary.ant-btn:focus {
+#vendor-sp-list .btn-dark-primary.ant-btn:hover,
+#vendor-sp-list .btn-dark-primary.ant-btn:focus,
+#vendor-sp-violations .btn-dark-primary.ant-btn:hover,
+#vendor-sp-violations .btn-dark-primary.ant-btn:focus,
+#vendor-sp-revisions .btn-dark-primary.ant-btn:hover,
+#vendor-sp-revisions .btn-dark-primary.ant-btn:focus,
+#vendor-sp-reactivation .btn-dark-primary.ant-btn:hover,
+#vendor-sp-reactivation .btn-dark-primary.ant-btn:focus {
   background-color: #122866;
   border-color: #122866;
   color: #fff;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .btn-dark-primary.ant-btn[disabled],
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .btn-dark-primary.ant-btn.ant-btn-loading {
+#vendor-sp-list .btn-dark-primary.ant-btn[disabled],
+#vendor-sp-list .btn-dark-primary.ant-btn.ant-btn-loading,
+#vendor-sp-violations .btn-dark-primary.ant-btn[disabled],
+#vendor-sp-violations .btn-dark-primary.ant-btn.ant-btn-loading,
+#vendor-sp-revisions .btn-dark-primary.ant-btn[disabled],
+#vendor-sp-revisions .btn-dark-primary.ant-btn.ant-btn-loading,
+#vendor-sp-reactivation .btn-dark-primary.ant-btn[disabled],
+#vendor-sp-reactivation .btn-dark-primary.ant-btn.ant-btn-loading {
   background-color: #183383;
   border-color: #183383;
   color: #fff;
   opacity: 0.85;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows .ant-table-thead > tr > th {
+/* ================================
+   Table header — dark blue + white + medium-bold
+   ================================ */
+#vendor-sp-list .table-striped-rows .ant-table-thead > tr > th,
+#vendor-sp-violations .table-striped-rows .ant-table-thead > tr > th,
+#vendor-sp-revisions .table-striped-rows .ant-table-thead > tr > th,
+#vendor-sp-reactivation .table-striped-rows .ant-table-thead > tr > th {
   color: #fff !important;
   font-weight: 500 !important;
   background-color: #183383 !important;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows .ant-table-thead > tr:first-child > th:first-child {
+#vendor-sp-list .table-striped-rows .ant-table-thead > tr:first-child > th:first-child,
+#vendor-sp-violations .table-striped-rows .ant-table-thead > tr:first-child > th:first-child,
+#vendor-sp-revisions .table-striped-rows .ant-table-thead > tr:first-child > th:first-child,
+#vendor-sp-reactivation .table-striped-rows .ant-table-thead > tr:first-child > th:first-child {
   border-start-start-radius: 0;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows .ant-table-thead > tr:first-child > th:last-child {
+#vendor-sp-list .table-striped-rows .ant-table-thead > tr:first-child > th:last-child,
+#vendor-sp-violations .table-striped-rows .ant-table-thead > tr:first-child > th:last-child,
+#vendor-sp-revisions .table-striped-rows .ant-table-thead > tr:first-child > th:last-child,
+#vendor-sp-reactivation .table-striped-rows .ant-table-thead > tr:first-child > th:last-child {
   border-start-end-radius: 0;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows tr:nth-child(even) td {
+/* ================================
+   Striped rows
+   ================================ */
+#vendor-sp-list .table-striped-rows tr:nth-child(even) td,
+#vendor-sp-violations .table-striped-rows tr:nth-child(even) td,
+#vendor-sp-revisions .table-striped-rows tr:nth-child(even) td,
+#vendor-sp-reactivation .table-striped-rows tr:nth-child(even) td {
   background-color: #ffff;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows tr:nth-child(odd) td {
+#vendor-sp-list .table-striped-rows tr:nth-child(odd) td,
+#vendor-sp-violations .table-striped-rows tr:nth-child(odd) td,
+#vendor-sp-revisions .table-striped-rows tr:nth-child(odd) td,
+#vendor-sp-reactivation .table-striped-rows tr:nth-child(odd) td {
   background-color: #e4e9f7;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows .ant-table-tbody > tr.ant-table-row:hover > td {
+#vendor-sp-list .table-striped-rows .ant-table-tbody > tr.ant-table-row:hover > td,
+#vendor-sp-violations .table-striped-rows .ant-table-tbody > tr.ant-table-row:hover > td,
+#vendor-sp-revisions .table-striped-rows .ant-table-tbody > tr.ant-table-row:hover > td,
+#vendor-sp-reactivation .table-striped-rows .ant-table-tbody > tr.ant-table-row:hover > td {
   background-color: #dcdcdc !important;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .table-striped-rows .ant-table-tbody > tr > td {
+#vendor-sp-list .table-striped-rows .ant-table-tbody > tr > td,
+#vendor-sp-violations .table-striped-rows .ant-table-tbody > tr > td,
+#vendor-sp-revisions .table-striped-rows .ant-table-tbody > tr > td,
+#vendor-sp-reactivation .table-striped-rows .ant-table-tbody > tr > td {
   word-wrap: break-word;
   word-break: break-word;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .pagination-container {
+/* ================================
+   Custom Pagination
+   ================================ */
+#vendor-sp-list .pagination-container,
+#vendor-sp-violations .pagination-container,
+#vendor-sp-revisions .pagination-container,
+#vendor-sp-reactivation .pagination-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -105,7 +192,10 @@
   gap: 12px;
 }
 
-#vendor-sp-list, #vendor-sp-violations, #vendor-sp-revisions, #vendor-sp-reactivation .pagination-total {
+#vendor-sp-list .pagination-total,
+#vendor-sp-violations .pagination-total,
+#vendor-sp-revisions .pagination-total,
+#vendor-sp-reactivation .pagination-total {
   color: #6c757d;
   font-size: 14px;
 }
