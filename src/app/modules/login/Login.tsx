@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react'
 import './Login.css'
 
 import {Link, useNavigate} from 'react-router-dom'
-import {Form, Button} from 'react-bootstrap'
+import {Form, Button, Modal} from 'react-bootstrap'
 import Swal from 'sweetalert2'
 import axios from 'axios'
 import {toAbsoluteUrl} from '../../../_metronic/helpers'
@@ -10,6 +10,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faEye, faEyeSlash} from '@fortawesome/free-solid-svg-icons'
 
 import ModalNotification from './ModalNotification'
+import TermsAndConditionsViewer from './TermsAndConditionsViewer'
 
 interface Status {
   value: number
@@ -25,7 +26,7 @@ export function Login() {
   const [status, setStatus] = useState<Status[]>([])
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-
+  const [showTerms, setShowTerms] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [handleTogglePassword, setHandleTogglePassword] = useState(false)
@@ -94,8 +95,15 @@ export function Login() {
           const isTukang = user.roles.name === 'Tukang'
           const isFinance = user.roles.name === 'Finance'
           const isPayroll = user.roles.name === 'Payroll'
+          const isRegistrant = user.roles.name === 'Pendaftar Vendor'
           const isEmployee =
-            user.employee !== null && !isStore && !isSales && !isVendor && !isTukang && !isAdminHO
+            user.employee !== null &&
+            !isStore &&
+            !isSales &&
+            !isVendor &&
+            !isTukang &&
+            !isAdminHO &&
+            !isRegistrant
 
           localStorage.setItem('user_id', user.id)
           localStorage.setItem('username', user.username)
@@ -136,13 +144,13 @@ export function Login() {
             localStorage.setItem('vendorName', user?.pic_vendor[0]?.vendor?.company_name)
           } else if (isTukang) {
             localStorage.setItem('tukang_id', user?.tukang[0]?.id)
-            localStorage.setItem('tukangName', user?.tukang[0]?.full_name)
-          } else if (isFinance) {
-            localStorage.setItem('finance_id', user?.id)
-            localStorage.setItem('financeName', user?.username)
           } else if (isPayroll) {
             localStorage.setItem('payrollid', user?.id)
             localStorage.setItem('financeName', user?.username)
+          } else if (isRegistrant) {
+            // Pendaftar vendor: tidak perlu localStorage tambahan (vendor_id dsb
+            // belum ada - pendaftaran belum disetujui). Redirect ditangani
+            // AppRoutes navigateUrl() -> /pendaftar/home.
           } else if (!isSales && !isAdminHO && !isEmployee && !isVendor) {
             window.location.reload()
           }
@@ -266,7 +274,6 @@ export function Login() {
                   {isLoading ? 'Logging In...' : 'Login'}
                 </Button>
               </div>
-
               <div className='text-center mt-5 pt-5 border-top'>
                 <p className='text-muted mb-2'>Belum punya akun vendor?</p>
                 <Link
@@ -275,6 +282,16 @@ export function Login() {
                 >
                   Daftar sebagai Vendor
                 </Link>
+
+                {/* Tombol Syarat & Ketentuan - viewer read-only (HTML, tanpa download) */}
+                <Button
+                  type='button'
+                  variant='link'
+                  className='mt-3 p-0 text-muted'
+                  onClick={() => setShowTerms(true)}
+                >
+                  Syarat &amp; Ketentuan
+                </Button>
               </div>
             </form>
           </div>
@@ -282,6 +299,9 @@ export function Login() {
       </div>
 
       {showModal && <ModalNotification onClose={() => setShowModal(false)} />}
+
+      {/* Viewer T&C read-only (HTML dari DB, tanpa download) */}
+      <TermsAndConditionsViewer show={showTerms} onClose={() => setShowTerms(false)} />
     </section>
   )
 }

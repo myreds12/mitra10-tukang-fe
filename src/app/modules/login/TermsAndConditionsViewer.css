@@ -1,0 +1,92 @@
+/* Viewer read-only Syarat & Ketentuan (T&C) - no download, no print */
+
+.terms-viewer-modal .modal-dialog {
+  max-width: 760px;
+}
+
+.terms-viewer-header {
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem 1.5rem;
+}
+
+.terms-viewer-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #183383;
+}
+
+.terms-viewer-version {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #6c757d;
+  background: #f0f2f5;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  vertical-align: middle;
+}
+
+.terms-viewer-body {
+  padding: 1.25rem 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Read-only: blok seleksi/copy teks supaya sulit disalin */
+.terms-viewer-content {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  color: #212529;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.terms-viewer-content h1,
+.terms-viewer-content h2,
+.terms-viewer-content h3 {
+  color: #183383;
+  font-weight: 600;
+}
+
+.terms-viewer-content h2 {
+  font-size: 1.15rem;
+}
+
+.terms-viewer-content h3 {
+  font-size: 1rem;
+}
+
+.terms-viewer-content ol,
+.terms-viewer-content ul {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.terms-viewer-content li {
+  margin-bottom: 0.5rem;
+}
+
+.terms-viewer-content p {
+  margin-bottom: 0.75rem;
+}
+
+.terms-viewer-content em {
+  color: #6c757d;
+}
+
+.terms-viewer-footer {
+  border-top: 1px solid #e9ecef;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Blok print: konten T&C tidak ikut tercetak */
+@media print {
+  .terms-viewer-modal {
+    display: none !important;
+  }
+}

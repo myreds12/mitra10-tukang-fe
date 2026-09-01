@@ -35,6 +35,9 @@ const AppRoutes: FC = () => {
         return '/invoice/view-invoice'
       case 'Payroll':
         return '/incentive-sales/list-request-incentive'
+      // Pendaftar vendor: dashboard khusus (Home & Status saja)
+      case 'Pendaftar Vendor':
+        return '/pendaftar/home'
       default:
         return '/home'
     }

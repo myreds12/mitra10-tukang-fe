@@ -53,15 +53,30 @@ const PrivateRoutes = () => {
   const DataRolePage = lazy(() => import('../modules/data-role/DataMasterPage'))
   const NotifSettingPage = lazy(() => import('../modules/notif-setting/NotifSettingPage'))
   const VendorSPPage = lazy(() => import('../modules/vendor-sp/VendorSPPage'))
-  const VendorRegistrationPage = lazy(() => import('../modules/vendor-registration/VendorRegistrationPage'))
+  const RegistrantPage = lazy(() => import('../modules/pendaftar/RegistrantPage'))
+  const isRegistrant = localStorage.getItem('userRole') === 'Pendaftar Vendor'
 
   return (
     <Routes>
       <Route element={<MasterLayout />}>
         {/* Redirect to Home after success Login */}
         {/* <Route path='login' element={<Navigate to='/home' />} /> */}
-
         {/* Pages */}
+        {/* Dashboard Pendaftar Vendor (Home & Status saja) */}
+        <Route
+          path='pendaftar/*'
+          element={
+            <SuspensedView>
+              <RegistrantPage />
+            </SuspensedView>
+          }
+        />
+
+        {/* Route guard: user "Pendaftar Vendor" hanya boleh ke dashboard pendaftar.
+            Semua route lain (home, order, work order, vendor, dll - fitur vendor
+            aktif & internal) di-redirect ke /pendaftar/home. */}
+        {isRegistrant && <Route path='*' element={<Navigate to='/pendaftar/home' replace />} />}
+
         <Route path='home' element={<DashboardWrapper />} />
 
         {/* Lazy Modules */}
