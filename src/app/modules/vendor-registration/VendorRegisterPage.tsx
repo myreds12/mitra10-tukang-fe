@@ -260,6 +260,7 @@ const VendorRegisterPage: React.FC = () => {
               )}
           </>
         )}
+        </Modal.Body>
         <Modal.Footer className="vendor-tnc-footer">
           <div className="vendor-tnc-agree">
             <Form.Check
