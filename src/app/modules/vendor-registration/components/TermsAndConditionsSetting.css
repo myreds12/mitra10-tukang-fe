@@ -1,0 +1,251 @@
+/* Setting: Syarat & Ketentuan (T&C) - tampilan 1:1 dengan ViewVendorRegistration */
+
+/* Table header - sama seperti vendor-registration table */
+#terms-setting-view .ant-table-wrapper .ant-table-thead > tr > th,
+#terms-setting-update .ant-table-wrapper .ant-table-thead > tr > th {
+  color: #ffff;
+  font-weight: 500;
+  background-color: #183383;
+}
+
+#terms-setting-view .ant-table-wrapper .ant-table-container table > thead > tr:first-child > *:first-child,
+#terms-setting-update .ant-table-wrapper .ant-table-container table > thead > tr:first-child > *:first-child {
+  border-start-start-radius: 0;
+}
+
+#terms-setting-view .ant-table-wrapper .ant-table-container table > thead > tr:first-child > *:last-child,
+#terms-setting-update .ant-table-wrapper .ant-table-container table > thead > tr:first-child > *:last-child {
+  border-start-end-radius: 0;
+}
+
+/* Title - pola seperti page lain */
+.terms-setting-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #183383;
+  margin-bottom: 0.5rem;
+}
+
+.terms-setting-subtitle {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+/* Search filter - 1:1 dengan ViewVendorRegistration */
+#terms-setting-view .table-head-wrapper {
+  margin-bottom: 20px;
+}
+
+#terms-setting-view .filter-search {
+  width: 40%;
+}
+
+#terms-setting-view input.filter-ltr.form-control {
+  height: 45px !important;
+  padding-left: 35px !important;
+}
+
+#terms-setting-view .filter-search .search-icon {
+  float: left;
+  margin-left: 11px;
+  margin-top: -30px;
+  position: relative;
+}
+
+/* Button - konsisten btn-dark-primary page lain (dipakai di form edit) */
+#terms-setting-update .btn-dark-primary {
+  background-color: #020080 !important;
+  border-color: #020080 !important;
+  color: white !important;
+  height: 45px;
+}
+
+#terms-setting-update .btn-dark-primary:hover {
+  background-color: #020060 !important;
+  border-color: #020060 !important;
+}
+
+/* Table vars - sama seperti vendor-registration-table */
+.terms-setting-table {
+  --vendor-table-row-hover-bg: var(--bs-gray-200, #dcdcdc);
+  --vendor-table-row-even-bg: var(--bs-body-bg, #ffffff);
+  --vendor-table-row-odd-bg: #e4e9f7;
+  --vendor-table-cell-padding-y: 0.85rem;
+  --vendor-table-cell-padding-x: 0.75rem;
+  --vendor-table-action-size: 2rem;
+  --vendor-table-action-radius: var(--bs-border-radius, 0.475rem);
+  --vendor-table-badge-radius: var(--bs-border-radius, 0.475rem);
+  --vendor-table-badge-border-width: 1px;
+}
+
+#terms-setting-view .ant-table-fixed {
+  table-layout: fixed;
+}
+
+/* Striped rows - sama seperti vendor-registration */
+.terms-setting-table.ant-table-wrapper .ant-table-tbody > tr:nth-child(even) > td,
+.terms-setting-table.ant-table-wrapper .ant-table-tbody > tr:nth-child(even):hover > td {
+  background-color: var(--vendor-table-row-even-bg);
+}
+
+.terms-setting-table.ant-table-wrapper .ant-table-tbody > tr:nth-child(odd) > td,
+.terms-setting-table.ant-table-wrapper .ant-table-tbody > tr:nth-child(odd):hover > td {
+  background-color: var(--vendor-table-row-odd-bg);
+}
+
+.terms-setting-table.ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: var(--vendor-table-cell-padding-y) var(--vendor-table-cell-padding-x);
+  vertical-align: middle;
+}
+
+/* Action button - konsisten page lain */
+#terms-setting-view .action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--vendor-table-action-size);
+  height: var(--vendor-table-action-size);
+  min-width: var(--vendor-table-action-size);
+  border-radius: var(--vendor-table-action-radius) !important;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+#terms-setting-view .action-button svg {
+  font-size: 13px;
+}
+
+/* Badge status & tipe dokumen - outline style seperti status-badge page lain */
+.terms-setting-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.45rem 0.75rem;
+  border: var(--vendor-table-badge-border-width) solid currentColor;
+  border-radius: var(--vendor-table-badge-radius);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.terms-setting-badge-active {
+  color: var(--bs-success, #50cd89);
+}
+
+.terms-setting-badge-archived {
+  color: var(--bs-gray-600, #7e8299);
+}
+
+.terms-setting-badge-html {
+  color: var(--bs-primary, #009ef7);
+}
+
+.terms-setting-badge-pdf {
+  color: var(--bs-danger, #f1416c);
+}
+
+/* Pesan error/warning/empty */
+.terms-setting-error {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--bs-border-radius, 0.475rem);
+  background-color: #f8d7da;
+  color: #842029;
+  font-size: 0.9rem;
+}
+
+.terms-setting-warning {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--bs-border-radius, 0.475rem);
+  background-color: #fff3cd;
+  color: #856404;
+  font-size: 0.85rem;
+}
+
+.terms-setting-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.terms-setting-loading {
+  color: #6c757d;
+}
+
+/* Form edit */
+.terms-setting-textarea {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.terms-setting-preview-card {
+  border: 1px solid #e9ecef;
+}
+
+.terms-setting-preview-header {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #183383;
+  font-size: 0.9rem;
+}
+
+.terms-setting-preview-content {
+  color: #212529;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.terms-setting-preview-content h1,
+.terms-setting-preview-content h2,
+.terms-setting-preview-content h3 {
+  color: #183383;
+  font-weight: 600;
+}
+
+.terms-setting-preview-content h2 {
+  font-size: 1.15rem;
+}
+
+.terms-setting-preview-content h3 {
+  font-size: 1rem;
+}
+
+.terms-setting-preview-content ol,
+.terms-setting-preview-content ul {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.terms-setting-preview-content li {
+  margin-bottom: 0.5rem;
+}
+
+.terms-setting-preview-content em {
+  color: #6c757d;
+}
+
+
+/* Quill editor (form edit T&C) */
+.terms-setting-quill .ql-toolbar.ql-snow {
+  border-color: #dee2e6;
+  border-radius: var(--bs-border-radius, 0.475rem) var(--bs-border-radius, 0.475rem) 0 0;
+}
+
+.terms-setting-quill .ql-container.ql-snow {
+  border-color: #dee2e6;
+  border-radius: 0 0 var(--bs-border-radius, 0.475rem) var(--bs-border-radius, 0.475rem);
+  min-height: 320px;
+  font-size: 0.95rem;
+}
+
+.terms-setting-quill .ql-editor {
+  min-height: 320px;
+}

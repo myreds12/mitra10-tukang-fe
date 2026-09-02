@@ -42,6 +42,15 @@
   line-height: 1.7;
 }
 
+.terms-viewer-pdf-frame {
+  width: 100%;
+  height: 60vh;
+  min-height: 480px;
+  border: none;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
 .terms-viewer-content h1,
 .terms-viewer-content h2,
 .terms-viewer-content h3 {

@@ -6,7 +6,8 @@ import axios from 'axios'
 interface TermsData {
   id: number
   title: string
-  content: string // HTML content
+  content: string | null // HTML content (tipe HTML) - null jika tipe PDF
+  document_type: 'HTML' | 'PDF'
   version: number
   updated_at: string
 }
@@ -93,11 +94,22 @@ const TermsAndConditionsViewer: React.FC<{show: boolean; onClose: () => void}> =
             </button>
           </div>
         ) : terms ? (
-          <div
-            className='terms-viewer-content'
-            // Konten HTML dari database (dikelola Admin). Read-only: user-select none + no download button.
-            dangerouslySetInnerHTML={{__html: terms.content}}
-          />
+          terms.document_type === 'PDF' ? (
+            // Tipe PDF: stream via endpoint backend (inline, Content-Disposition: inline,
+            // no-store) - browser tampilkan viewer built-in TANPA menawarkan download.
+            // Backend juga set X-Content-Type-Options: nosniff.
+            <iframe
+              src={`${apiUrl}/vendor-registration/terms-and-conditions/file`}
+              title={terms.title}
+              className='terms-viewer-pdf-frame'
+            />
+          ) : (
+            <div
+              className='terms-viewer-content'
+              // Konten HTML dari database (dikelola Admin). Read-only: user-select none + no download button.
+              dangerouslySetInnerHTML={{__html: terms.content || ''}}
+            />
+          )
         ) : null}
       </Modal.Body>
 

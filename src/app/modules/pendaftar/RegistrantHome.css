@@ -1,68 +1,129 @@
-/* Dashboard Pendaftar Vendor - halaman Home */
+/* Dashboard Pendaftar Vendor - halaman Home
+   Brand color: var(--brand-blue) #1E2A78 (override #183383 dari Poin 1-6)
+   Per instruksi: card border-radius 10px, font stack mengikuti project. */
+
+:root {
+  --brand-blue: #1E2A78;
+  --brand-blue-soft: #2E3A8A;
+  --brand-blue-bg: #F0F2FA;
+  --text-primary: #1A1A2E;
+  --text-secondary: #5A5A6E;
+  --card-shadow: 0 4px 12px rgba(30, 42, 120, 0.08);
+  --card-shadow-hover: 0 8px 24px rgba(30, 42, 120, 0.12);
+}
 
 .registrant-page {
   width: 100%;
+  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .registrant-loading {
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }
 
-/* PLACEHOLDER BANNER: area banner - ganti gambar dengan aset asli Mitra10 */
-.registrant-banner {
-  width: 100%;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  margin-bottom: 1.75rem;
-  background: #183383;
+.registrant-error-banner {
+  padding: 0.85rem 1rem;
+  background: #FFF3CD;
+  color: #856404;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 }
 
-.registrant-banner-img {
+.registrant-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--brand-blue-bg);
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.registrant-banner {
+  position: relative;
   width: 100%;
-  height: 240px;
-  object-fit: cover;
-  display: block;
+  min-height: 320px;
+  background: var(--brand-blue);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+  color: #fff;
+}
+
+.registrant-banner-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-soft) 100%);
+  opacity: 0.85;
+}
+
+.registrant-banner-overlay {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  max-width: 920px;
+}
+
+.registrant-hero-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 1rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.registrant-hero-subtitle {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.95;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .registrant-content {
   background: #fff;
-  border-radius: 0.75rem;
+  border-radius: 10px;
   padding: 2rem;
-  box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.06);
+  box-shadow: var(--card-shadow);
 }
 
-.registrant-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #183383;
-  margin-bottom: 0.75rem;
+.registrant-section {
+  margin-bottom: 2.5rem;
 }
 
-.registrant-intro {
-  font-size: 1rem;
-  color: #495057;
-  line-height: 1.7;
-  margin-bottom: 2rem;
-}
-
-.registrant-subtitle {
-  font-size: 1.25rem;
+.registrant-section-title {
+  font-size: 1.4rem;
   font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid var(--brand-blue-bg);
+  position: relative;
 }
 
-.registrant-sub-intro {
-  font-size: 0.95rem;
-  color: #6c757d;
-  line-height: 1.7;
-  margin-bottom: 1.5rem;
+.registrant-section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 60px;
+  height: 2px;
+  background: var(--brand-blue);
 }
 
 .registrant-benefits {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
 }
 
@@ -71,14 +132,16 @@
   gap: 1rem;
   align-items: flex-start;
   padding: 1.25rem;
-  border: 1px solid #e9ecef;
-  border-radius: 0.6rem;
-  background: #f8f9fa;
-  transition: box-shadow 0.2s ease;
+  background: #fff;
+  border: 1px solid #E8EAF1;
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .registrant-benefit-card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(24, 51, 131, 0.08);
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .registrant-benefit-icon {
@@ -88,35 +151,95 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.6rem;
-  background: #183383;
+  border-radius: 10px;
+  background: var(--brand-blue);
   color: #fff;
+}
+
+.registrant-benefit-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .registrant-benefit-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #183383;
-  margin-bottom: 0.35rem;
+  color: var(--brand-blue);
+  margin: 0 0 0.35rem;
 }
 
 .registrant-benefit-desc {
   font-size: 0.88rem;
-  color: #495057;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
 }
 
+.registrant-catalogs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.registrant-catalog-card {
+  padding: 1.5rem 1.25rem;
+  background: #fff;
+  border: 1px solid #E8EAF1;
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.registrant-catalog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.registrant-catalog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: var(--brand-blue-bg);
+  color: var(--brand-blue);
+  margin-bottom: 0.75rem;
+}
+
+.registrant-catalog-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.registrant-catalog-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
 @media (max-width: 767.98px) {
-  .registrant-banner-img {
-    height: 160px;
+  .registrant-banner {
+    min-height: 240px;
+  }
+
+  .registrant-hero-title {
+    font-size: 1.65rem;
+  }
+
+  .registrant-hero-subtitle {
+    font-size: 0.95rem;
   }
 
   .registrant-content {
     padding: 1.25rem;
   }
 
-  .registrant-title {
-    font-size: 1.35rem;
+  .registrant-section-title {
+    font-size: 1.2rem;
   }
 }

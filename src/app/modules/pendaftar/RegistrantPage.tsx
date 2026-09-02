@@ -3,6 +3,7 @@ import {Routes, Route, Navigate} from 'react-router-dom'
 import TopBarProgress from 'react-topbar-progress-indicator'
 import {PageTitle} from '../../../_metronic/layout/core'
 import RegistrantHome from './RegistrantHome'
+import {VendorPendingApproval} from '../../components/vendor-pending/VendorPendingApproval'
 
 const RegistrantStatus = lazy(() => import('./RegistrantStatus'))
 
@@ -20,6 +21,7 @@ const RegistrantPage = () => {
         element={
           <>
             <PageTitle>Pendaftar Vendor</PageTitle>
+            <VendorPendingApproval />
             <RegistrantHome />
           </>
         }
@@ -29,6 +31,7 @@ const RegistrantPage = () => {
         element={
           <>
             <PageTitle>Pendaftar Vendor</PageTitle>
+            <VendorPendingApproval />
             <RegistrantHome />
           </>
         }

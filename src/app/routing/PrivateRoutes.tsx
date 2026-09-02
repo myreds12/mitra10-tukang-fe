@@ -6,6 +6,7 @@ import {DashboardWrapper} from '../pages/dashboard/DashboardWrapper'
 import {getCSSVariableValue} from '../../_metronic/assets/ts/_utils'
 import {WithChildren} from '../../_metronic/helpers'
 import {PageLink, PageTitle} from '../../../src/_metronic/layout/core'
+import VendorRegistrationPage from '../modules/vendor-registration/VendorRegistrationPage'
 const chatBreadCrumbs: Array<PageLink> = [
   {
     title: 'Chat',
@@ -18,6 +19,7 @@ const PrivateRoutes = () => {
   const isVendorSpEnabled = process.env.REACT_APP_ENABLE_VENDOR_SP === 'true'
   const ProfilePage = lazy(() => import('../modules/profile/ProfilePage'))
   const ChatPage = lazy(() => import('../modules/chat/ChatPage'))
+const HomeContentSettingsPage = lazy(() => import('../components/admin-ho/home-content/HomeContentSettings'))
   const CalendarPage = lazy(() => import('../modules/calendar/CalendarPage'))
   const OrderPage = lazy(() => import('../modules/order/OrderPage'))
   const ComplaintPage = lazy(() => import('../modules/complaint/ComplaintPage'))
@@ -220,6 +222,15 @@ const PrivateRoutes = () => {
           element={
             <SuspensedView>
               <FormatEmailPage />
+            </SuspensedView>
+          }
+        />
+
+        <Route
+          path='home-content-settings'
+          element={
+            <SuspensedView>
+              <HomeContentSettingsPage />
             </SuspensedView>
           }
         />

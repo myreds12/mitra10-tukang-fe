@@ -664,6 +664,29 @@ export function AsideMenuMain() {
           />
         </AsideMenuItemWithSub>
 
+        {/* Setting: Syarat & Ketentuan pendaftaran vendor (Rekrut Vendor) */}
+        <AsideMenuItemWithSub
+          to='/vendor-registration/terms-setting'
+          title='Syarat & Ketentuan'
+          hasBullet={true}
+          role={['Admin HO', 'Super User']}
+        >
+          <AsideMenuItem
+            to='/vendor-registration/terms-setting/view'
+            title='Daftar Versi T&C'
+            role={['Admin HO', 'Super User']}
+            hasBullet={true}
+          />
+
+          <AsideMenuItem
+            to='/vendor-registration/terms-setting/edit/new'
+            title='Formulir Edit T&C'
+            role={['Admin HO', 'Super User']}
+            hasBullet={true}
+          />
+        </AsideMenuItemWithSub>
+
+
         <AsideMenuItemWithSub
           to='/incentive-sales'
           title='Insentif Sales'
