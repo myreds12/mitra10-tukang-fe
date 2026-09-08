@@ -686,6 +686,14 @@ export function AsideMenuMain() {
           />
         </AsideMenuItemWithSub>
 
+        {/* Setting: Konten Home dashboard pendaftar vendor (Rekrut Vendor) */}
+        <AsideMenuItem
+          to='/home-content-settings'
+          title='Kelola Konten Home Vendor'
+          role={['Admin HO', 'Super User']}
+          hasBullet={true}
+        />
+
 
         <AsideMenuItemWithSub
           to='/incentive-sales'

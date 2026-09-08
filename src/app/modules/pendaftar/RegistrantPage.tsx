@@ -6,10 +6,11 @@ import RegistrantHome from './RegistrantHome'
 import {VendorPendingApproval} from '../../components/vendor-pending/VendorPendingApproval'
 
 const RegistrantStatus = lazy(() => import('./RegistrantStatus'))
+const RegistrantDocuments = lazy(() => import('./RegistrantDocuments'))
 
 /**
  * Dashboard Pendaftar Vendor (role "Pendaftar Vendor").
- * Menu terbatas: Home & Status saja - TIDAK ada akses fitur vendor aktif
+ * Menu terbatas: Home, Status, & Kelengkapan Dokumen - TIDAK ada akses fitur vendor aktif
  * (order, work order, dll). Guard ada di PrivateRoutes (role 'Pendaftar Vendor'
  * hanya dialokasikan ke route ini) dan di backend (role-check manual per endpoint).
  */
@@ -43,6 +44,17 @@ const RegistrantPage = () => {
             <PageTitle>Status Pendaftaran Vendor</PageTitle>
             <Suspense fallback={<TopBarProgress />}>
               <RegistrantStatus />
+            </Suspense>
+          </>
+        }
+      />
+      <Route
+        path='dokumen'
+        element={
+          <>
+            <PageTitle>Kelengkapan Dokumen Vendor</PageTitle>
+            <Suspense fallback={<TopBarProgress />}>
+              <RegistrantDocuments />
             </Suspense>
           </>
         }

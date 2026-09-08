@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useCallback, useEffect, useState } from 'react';
 
 export type HomeStage =
   | 'pendaftaran'
@@ -47,8 +46,6 @@ const STAGE_STATUS_PILL: Record<HomeStage, { label: string; color: string }> = {
   rejected: { label: 'Pendaftaran Ditolak', color: '#E12429' },
 };
 
-const POLL_INTERVAL_MS = 30_000;
-
 export function useVendorStatus(
   apiUrl: string | undefined,
   initialVendorId: number | undefined,
@@ -56,90 +53,67 @@ export function useVendorStatus(
   status: VendorPortalStatus | null;
   loading: boolean;
   error: string;
+  refresh: () => Promise<void>;
   STAGE_LABEL: typeof STAGE_LABEL;
   STAGE_STATUS_PILL: typeof STAGE_STATUS_PILL;
 } {
   const [status, setStatus] = useState<VendorPortalStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const socketRef = useRef<Socket | null>(null);
+
+  const fetchStatus = useCallback(async () => {
+    if (!apiUrl) return;
+    const token = localStorage.getItem('accessToken');
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${apiUrl}/vendor-portal/me`, {
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const body = await response.json();
+      const data = body?.data ?? body;
+      if (data) {
+        setStatus(data as VendorPortalStatus);
+      }
+    } catch (err: any) {
+      console.error('useVendorStatus fetch error:', err);
+      setError('Gagal memuat status registrasi. Coba lagi nanti.');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl]);
+
+  const refresh = useCallback(async () => {
+    await fetchStatus();
+  }, [fetchStatus]);
 
   useEffect(() => {
     if (!apiUrl) return;
+    fetchStatus();
+    // Catatan: WebSocket subscription dihapus karena CRACO/CRA bundle
+    // untuk socket.io-client bermasalah (io is not a function). Update
+    // status realtime diganti manual via tombol Refresh di UI.
+  }, [apiUrl, fetchStatus]);
 
-    let cancelled = false;
-    const token = localStorage.getItem('accessToken');
-
-    const fetchInitial = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const response = await fetch(`${apiUrl}/vendor-portal/me`, {
-          headers: {
-            Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const body = await response.json();
-        const data = body?.data ?? body;
-        if (!cancelled && data) {
-          setStatus(data as VendorPortalStatus);
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          console.error('useVendorStatus fetch error:', err);
-          setError('Gagal memuat status registrasi. Coba lagi nanti.');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchInitial();
-
-    // Set up WebSocket subscription for live updates
-    const wsUrl = apiUrl
-      .replace(/^http:\/\//, 'ws://')
-      .replace(/^https:\/\//, 'wss://');
-    const socket = io(wsUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-    });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      if (initialVendorId) {
-        socket.emit('subscribe', { vendorId: initialVendorId });
-      }
-    });
-
-    socket.on('status_update', (newStatus: VendorPortalStatus) => {
-      if (!cancelled) setStatus(newStatus);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.warn('WS connect_error, falling back to polling', err);
-    });
-
-    return () => {
-      cancelled = true;
-      if (initialVendorId) {
-        socket.emit('unsubscribe', { vendorId: initialVendorId });
-      }
-      socket.disconnect();
-    };
-  }, [apiUrl, initialVendorId]);
-
-  return { status, loading, error, STAGE_LABEL, STAGE_STATUS_PILL };
+  return {
+    status,
+    loading,
+    error,
+    refresh,
+    STAGE_LABEL,
+    STAGE_STATUS_PILL,
+  };
 }
 
 export function getStageStatus(stage: HomeStage): {
   status: 'pending' | 'done' | 'active' | 'rejected';
   label: string;
 } {
-  // This is a hook helper not used in this file but exported for component use
   return { status: 'pending', label: STAGE_LABEL[stage] };
 }

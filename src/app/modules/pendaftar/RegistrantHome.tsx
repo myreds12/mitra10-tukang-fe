@@ -1,185 +1,167 @@
-import {useEffect, useState} from 'react'
-import axios from 'axios'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {
-  faBriefcase,
-  faGraduationCap,
-  faBookOpen,
-  faGift,
-  faChartLine,
-  faHandshake,
-  faThLarge,
-  faImage,
-} from '@fortawesome/free-solid-svg-icons'
-import type {IconDefinition} from '@fortawesome/fontawesome-svg-core'
-import './RegistrantHome.css'
-
-// Icon mapping untuk section BENEFIT/CATALOG. key = string dari DB `icon` field.
-const ICON_MAP: Record<string, IconDefinition> = {
-  briefcase: faBriefcase,
-  'graduation-cap': faGraduationCap,
-  'book-open': faBookOpen,
-  gift: faGift,
-  'chart-line': faChartLine,
-  handshake: faHandshake,
-  'th-large': faThLarge,
-}
-
-// URL gambar absolut: gabung base API + path relatif dari DB.
-const apiUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '')
-const resolveImageUrl = (imageUrl: string | null | undefined): string | null => {
-  if (!imageUrl) return null
-  if (imageUrl.startsWith('http')) return imageUrl
-  if (imageUrl.startsWith('uploads/')) return `${apiUrl}/public/${imageUrl.replace(/^uploads\//, '')}`
-  return `${apiUrl}/${imageUrl.replace(/^\//, '')}`
-}
-
-interface BaseItem {
-  id: number
-  section: 'HERO' | 'BENEFIT' | 'BANNER' | 'CATALOG'
-  title: string | null
-  subtitle: string | null
-  description: string | null
-  icon: string | null
-  image_url: string | null
-  order_index: number
-}
+import React, { useEffect, useState } from 'react';
+import { homeContentService, HomeContentItem } from '../../services/homeContentService';
+import { HeroSection } from '../../components/home-content-shared/HeroSection';
+import { BenefitSection } from '../../components/home-content-shared/BenefitSection';
+import { WorkflowSection } from '../../components/home-content-shared/WorkflowSection';
+import { CatalogSection } from '../../components/home-content-shared/CatalogSection';
+import '../../components/home-content-shared/HomeContentVisual.css';
 
 const RegistrantHome: React.FC = () => {
-  const [loading, setLoading] = useState(true)
-  const [items, setItems] = useState<BaseItem[]>([])
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<HomeContentItem[]>([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    let isCancelled = false;
     const fetchHome = async () => {
-      setLoading(true)
-      setError('')
+      setLoading(true);
+      setError('');
       try {
-        const token = localStorage.getItem('accessToken')
-        const response = await axios.get(`${apiUrl}/home-content`, {
-          headers: {Accept: 'application/json', Authorization: `Bearer ${token}`},
-          timeout: 10000,
-        })
-        const data = response.data?.data ?? response.data
-        setItems(Array.isArray(data) ? data : [])
+        const data = await homeContentService.getActive();
+        if (!isCancelled) {
+          setItems(data);
+        }
       } catch (err) {
-        console.error('Error fetching home content:', err)
-        setError(
-          'Konten Home tidak dapat dimuat. Silakan coba beberapa saat lagi.',
-        )
+        console.error('Error fetching home content:', err);
+        if (!isCancelled) {
+          setError('Konten Home tidak dapat dimuat. Silakan coba beberapa saat lagi.');
+        }
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
-    }
-    fetchHome()
-  }, [])
+    };
+    fetchHome();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   if (loading) {
     return (
-      <section id='registrant-home' className='registrant-page'>
-        <div className='registrant-loading text-center py-5'>Memuat konten...</div>
-      </section>
-    )
+      <div style={{ textAlign: 'center', padding: '40px 0', color: '#636B79' }}>
+        Memuat konten beranda...
+      </div>
+    );
   }
 
-  // Group by section - backend sudah sort by section + order_index
-  const hero = items.find((i) => i.section === 'HERO')
-  const benefits = items.filter((i) => i.section === 'BENEFIT')
-  const banners = items.filter((i) => i.section === 'BANNER')
-  const catalogs = items.filter((i) => i.section === 'CATALOG')
-
-  // BANNER pertama dipakai sebagai hero banner image background
-  const bannerImage = resolveImageUrl(banners[0]?.image_url)
+  // Filter per section_type (dengan fallback section untuk backward compatibility)
+  const hero = items.find((i) => (i.section_type || i.section) === 'HERO');
+  const benefits = items.filter((i) => (i.section_type || i.section) === 'BENEFIT');
+  const catalogs = items.filter((i) => (i.section_type || i.section) === 'CATALOG');
+  const support = items.find((i) => (i.section_type || i.section) === 'SUPPORT');
+  const supportPayload = (support?.payload as any) || null;
 
   return (
-    <section id='registrant-home' className='registrant-page'>
-      {/* BANNER: image utama + overlay (brand-blue) dengan judul HERO di atas */}
-      <div
-        className='registrant-banner'
-        style={
-          bannerImage
-            ? {backgroundImage: `linear-gradient(rgba(30, 42, 120, 0.55), rgba(30, 42, 120, 0.55)), url('${bannerImage}')`}
-            : undefined
-        }
-      >
-        {!bannerImage && (
-          <div className='registrant-banner-placeholder'>
-            <FontAwesomeIcon icon={faImage} size='3x' />
+    <div className='home-content-wrapper' style={{ marginTop: 20 }}>
+      {error && (
+        <div
+          style={{
+            padding: '12px 16px',
+            background: '#FFF3CD',
+            color: '#856404',
+            borderRadius: 8,
+            marginBottom: 16,
+            fontSize: 13,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* HERO SECTION */}
+      <HeroSection item={hero} />
+
+      {/* BENEFIT SECTION */}
+      <BenefitSection items={benefits} />
+
+      {/* WORKFLOW SECTION (Hardcoded 6 langkah sesuai acuan visual) */}
+      <WorkflowSection />
+
+      {/* CATALOG SECTION */}
+      <CatalogSection items={catalogs} />
+
+      {/* SUPPORT INFO SECTION */}
+      {support && (
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #D0D5DD',
+            borderRadius: 8,
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            marginTop: 24,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A78', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>🎧</span>
+              <span>{supportPayload?.support_label || support.title || 'Hubungi Tim Support Mitra10'}</span>
+            </div>
+            <div style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>
+              <span>🕒 {supportPayload?.support_hours || support.subtitle || 'Senin - Jumat, 08:00 - 17:00 WIB'}</span>
+              {supportPayload?.support_email && (
+                <span style={{ marginLeft: 12 }}>✉️ {supportPayload.support_email}</span>
+              )}
+              {supportPayload?.support_phone && (
+                <span style={{ marginLeft: 12 }}>📱 {supportPayload.support_phone}</span>
+              )}
+            </div>
           </div>
-        )}
-        <div className='registrant-banner-overlay'>
-          {hero?.title && <h1 className='registrant-hero-title'>{hero.title}</h1>}
-          {hero?.subtitle && (
-            <p className='registrant-hero-subtitle'>{hero.subtitle}</p>
+          {supportPayload?.support_phone && (
+            <a
+              href={`https://wa.me/${supportPayload.support_phone.replace(/[^0-9]/g, '')}`}
+              target='_blank'
+              rel='noopener noreferrer'
+              style={{
+                background: '#00A651',
+                color: '#fff',
+                padding: '8px 16px',
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: 12,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span>💬 WhatsApp Tim Support</span>
+            </a>
           )}
         </div>
+      )}
+
+      {/* FOOTER NOTE */}
+      <div
+        style={{
+          marginTop: 34,
+          paddingTop: 18,
+          borderTop: '1px solid #E4E7EC',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 10,
+          fontSize: 12,
+          color: '#636B79',
+        }}
+      >
+        <div>
+          Punya pertanyaan seputar proses approval?{' '}
+          <a href='#faq-vendor' style={{ color: '#1E2A78', fontWeight: 600 }}>
+            Lihat FAQ Vendor
+          </a>
+        </div>
+        <div>&copy; 2026 Mitra10 &mdash; Building Materials &amp; Home Improvement</div>
       </div>
+    </div>
+  );
+};
 
-      <div className='registrant-content'>
-        {error && <div className='registrant-error-banner'>{error}</div>}
-
-        {/* BENEFIT: 2-kolom grid dengan card border-radius 10px + icon container brand-blue */}
-        {benefits.length > 0 && (
-          <section className='registrant-section'>
-            <h2 className='registrant-section-title'>
-              Kenapa Bergabung Menjadi Vendor Mitra10?
-            </h2>
-            <div className='registrant-benefits'>
-              {benefits.map((benefit) => {
-                const Icon = ICON_MAP[benefit.icon || ''] ?? faBriefcase
-                return (
-                  <div className='registrant-benefit-card' key={benefit.id}>
-                    <div className='registrant-benefit-icon'>
-                      <FontAwesomeIcon icon={Icon} size='lg' />
-                    </div>
-                    <div className='registrant-benefit-body'>
-                      <h3 className='registrant-benefit-title'>
-                        {benefit.title || '-'}
-                      </h3>
-                      <p className='registrant-benefit-desc'>
-                        {benefit.description || ''}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* CATALOG: grid cards sederhana (untuk konten katalog Mitra10) */}
-        {catalogs.length > 0 && (
-          <section className='registrant-section'>
-            <h2 className='registrant-section-title'>Katalog Layanan Kami</h2>
-            <div className='registrant-catalogs'>
-              {catalogs.map((cat) => {
-                const Icon = ICON_MAP[cat.icon || ''] ?? faThLarge
-                return (
-                  <div className='registrant-catalog-card' key={cat.id}>
-                    <div className='registrant-catalog-icon'>
-                      <FontAwesomeIcon icon={Icon} size='2x' />
-                    </div>
-                    <h3 className='registrant-catalog-title'>
-                      {cat.title || '-'}
-                    </h3>
-                    <p className='registrant-catalog-desc'>
-                      {cat.description || ''}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {items.length === 0 && !error && (
-          <div className='registrant-empty'>
-            Konten Home belum tersedia. Hubungi Admin untuk info lebih lanjut.
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-export default RegistrantHome
+export default RegistrantHome;

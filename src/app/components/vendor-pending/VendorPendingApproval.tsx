@@ -1,8 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Modal } from 'antd';
 import { useVendorStatus, HomeStage } from '../../hooks/useVendorStatus';
+import { homeContentService, HomeContentItem } from '../../services/homeContentService';
 import './VendorPendingApproval.css';
 
 const apiUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+
+function extractEmail(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const match = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  return match ? match[0] : null;
+}
+
+function extractPhone(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const match = text.match(/(\+?\d[\d\s-]{6,}\d)/);
+  return match ? match[0].replace(/\s/g, '') : null;
+}
 
 const STAGE_ORDER: HomeStage[] = [
   'pendaftaran',
@@ -69,11 +84,13 @@ function getCurrentVendorId(): number | undefined {
 }
 
 export const VendorPendingApproval: React.FC = () => {
+  const navigate = useNavigate();
   const vendorId = useMemo(() => getCurrentVendorId(), []);
-  const { status, loading, error } = useVendorStatus(apiUrl, vendorId);
+  const { status, loading, error, refresh } = useVendorStatus(apiUrl, vendorId);
   const [vendorNameFallback, setVendorNameFallback] = useState('Vendor');
   const [stageFallback, setStageFallback] = useState<HomeStage>('pendaftaran');
-  const [statusPillFallback] = useState(STATUS_PILL.pendaftaran);
+  const [supportInfo, setSupportInfo] = useState<HomeContentItem | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Best-effort local fallback: read from localStorage.user if WS not yet returned data
@@ -91,15 +108,53 @@ export const VendorPendingApproval: React.FC = () => {
     }
   }, [status]);
 
+  // Fetch support contact info dari home_content SUPPORT section (editable via admin).
+  useEffect(() => {
+    let cancelled = false;
+    homeContentService
+      .getActive()
+      .then((items) => {
+        if (cancelled) return;
+        const support = items.find((i) => i.section === 'SUPPORT' && i.is_active);
+        setSupportInfo(support ?? null);
+      })
+      .catch(() => {
+        // Silent: kalau gagal, fallback ke default text
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleLengkapiProfil = () => {
+    navigate('/pendaftar/dokumen');
+  };
+
+  const payloadSupport = (supportInfo?.payload as any) || {};
+  const supportEmail = payloadSupport.support_email || extractEmail(supportInfo?.description) || 'vendor-support@mitra10.com';
+  const supportPhone = payloadSupport.support_phone || extractPhone(supportInfo?.description) || '+6281234567890';
+  const supportLabel = payloadSupport.support_label || supportInfo?.title || 'Hubungi Tim Support';
+  const supportHours = payloadSupport.support_hours || supportInfo?.subtitle || 'Senin - Jumat, 08:00 - 17:00 WIB';
+  const supportNote = payloadSupport.support_note || 'Tim kami siap membantu kendala dan kelengkapan dokumen pendaftaran vendor Anda.';
+
   const isRejected = status?.stage === 'rejected' || stageFallback === 'rejected';
   const currentStage = (status?.stage ?? stageFallback) as HomeStage;
-  const currentStageIdx = STAGE_ORDER.indexOf(currentStage);
-  const activeIdx = isRejected
-    ? STAGE_ORDER.indexOf('approval')
-    : currentStageIdx;
   const vendorName = status?.vendor_name ?? vendorNameFallback;
   const statusPill =
     STATUS_PILL[status?.stage ?? stageFallback] ?? STATUS_PILL.pendaftaran;
+
+  const cleanPhoneForWa = (supportPhone || '').replace(/[^0-9]/g, '');
 
   return (
     <>
@@ -130,9 +185,22 @@ export const VendorPendingApproval: React.FC = () => {
                 'Pendaftaran Anda sedang diproses oleh tim Mitra10. Tim kami akan menghubungi lewat email & WhatsApp setiap ada update.'}
             </p>
           </div>
-          <a className='vp-btn-outline' href='#hubungi-tim'>
-            Hubungi Tim Support
-          </a>
+          <button
+            type='button'
+            className='vp-btn-outline'
+            onClick={() => setSupportModalOpen(true)}
+          >
+            🎧 {supportLabel}
+          </button>
+          <button
+            type='button'
+            className='vp-btn-ghost'
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title='Refresh status pendaftaran'
+          >
+            {refreshing ? '...' : '↻ Refresh'}
+          </button>
         </div>
         <div className='vp-steps'>
           {STAGE_ORDER.map((s, idx) => {
@@ -179,9 +247,13 @@ export const VendorPendingApproval: React.FC = () => {
               style={{width: `${status?.profile_completion ?? 0}%`}}
             />
           </div>
-          <a className='vp-btn-primary' href='#lengkapi-profil'>
+          <button
+            type='button'
+            className='vp-btn-primary'
+            onClick={handleLengkapiProfil}
+          >
             Lengkapi Profil Sekarang
-          </a>
+          </button>
         </div>
         <ul className='vp-checklist'>
           {PROFILE_LABELS.map(({key, label}) => {
@@ -199,6 +271,115 @@ export const VendorPendingApproval: React.FC = () => {
       {loading && !status && (
         <div className='vp-loading'>Memuat status registrasi...</div>
       )}
+
+      {/* MODAL HUBUNGI TIM SUPPORT */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 20 }}>🎧</span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: '#1E2A78' }}>
+              {supportLabel}
+            </span>
+          </div>
+        }
+        open={supportModalOpen}
+        onCancel={() => setSupportModalOpen(false)}
+        footer={null}
+        width={460}
+      >
+        <div style={{ padding: '8px 0' }}>
+          <p style={{ color: '#4B5563', fontSize: 13, marginBottom: 16 }}>
+            {supportNote}
+          </p>
+
+          <div
+            style={{
+              background: '#F9FAFB',
+              borderRadius: 8,
+              padding: 14,
+              border: '1px solid #E5E7EB',
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
+                🕒 Jam Operasional Layanan
+              </span>
+              <strong style={{ fontSize: 13, color: '#1F2937' }}>
+                {supportHours}
+              </strong>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
+                ✉️ Email Resmi Dukungan
+              </span>
+              <a
+                href={`mailto:${supportEmail}`}
+                style={{ fontSize: 13, color: '#1E2A78', fontWeight: 600 }}
+              >
+                {supportEmail}
+              </a>
+            </div>
+
+            <div>
+              <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
+                📱 WhatsApp Dukungan Vendor
+              </span>
+              <span style={{ fontSize: 13, color: '#1F2937', fontWeight: 600 }}>
+                {supportPhone}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            {cleanPhoneForWa && (
+              <a
+                href={`https://wa.me/${cleanPhoneForWa}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                style={{
+                  flex: 1,
+                  background: '#00A651',
+                  color: '#fff',
+                  textAlign: 'center',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>💬 Chat WhatsApp</span>
+              </a>
+            )}
+            <a
+              href={`mailto:${supportEmail}`}
+              style={{
+                flex: 1,
+                background: '#1E2A78',
+                color: '#fff',
+                textAlign: 'center',
+                padding: '10px 14px',
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: 13,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <span>✉️ Kirim Email</span>
+            </a>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };
