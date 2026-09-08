@@ -35,7 +35,7 @@ const VendorRegisterPage: React.FC = () => {
     useVendorRegistrationForm();
 
   useEffect(() => {
-    if (!showTncModal || tnc) return;
+    if (!showTncModal || tnc || tncLoading) return;
     let cancelled = false;
     setTncLoading(true);
     const apiUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '')
@@ -43,13 +43,18 @@ const VendorRegisterPage: React.FC = () => {
     const headers: Record<string, string> = { Accept: 'application/json' }
     if (token) headers.Authorization = `Bearer ${token}`
     fetch(`${apiUrl}/vendor-registration/terms-and-conditions`, { headers })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status} — endpoint /vendor-registration/terms-and-conditions`)
+        }
+        return r.json()
+      })
       .then((body) => {
         const data = body?.data ?? body
         if (!cancelled && data) {
           setTnc({
             id: data.id,
-            title: data.name || 'Syarat & Ketentuan',
+            title: data.title || 'Syarat & Ketentuan',
             content: data.content || '',
             document_type: data.document_type || 'HTML',
             version: data.version || 1,
@@ -58,7 +63,9 @@ const VendorRegisterPage: React.FC = () => {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error('Failed to load active T&C:', err)
+          console.error('[T&C] Failed to load active T&C:', err)
+          console.error('[T&C] apiUrl =', apiUrl)
+          console.error('[T&C] token present =', Boolean(token))
         }
       })
       .finally(() => {
@@ -67,7 +74,7 @@ const VendorRegisterPage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [showTncModal, tnc])
+  }, [showTncModal, tnc, tncLoading])
 
   const handleTncScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget
@@ -147,22 +154,78 @@ const VendorRegisterPage: React.FC = () => {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
     setTncAgreed(false)
     setTncScrolledToEnd(false)
-    setShowTncModal(true)
+
+    setIsLoading(true)
+    setTncLoading(true)
+
+    const apiUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '')
+    const token = localStorage.getItem('accessToken')
+    const headers: Record<string, string> = { Accept: 'application/json' }
+    if (token) headers.Authorization = `Bearer ${token}`
+
+    try {
+      const response = await fetch(
+        `${apiUrl}/vendor-registration/terms-and-conditions`,
+        { headers },
+      )
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      const body = await response.json()
+      const data = body?.data ?? body
+      if (data) {
+        setTnc({
+          id: data.id,
+          title: data.title || 'Syarat & Ketentuan',
+          content: data.content || '',
+          document_type: data.document_type || 'HTML',
+          version: data.version || 1,
+        })
+      }
+    } catch (err) {
+      console.error('[T&C] Fetch saat submit gagal:', err)
+      console.error('[T&C] apiUrl =', apiUrl)
+      console.error('[T&C] token present =', Boolean(token))
+    } finally {
+      setTncLoading(false)
+      setIsLoading(false)
+      setShowTncModal(true)
+    }
   }
 
   const handleTncLanjutkan = () => {
-    if (!tnc?.content) {
-      setShowTncModal(false)
+    if (!tnc) {
+      Swal.fire({
+        title: 'T&C Belum Dimuat',
+        text: 'Syarat & Ketentuan belum berhasil dimuat. Coba tutup modal dan klik Daftar Sekarang lagi.',
+        icon: 'warning',
+      })
+      return
+    }
+    const hasContent =
+      tnc.document_type === 'PDF' ||
+      (typeof tnc.content === 'string' && tnc.content.trim().length > 0)
+    if (!hasContent) {
+      Swal.fire({
+        title: 'T&C Belum Tersedia',
+        text: 'Syarat & Ketentuan belum di-set oleh Admin. Silakan hubungi Admin Mitra10.',
+        icon: 'warning',
+      })
       return
     }
     setShowTncModal(false)
     doActualSubmit()
   }
+
+  const tncAvailable = !!tnc && (
+    tnc.document_type === 'PDF' ||
+    (typeof tnc.content === 'string' && tnc.content.trim().length > 0)
+  )
 
   return (
     <section id="new-vendor" className="vendor-register-page">
@@ -174,7 +237,7 @@ const VendorRegisterPage: React.FC = () => {
         </Card.Header>
 
         <Card.Body className="vendor-register-body">
-          <Form onSubmit={handleSubmit}>
+          <Form onSubmit={handleSubmit} noValidate>
             <CompanyInfoForm data={formData} onChange={updateField} />
             <PicInfoForm data={formData} onChange={updateField} />
             <TukangInfoForm
@@ -205,9 +268,11 @@ const VendorRegisterPage: React.FC = () => {
               <Button
                 className="vendor-register-submit-button"
                 type="submit"
-                disabled={isLoading || !formData.pdp_consent}
+                disabled={isLoading || tncLoading || !formData.pdp_consent}
               >
-                {isLoading ? 'Menyimpan...' : 'Daftar Sekarang'}
+                {isLoading || tncLoading
+                  ? 'Memuat Syarat & Ketentuan…'
+                  : 'Daftar Sekarang'}
               </Button>
             </div>
           </Form>
@@ -241,7 +306,16 @@ const VendorRegisterPage: React.FC = () => {
             <div className="text-center py-4 text-danger">
               Gagal memuat syarat & ketentuan. Coba refresh halaman.
             </div>
-          ) : !tnc.content ? (
+          ) : tnc.document_type === 'PDF' ? (
+            <>
+              <h5 className="mb-2">{tnc.title}</h5>
+              <iframe
+                src={`${(process.env.REACT_APP_API_URL || '').replace(/\/$/, '')}/vendor-registration/terms-and-conditions/file`}
+                title={tnc.title}
+                className="vendor-tnc-iframe"
+              />
+            </>
+          ) : !tnc.content || !tnc.content.trim() ? (
             <div className="vendor-tnc-empty p-4 text-center">
               <div className="vendor-tnc-empty-icon mb-3">
                 <span style={{fontSize: 48}}>📄</span>
@@ -256,24 +330,12 @@ const VendorRegisterPage: React.FC = () => {
           ) : (
             <>
               <h5 className="mb-2">{tnc.title}</h5>
-              {tnc.document_type === 'PDF' ? (
-                <iframe
-                  src={
-                    tnc.content.startsWith('http')
-                      ? tnc.content
-                      : `${(process.env.REACT_APP_API_URL || '').replace(/\/$/, '')}/public/${tnc.content.replace(/^uploads\//, '')}`
-                  }
-                  title={tnc.title}
-                  className="vendor-tnc-iframe"
-                />
-              ) : (
-                <div
-                  className="vendor-tnc-content"
-                  onScroll={handleTncScroll}
-                  ref={tncScrollRef}
-                  dangerouslySetInnerHTML={{ __html: tnc.content }}
-                />
-              )}
+              <div
+                className="vendor-tnc-content"
+                onScroll={handleTncScroll}
+                ref={tncScrollRef}
+                dangerouslySetInnerHTML={{ __html: tnc.content }}
+              />
             </>
           )}
           </Modal.Body>
@@ -283,7 +345,7 @@ const VendorRegisterPage: React.FC = () => {
               id="vendor-tnc-agree"
               type="checkbox"
               checked={tncAgreed}
-              disabled={tncLoading}
+              disabled={tncLoading || !tncAvailable}
               onChange={(e) => setTncAgreed(e.target.checked)}
               label={
                 <span>
@@ -304,7 +366,7 @@ const VendorRegisterPage: React.FC = () => {
             <Button
               variant="primary"
               onClick={handleTncLanjutkan}
-              disabled={isLoading || !tncAgreed}
+              disabled={isLoading || !tncAgreed || !tncAvailable}
             >
               {isLoading ? 'Menyimpan…' : 'Lanjutkan Pendaftaran'}
             </Button>

@@ -234,7 +234,7 @@ const ViewTermsAndConditions: React.FC = () => {
           <OverlayTrigger
             placement='bottom'
             delay={{show: 250, hide: 400}}
-            overlay={<Tooltip id={`tooltip-edit-${record.id}`}>Edit / Buat Versi Baru</Tooltip>}
+              overlay={<Tooltip id={`tooltip-edit-${record.id}`}>Edit (In-Place)</Tooltip>}
           >
             <a
               href='#'

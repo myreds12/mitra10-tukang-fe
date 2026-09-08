@@ -8,10 +8,11 @@ import apiClient from '../../../services/apiClient'
 import './TermsAndConditionsSetting.css'
 
 /**
- * Form edit Syarat & Ketentuan (SETTING - Admin HO / Super User).
- * Edit source versi manapun -> submit selalu membuat VERSI BARU dari konten
- * yang diedit (audit trail; versi lama otomatis jadi arsip).
- * Konten: rich text editor Quill (react-quill) -> output HTML.
+ * Form Create / Buat Versi Baru Syarat & Ketentuan (SETTING - Admin HO / Super User).
+ * Setiap submit SELALU membuat VERSI BARU (audit trail; versi lama otomatis jadi arsip).
+ * Route `/edit/new` artinya "create baru berdasarkan versi aktif saat ini".
+ * Route `/edit/{id}` artinya "create baru berdasarkan versi {id} (biasanya arsip)".
+ * Konten: rich text editor Quill (react-quill) -> output HTML, atau upload PDF.
  */
 
 // Toolbar Quill: heading, list, bold/italic, warna, link - cukup untuk dokumen T&C.
@@ -70,7 +71,7 @@ const UpdateTermsAndConditions: React.FC = () => {
     setError('')
     try {
       if (isNew) {
-        // Ambil versi aktif sebagai basis edit
+        // Ambil versi aktif sebagai basis create-new
         const response = await apiClient.get('/vendor-registration/terms-and-conditions')
         const data = response.data?.data ?? response.data
         setTitle(data.title ?? '')
@@ -89,7 +90,7 @@ const UpdateTermsAndConditions: React.FC = () => {
         setBaseVersion(data.version ?? null)
         if (!data.is_active) {
           setError(
-            `Anda sedang edit versi ARSIP v${data.version}. Submit akan membuat versi baru berdasarkan konten ini.`
+            `Anda sedang edit IN-PLACE versi ARSIP v${data.version}. Versi ini tetap berstatus arsip setelah disimpan.`
           )
         }
       }
@@ -171,13 +172,21 @@ const UpdateTermsAndConditions: React.FC = () => {
         formData.append('file', pdfFile)
       }
 
-      await apiClient.put('/vendor-registration/terms-and-conditions', formData, {
+      const endpoint = isNew
+        ? '/vendor-registration/terms-and-conditions'
+        : `/vendor-registration/terms-and-conditions/versions/${params.id}`
+
+      await apiClient.put(endpoint, formData, {
         headers: {'Content-Type': 'multipart/form-data'},
       })
 
+      const successMessage = isNew
+        ? 'Syarat & Ketentuan berhasil diperbarui (versi baru dibuat & otomatis aktif).'
+        : `Versi v${baseVersion ?? '-'} berhasil diedit in-place. Status aktif/arsip tidak berubah.`
+
       Swal.fire({
         title: 'Berhasil',
-        text: 'Syarat & Ketentuan berhasil diperbarui (versi baru dibuat & otomatis aktif).',
+        text: successMessage,
         icon: 'success',
         timer: 1800,
         showConfirmButton: false,
@@ -217,10 +226,15 @@ const UpdateTermsAndConditions: React.FC = () => {
     <section id='terms-setting-update'>
       <div className='card'>
         <div className='card-body'>
-          <h1 className='terms-setting-title'>Edit Syarat &amp; Ketentuan</h1>
+          <h1 className='terms-setting-title'>
+            {isNew
+              ? 'Buat Versi Baru Syarat & Ketentuan'
+              : `Edit Versi v${baseVersion ?? '-'} (In-Place)`}
+          </h1>
           <p className='terms-setting-subtitle'>
-            {baseVersion ? `Basis edit: versi aktif v${baseVersion}. ` : ''}
-            Submit akan membuat versi baru dan menonaktifkan versi lama.
+            {isNew
+              ? `Membuat versi baru berdasarkan versi aktif saat ini (v${baseVersion ?? '-'}). Versi baru akan otomatis menjadi satu-satunya versi aktif, dan versi lama akan dinonaktifkan (audit trail).`
+              : `Memperbarui konten versi v${baseVersion ?? '-'} tanpa membuat versi baru. Status aktif/arsip TIDAK berubah — jika versi ini arsip, akan tetap arsip. Aktivasi manual dapat dilakukan dari daftar versi.`}
           </p>
 
           {error ? <div className='terms-setting-warning'>{error}</div> : null}
@@ -357,7 +371,11 @@ const UpdateTermsAndConditions: React.FC = () => {
                 className='btn-dark-primary button-submit m-0'
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Menyimpan...' : 'Simpan sebagai Versi Baru'}
+                {isSubmitting
+                  ? 'Menyimpan...'
+                  : isNew
+                    ? 'Simpan sebagai Versi Baru'
+                    : `Simpan Edit v${baseVersion ?? '-'}`}
               </Button>
               <Button
                 type='button'

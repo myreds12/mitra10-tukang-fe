@@ -680,7 +680,7 @@ export function AsideMenuMain() {
 
           <AsideMenuItem
             to='/vendor-registration/terms-setting/edit/new'
-            title='Formulir Edit T&C'
+            title='Formulir Create T&C'
             role={['Admin HO', 'Super User']}
             hasBullet={true}
           />
