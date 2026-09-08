@@ -17,6 +17,8 @@ import {
   CheckCircleOutlined,
   DownloadOutlined,
   SearchOutlined,
+  ClearOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import Swal from 'sweetalert2'
@@ -192,6 +194,17 @@ const ViewVendorSP: React.FC = () => {
     setPagination((prev) => ({ ...prev, current: 1 }))
   }
 
+  const hasActiveFilters =
+    !!filtersInput.search ||
+    filtersInput.sp_level !== undefined ||
+    filtersInput.status !== undefined
+
+  const handleClearFilters = () => {
+    setFiltersInput({ search: '', sp_level: undefined, status: undefined })
+    setAppliedFilters({ search: '', sp_level: undefined, status: undefined })
+    setPagination((prev) => ({ ...prev, current: 1 }))
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter') {
       handleSubmitFilter()
@@ -211,15 +224,24 @@ const ViewVendorSP: React.FC = () => {
   const handleRecapSubmit = async (values: any) => {
     setExportingRecap(true)
     try {
-      await vendorSpService.generateCleanVendorRecap({
+      const result = await vendorSpService.generateCleanVendorRecap({
         quarter: values.quarter,
         year: values.year,
         category: values.category || undefined,
       })
-      Swal.fire('Sukses', 'Rekap vendor bersih PDF berhasil didownload', 'success')
+      const sizeKb = (result.size / 1024).toFixed(1)
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: `Rekap vendor bersih PDF berhasil didownload (${sizeKb} KB)`,
+      })
       setRecapModalOpen(false)
     } catch (error: any) {
-      Swal.fire('Error', error?.message || 'Gagal generate rekap vendor bersih', 'error')
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: error?.message || 'Gagal generate rekap vendor bersih',
+      })
     } finally {
       setExportingRecap(false)
     }
@@ -291,17 +313,18 @@ const ViewVendorSP: React.FC = () => {
     {
       title: 'Aksi',
       key: 'action',
+      width: 120,
       render: (_, record) => (
         <Space size='small'>
           <VendorSpActionButton
-            title='Detail'
+            title='Lihat detail SP ini'
             tone='primary'
             icon={<EyeOutlined />}
             onClick={() => navigate(`/vendor-sp/detail/${record.id}`)}
           />
           {record.status === 1 && (
             <VendorSpActionButton
-              title='Selesaikan SP'
+              title='Tandai SP ini selesai lebih awal'
               tone='success'
               icon={<CheckCircleOutlined />}
               onClick={() => handleComplete(record.id)}
@@ -316,74 +339,88 @@ const ViewVendorSP: React.FC = () => {
     <div id='vendor-sp-list'>
     <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
       <div className='card-header border-0 pt-5'>
-        <div className='card-title d-flex flex-column'>
-          <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
-            <div className='row g-2 mb-3'>
-              <div className='col-md-3'>
-                <div className='vendor-sp-search-wrapper'>
-                  <SearchOutlined className='vendor-sp-search-icon' />
-                  <Input
-                    className='vendor-sp-search'
-                    placeholder='Cari vendor...'
-                    allowClear
-                    value={filtersInput.search}
-                    onChange={(e) =>
-                      setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className='col-md-2'>
-                <Select
-                  className='vendor-sp-filter-select'
-                  placeholder='Level SP'
+        <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3'>
+          <h3 className='card-label fw-bold fs-3 mb-0'>Daftar SP Vendor</h3>
+          <Button
+            type='primary'
+            icon={<DownloadOutlined />}
+            onClick={openRecapModal}
+            loading={exportingRecap}
+            className='vendor-sp-recap-button'
+          >
+            <span className='d-none d-md-inline'>Download Rekap Vendor Bersih</span>
+            <span className='d-md-none'>Rekap</span>
+          </Button>
+        </div>
+        <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+          <div className='row g-2 align-items-end'>
+            <div className='col-12 col-md-4'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Pencarian</label>
+              <div className='vendor-sp-search-wrapper'>
+                <SearchOutlined className='vendor-sp-search-icon' />
+                <Input
+                  className='vendor-sp-search'
+                  placeholder='Cari nama vendor...'
                   allowClear
-                  value={filtersInput.sp_level}
-                  onChange={(value) =>
-                    setFiltersInput((prev) => ({ ...prev, sp_level: value }))
+                  value={filtersInput.search}
+                  onChange={(e) =>
+                    setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
                   }
-                  style={{ width: '100%' }}
-                >
-                  <Option value={1}>SP1</Option>
-                  <Option value={2}>SP2</Option>
-                  <Option value={3}>SP3</Option>
-                </Select>
+                />
               </div>
-              <div className='col-md-2'>
-                <Select
-                  className='vendor-sp-filter-select'
-                  placeholder='Status'
-                  allowClear
-                  value={filtersInput.status}
-                  onChange={(value) =>
-                    setFiltersInput((prev) => ({ ...prev, status: value }))
-                  }
-                  style={{ width: '100%' }}
-                >
-                  <Option value={1}>Aktif</Option>
-                  <Option value={2}>Selesai</Option>
-                  <Option value={3}>Diperpanjang</Option>
-                </Select>
-              </div>
-              <div className='col-md-2'>
-                <Button
-                  className='btn-dark-primary'
-                  onClick={handleSubmitFilter}
-                  loading={loadingButton}
-                >
-                  {loadingButton ? 'Filtering..' : 'Submit'}
-                </Button>
-              </div>
-              <div className='col-md-3 d-flex justify-content-end'>
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={openRecapModal}
-                  loading={exportingRecap}
-                >
-                  <span className='d-none d-md-inline'>Download Rekap Vendor Bersih</span>
-                  <span className='d-md-none'>Rekap</span>
-                </Button>
-              </div>
+            </div>
+            <div className='col-6 col-md-2'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Level SP</label>
+              <Select
+                className='vendor-sp-filter-select'
+                placeholder='Semua Level'
+                allowClear
+                value={filtersInput.sp_level}
+                onChange={(value) =>
+                  setFiltersInput((prev) => ({ ...prev, sp_level: value }))
+                }
+                style={{ width: '100%' }}
+              >
+                <Option value={1}>SP1</Option>
+                <Option value={2}>SP2</Option>
+                <Option value={3}>SP3</Option>
+              </Select>
+            </div>
+            <div className='col-6 col-md-2'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Status</label>
+              <Select
+                className='vendor-sp-filter-select'
+                placeholder='Semua Status'
+                allowClear
+                value={filtersInput.status}
+                onChange={(value) =>
+                  setFiltersInput((prev) => ({ ...prev, status: value }))
+                }
+                style={{ width: '100%' }}
+              >
+                <Option value={1}>Aktif</Option>
+                <Option value={2}>Selesai</Option>
+                <Option value={3}>Diperpanjang</Option>
+              </Select>
+            </div>
+            <div className='col-12 col-md-4 d-flex justify-content-end gap-2 flex-wrap'>
+              <Button
+                onClick={handleClearFilters}
+                disabled={!hasActiveFilters}
+                icon={<ClearOutlined />}
+              >
+                <span className='d-none d-sm-inline'>Reset Filter</span>
+                <span className='d-sm-none'>Reset</span>
+              </Button>
+              <Button
+                type='primary'
+                className='btn-dark-primary'
+                onClick={handleSubmitFilter}
+                loading={loadingButton}
+                icon={<SearchOutlined />}
+              >
+                {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
+              </Button>
             </div>
           </div>
         </div>
@@ -398,22 +435,46 @@ const ViewVendorSP: React.FC = () => {
           loading={loading}
           pagination={false}
           scroll={{ x: 1000 }}
+          locale={{
+            emptyText: (
+              <div className='vendor-sp-empty-state'>
+                <FileSearchOutlined className='vendor-sp-empty-icon' />
+                <div className='vendor-sp-empty-title'>
+                  {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Data Vendor SP'}
+                </div>
+                <div className='vendor-sp-empty-desc'>
+                  {hasActiveFilters
+                    ? 'Coba ubah atau reset filter untuk menampilkan data.'
+                    : 'Belum ada Surat Peringatan yang terdaftar untuk vendor.'}
+                </div>
+                {hasActiveFilters && (
+                  <Button
+                    type='link'
+                    onClick={handleClearFilters}
+                    className='vendor-sp-empty-action'
+                  >
+                    Reset Filter
+                  </Button>
+                )}
+              </div>
+            ),
+          }}
         />
         <div className='pagination-container'>
           <span className='pagination-total'>
             {pagination.total === 0
-              ? 'Showing 0 of 0 Vendor SP'
-              : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+              ? 'Belum ada data Vendor SP'
+              : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
                   pagination.current * pagination.pageSize,
                   pagination.total,
-                )} of ${pagination.total} Vendor SP`}
+                )} dari ${pagination.total} Vendor SP`}
           </span>
           <Pagination
             current={pagination.current}
             pageSize={pagination.pageSize}
             total={pagination.total}
             showSizeChanger
-            pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+            pageSizeOptions={[10, 20, 50, 100]}
             onChange={(page, size) =>
               setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
             }

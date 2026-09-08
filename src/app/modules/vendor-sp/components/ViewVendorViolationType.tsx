@@ -12,18 +12,21 @@ import {
   message,
   Popconfirm,
   Switch,
+  Pagination,
 } from 'antd'
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  ClearOutlined,
+  FileSearchOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
   VendorSpActionButton,
   VendorSpPill,
-  vendorSpPagination,
   vendorSpTableClassName,
 } from './VendorSpTable'
 
@@ -62,6 +65,11 @@ const ViewVendorViolationType: React.FC = () => {
     search: '',
     category: undefined as string | undefined,
   })
+  const [filtersInput, setFiltersInput] = useState({
+    search: '',
+    category: undefined as string | undefined,
+  })
+  const [loadingButton, setLoadingButton] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -107,6 +115,20 @@ const ViewVendorViolationType: React.FC = () => {
       current: newPagination.current || 1,
       pageSize: newPagination.pageSize || prev.pageSize,
     }))
+  }
+
+  const handleSubmitFilter = () => {
+    setLoadingButton(true)
+    setFilters(filtersInput)
+    setPagination((prev) => ({...prev, current: 1}))
+  }
+
+  const hasActiveFilters = !!filtersInput.search || !!filtersInput.category
+
+  const handleClearFilters = () => {
+    setFiltersInput({search: '', category: undefined})
+    setFilters({search: '', category: undefined})
+    setPagination((prev) => ({...prev, current: 1}))
   }
 
   const getCategoryColor = (category: string) => {
@@ -253,24 +275,50 @@ const ViewVendorViolationType: React.FC = () => {
   return (
     <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
       <div className='card-header border-0 pt-5'>
-        <div className='card-title d-flex flex-column'>
-          <div className='vendor-sp-toolbar'>
-            <div className='vendor-sp-filter-group'>
-              <Input.Search
-                className='vendor-sp-filter-control'
-                placeholder='Cari...'
-                onSearch={(value) =>
-                  setFilters((prev) => ({ ...prev, search: value }))
-                }
-                style={{ width: 200 }}
-              />
+        <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3'>
+          <h3 className='card-label fw-bold fs-3 mb-0'>Jenis Pelanggaran</h3>
+          <Space className='flex-wrap'>
+            <Button icon={<ReloadOutlined />} onClick={fetchData}>
+              <span className='d-none d-md-inline'>Refresh</span>
+            </Button>
+            <Button
+              type='primary'
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              className='vendor-sp-recap-button'
+            >
+              <span className='d-none d-md-inline'>Tambah Jenis Pelanggaran</span>
+              <span className='d-md-none'>Tambah</span>
+            </Button>
+          </Space>
+        </div>
+        <div className='vendor-sp-toolbar'>
+          <div className='row g-2 align-items-end'>
+            <div className='col-12 col-md-4'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Pencarian</label>
+              <div className='vendor-sp-search-wrapper'>
+                <SearchOutlined className='vendor-sp-search-icon' />
+                <Input
+                  className='vendor-sp-search'
+                  placeholder='Cari kode atau nama pelanggaran...'
+                  allowClear
+                  value={filtersInput.search}
+                  onChange={(e) =>
+                    setFiltersInput((prev) => ({...prev, search: e.target.value}))
+                  }
+                />
+              </div>
+            </div>
+            <div className='col-6 col-md-3'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Kategori</label>
               <Select
-                className='vendor-sp-filter-control'
-                placeholder='Kategori'
+                className='vendor-sp-filter-select'
+                placeholder='Semua Kategori'
                 allowClear
-                style={{ width: 150 }}
+                style={{width: '100%'}}
+                value={filtersInput.category}
                 onChange={(value) =>
-                  setFilters((prev) => ({ ...prev, category: value }))
+                  setFiltersInput((prev) => ({...prev, category: value}))
                 }
               >
                 {CATEGORIES.map((cat) => (
@@ -280,14 +328,25 @@ const ViewVendorViolationType: React.FC = () => {
                 ))}
               </Select>
             </div>
-            <Space className='vendor-sp-action-group'>
-              <Button icon={<ReloadOutlined />} onClick={fetchData}>
-                Refresh
+            <div className='col-12 col-md-5 d-flex justify-content-end gap-2 flex-wrap'>
+              <Button
+                onClick={handleClearFilters}
+                disabled={!hasActiveFilters}
+                icon={<ClearOutlined />}
+              >
+                <span className='d-none d-sm-inline'>Reset Filter</span>
+                <span className='d-sm-none'>Reset</span>
               </Button>
-              <Button type='primary' icon={<PlusOutlined />} onClick={handleAdd}>
-                Tambah Jenis Pelanggaran
+              <Button
+                type='primary'
+                className='btn-dark-primary'
+                onClick={handleSubmitFilter}
+                loading={loadingButton}
+                icon={<SearchOutlined />}
+              >
+                {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
               </Button>
-            </Space>
+            </div>
           </div>
         </div>
       </div>
@@ -299,9 +358,53 @@ const ViewVendorViolationType: React.FC = () => {
           dataSource={data}
           rowKey='id'
           loading={loading}
-          pagination={vendorSpPagination(pagination)}
-          onChange={handleTableChange}
+          pagination={false}
+          scroll={{x: 800}}
+          locale={{
+            emptyText: (
+              <div className='vendor-sp-empty-state'>
+                <FileSearchOutlined className='vendor-sp-empty-icon' />
+                <div className='vendor-sp-empty-title'>
+                  {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Jenis Pelanggaran'}
+                </div>
+                <div className='vendor-sp-empty-desc'>
+                  {hasActiveFilters
+                    ? 'Coba ubah atau reset filter untuk menampilkan data.'
+                    : 'Belum ada jenis pelanggaran yang terdaftar.'}
+                </div>
+                {hasActiveFilters && (
+                  <Button
+                    type='link'
+                    onClick={handleClearFilters}
+                    className='vendor-sp-empty-action'
+                  >
+                    Reset Filter
+                  </Button>
+                )}
+              </div>
+            ),
+          }}
         />
+        <div className='pagination-container'>
+          <span className='pagination-total'>
+            {pagination.total === 0
+              ? 'Belum ada data Jenis Pelanggaran'
+              : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+                  pagination.current * pagination.pageSize,
+                  pagination.total,
+                )} dari ${pagination.total} Jenis Pelanggaran`}
+          </span>
+          <Pagination
+            current={pagination.current}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            showSizeChanger
+            pageSizeOptions={[10, 20, 50, 100]}
+            onChange={(page, size) => {
+              setPagination((prev) => ({...prev, current: page, pageSize: size}))
+            }}
+          />
+        </div>
       </div>
 
       <Modal

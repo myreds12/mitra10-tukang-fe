@@ -337,8 +337,9 @@ const VendorReactivation: React.FC = () => {
         <h5 className='mb-3'>Log Reaktivasi</h5>
 
         <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
-          <div className='row g-2 mb-3'>
-            <div className='col-md-4'>
+          <div className='row g-2 align-items-end'>
+            <div className='col-12 col-md-4'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Pencarian</label>
               <div className='vendor-sp-search-wrapper'>
                 <SearchOutlined className='vendor-sp-search-icon' />
                 <Input
@@ -352,10 +353,11 @@ const VendorReactivation: React.FC = () => {
                 />
               </div>
             </div>
-            <div className='col-md-2'>
+            <div className='col-6 col-md-2'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Status</label>
               <Select
                 className='vendor-sp-filter-select'
-                placeholder='Status reaktivasi'
+                placeholder='Semua Status'
                 allowClear
                 value={filtersInput.status}
                 onChange={(val) =>
@@ -366,9 +368,11 @@ const VendorReactivation: React.FC = () => {
                   {value: 2, label: 'Disetujui'},
                   {value: 3, label: 'Ditolak'},
                 ]}
+                style={{width: '100%'}}
               />
             </div>
-            <div className='col-md-3'>
+            <div className='col-12 col-md-3'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Periode</label>
               <DatePicker.RangePicker
                 style={{width: '100%'}}
                 value={filtersInput.dateRange}
@@ -379,22 +383,23 @@ const VendorReactivation: React.FC = () => {
                 placeholder={['Dari tanggal', 'Sampai tanggal']}
               />
             </div>
-            <div className='col-md-2'>
+            <div className='col-12 col-md-3 d-flex justify-content-end gap-2 flex-wrap'>
               <Button
+                onClick={resetFilter}
+                icon={<ClearOutlined />}
+                title='Reset semua filter'
+              >
+                <span className='d-none d-sm-inline'>Reset Filter</span>
+                <span className='d-sm-none'>Reset</span>
+              </Button>
+              <Button
+                type='primary'
                 className='btn-dark-primary'
                 onClick={handleSubmitFilter}
                 loading={loadingButton}
+                icon={<SearchOutlined />}
               >
-                {loadingButton ? 'Filtering..' : 'Submit'}
-              </Button>
-            </div>
-            <div className='col-md-1'>
-              <Button
-                icon={<ClearOutlined />}
-                onClick={resetFilter}
-                title='Reset semua filter'
-              >
-                Reset
+                {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
               </Button>
             </div>
           </div>
@@ -422,18 +427,18 @@ const VendorReactivation: React.FC = () => {
         <div className='pagination-container'>
           <span className='pagination-total'>
             {pagination.total === 0
-              ? 'Showing 0 of 0 Log Reaktivasi'
-              : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+              ? 'Belum ada data Log Reaktivasi'
+              : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
                   pagination.current * pagination.pageSize,
                   pagination.total,
-                )} of ${pagination.total} Log Reaktivasi`}
+                )} dari ${pagination.total} Log Reaktivasi`}
           </span>
           <Pagination
             current={pagination.current}
             pageSize={pagination.pageSize}
             total={pagination.total}
             showSizeChanger
-            pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+            pageSizeOptions={[10, 20, 50, 100]}
             onChange={(page, size) =>
               setPagination((prev) => ({...prev, current: page, pageSize: size}))
             }

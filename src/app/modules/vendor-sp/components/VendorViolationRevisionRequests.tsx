@@ -3,7 +3,12 @@ import {Button, Card, Input, Modal, Select, Space, Table, Pagination} from 'antd
 import type {ColumnsType} from 'antd/es/table'
 import {vendorViolationService} from '../../../services/vendorViolationService'
 import Swal from 'sweetalert2'
-import {CheckCircleOutlined, CloseCircleOutlined} from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ClearOutlined,
+  FileSearchOutlined,
+} from '@ant-design/icons'
 import {
   VendorSpActionButton,
   VendorSpPill,
@@ -65,6 +70,14 @@ const VendorViolationRevisionRequests: React.FC = () => {
     setAppliedFilters(filtersInput)
     setPagination((prev) => ({...prev, current: 1}))
   }
+
+  const handleClearFilters = () => {
+    setFiltersInput({status: undefined})
+    setAppliedFilters({status: undefined})
+    setPagination((prev) => ({...prev, current: 1}))
+  }
+
+  const hasActiveFilters = !!filtersInput.status
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter') {
@@ -191,13 +204,14 @@ const VendorViolationRevisionRequests: React.FC = () => {
     <div id='vendor-sp-revisions'>
     <Card className='vendor-sp-table' title='Approval Revisi / Reset Poin Vendor'>
       <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
-        <div className='row g-2 mb-3'>
-          <div className='col-md-3'>
+        <div className='row g-2 align-items-end mb-3'>
+          <div className='col-12 col-md-4'>
+            <label className='form-label fw-semibold fs-7 mb-1'>Status Request</label>
             <Select
               className='vendor-sp-filter-select'
               value={filtersInput.status}
               allowClear
-              placeholder='Semua status'
+              placeholder='Semua Status'
               style={{width: '100%'}}
               onChange={(value) =>
                 setFiltersInput((prev) => ({...prev, status: value}))
@@ -208,13 +222,22 @@ const VendorViolationRevisionRequests: React.FC = () => {
               <Option value='REJECTED'>REJECTED</Option>
             </Select>
           </div>
-          <div className='col-md-2'>
+          <div className='col-12 col-md-8 d-flex justify-content-end gap-2 flex-wrap'>
             <Button
+              onClick={handleClearFilters}
+              disabled={!hasActiveFilters}
+              icon={<ClearOutlined />}
+            >
+              <span className='d-none d-sm-inline'>Reset Filter</span>
+              <span className='d-sm-none'>Reset</span>
+            </Button>
+            <Button
+              type='primary'
               className='btn-dark-primary'
               onClick={handleSubmitFilter}
               loading={loadingButton}
             >
-              {loadingButton ? 'Filtering..' : 'Submit'}
+              {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
             </Button>
           </div>
         </div>
@@ -228,23 +251,47 @@ const VendorViolationRevisionRequests: React.FC = () => {
         dataSource={data}
         pagination={false}
         scroll={{x: 1000}}
+        locale={{
+          emptyText: (
+            <div className='vendor-sp-empty-state'>
+              <FileSearchOutlined className='vendor-sp-empty-icon' />
+              <div className='vendor-sp-empty-title'>
+                {hasActiveFilters ? 'Tidak Ada Request yang Cocok' : 'Belum Ada Request Revisi/Reset'}
+              </div>
+              <div className='vendor-sp-empty-desc'>
+                {hasActiveFilters
+                  ? 'Coba ubah filter status untuk menampilkan data.'
+                  : 'Belum ada request revisi atau reset poin dari vendor.'}
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  type='link'
+                  onClick={handleClearFilters}
+                  className='vendor-sp-empty-action'
+                >
+                  Reset Filter
+                </Button>
+              )}
+            </div>
+          ),
+        }}
       />
 
       <div className='pagination-container'>
         <span className='pagination-total'>
           {pagination.total === 0
-            ? 'Showing 0 of 0 Request'
-            : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+            ? 'Belum ada data Request'
+            : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
                 pagination.current * pagination.pageSize,
                 pagination.total,
-              )} of ${pagination.total} Request`}
+              )} dari ${pagination.total} Request`}
         </span>
         <Pagination
           current={pagination.current}
           pageSize={pagination.pageSize}
           total={pagination.total}
           showSizeChanger
-          pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+          pageSizeOptions={[10, 20, 50, 100]}
           onChange={(page, size) =>
             setPagination((prev) => ({...prev, current: page, pageSize: size}))
           }
@@ -257,6 +304,9 @@ const VendorViolationRevisionRequests: React.FC = () => {
         onCancel={() => setReviewTarget(null)}
         onOk={submitReview}
         confirmLoading={submitting}
+        okText={reviewAction === 'APPROVE' ? 'Ya, Approve' : 'Ya, Reject'}
+        cancelText='Batal'
+        okButtonProps={{danger: reviewAction === 'REJECT'}}
       >
         <p className='mb-2'>
           {reviewTarget?.type} untuk vendor {reviewTarget?.vendor?.company_name || '-'}
@@ -264,7 +314,7 @@ const VendorViolationRevisionRequests: React.FC = () => {
         <Input.TextArea
           rows={3}
           value={reviewNote}
-          placeholder='Catatan review'
+          placeholder='Catatan review (wajib untuk reject, opsional untuk approve)'
           onChange={(event) => setReviewNote(event.target.value)}
         />
       </Modal>

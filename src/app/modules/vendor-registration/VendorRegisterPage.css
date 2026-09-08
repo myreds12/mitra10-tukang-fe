@@ -156,6 +156,18 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
+.vendor-tnc-empty {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.vendor-tnc-empty-icon {
+  opacity: 0.65;
+}
+
 .vendor-tnc-modal .modal-header {
   border-bottom: 1px solid #e9ecef;
   background: #f8f9fa;

@@ -41,6 +41,16 @@ const QUILL_FORMATS = [
   'link',
 ]
 
+const PDF_MAX_BYTES = 10 * 1024 * 1024
+const TITLE_MIN = 5
+const TITLE_MAX = 200
+
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
 const UpdateTermsAndConditions: React.FC = () => {
   const navigate = useNavigate()
   const params = useParams()
@@ -99,8 +109,25 @@ const UpdateTermsAndConditions: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!title.trim()) {
+    const trimmedTitle = title.trim()
+    if (!trimmedTitle) {
       Swal.fire('Validasi', 'Judul wajib diisi.', 'warning')
+      return
+    }
+    if (trimmedTitle.length < TITLE_MIN) {
+      Swal.fire(
+        'Validasi',
+        `Judul minimal ${TITLE_MIN} karakter (saat ini: ${trimmedTitle.length}).`,
+        'warning',
+      )
+      return
+    }
+    if (trimmedTitle.length > TITLE_MAX) {
+      Swal.fire(
+        'Validasi',
+        `Judul maksimal ${TITLE_MAX} karakter (saat ini: ${trimmedTitle.length}).`,
+        'warning',
+      )
       return
     }
 
@@ -121,13 +148,21 @@ const UpdateTermsAndConditions: React.FC = () => {
         Swal.fire('Validasi', 'File harus berformat PDF.', 'warning')
         return
       }
+      if (pdfFile.size > PDF_MAX_BYTES) {
+        Swal.fire(
+          'Validasi',
+          `Ukuran file PDF maksimal ${formatBytes(PDF_MAX_BYTES)} (file saat ini: ${formatBytes(pdfFile.size)}).`,
+          'warning',
+        )
+        return
+      }
     }
 
     setIsSubmitting(true)
     try {
       // multipart/form-data supaya bisa kirim file PDF
       const formData = new FormData()
-      formData.append('title', title.trim())
+      formData.append('title', trimmedTitle)
       formData.append('document_type', documentType)
       if (documentType === 'HTML') {
         formData.append('content', content)
@@ -192,6 +227,24 @@ const UpdateTermsAndConditions: React.FC = () => {
 
           <Form onSubmit={handleSubmit}>
             <Form.Group className='mb-4'>
+              <Form.Label className='fw-semibold'>
+                Judul <span className='text-danger'>*</span>
+              </Form.Label>
+              <Form.Control
+                type='text'
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder='Contoh: Syarat dan Ketentuan Pendaftaran Vendor Mitra10'
+                maxLength={TITLE_MAX}
+                minLength={TITLE_MIN}
+                required
+              />
+              <Form.Text className='text-muted'>
+                {TITLE_MIN}-{TITLE_MAX} karakter. Saat ini: {title.trim().length} karakter.
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className='mb-4'>
               <Form.Label className='fw-semibold'>Tipe Dokumen</Form.Label>
               <div className='d-flex gap-4'>
                 <Form.Check
@@ -235,22 +288,49 @@ const UpdateTermsAndConditions: React.FC = () => {
               </Form.Group>
             ) : (
               <Form.Group className='mb-4'>
-                <Form.Label className='fw-semibold'>File PDF</Form.Label>
+                <Form.Label className='fw-semibold'>
+                  File PDF <span className='text-danger'>*</span>
+                </Form.Label>
                 <Form.Control
                   type='file'
                   accept='application/pdf,.pdf'
                   onChange={(e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0] ?? null
+                    const input = e.target as HTMLInputElement
+                    const file = input.files?.[0] ?? null
+                    if (file && file.type !== 'application/pdf') {
+                      Swal.fire(
+                        'Validasi',
+                        'File harus berformat PDF.',
+                        'warning',
+                      )
+                      input.value = ''
+                      setPdfFile(null)
+                      return
+                    }
+                    if (file && file.size > PDF_MAX_BYTES) {
+                      Swal.fire(
+                        'Validasi',
+                        `Ukuran file PDF maksimal ${formatBytes(PDF_MAX_BYTES)} (file saat ini: ${formatBytes(file.size)}).`,
+                        'warning',
+                      )
+                      input.value = ''
+                      setPdfFile(null)
+                      return
+                    }
                     setPdfFile(file)
                   }}
                 />
                 {pdfFile ? (
                   <Form.Text className='text-success'>
-                    File terpilih: {pdfFile.name} ({Math.round(pdfFile.size / 1024)} KB)
+                    File terpilih: {pdfFile.name} ({formatBytes(pdfFile.size)}) -{' '}
+                    {pdfFile.size > PDF_MAX_BYTES * 0.8
+                      ? 'mendekati batas maksimal'
+                      : 'OK'}
                   </Form.Text>
                 ) : (
                   <Form.Text className='text-muted'>
-                    Upload file PDF baru untuk mengganti konten T&C.
+                    Upload file PDF baru untuk mengganti konten T&C. Maksimal{' '}
+                    {formatBytes(PDF_MAX_BYTES)}.
                   </Form.Text>
                 )}
               </Form.Group>

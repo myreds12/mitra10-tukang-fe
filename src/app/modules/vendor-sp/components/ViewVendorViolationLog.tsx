@@ -22,6 +22,8 @@ import {
   DownloadOutlined,
   UploadOutlined,
   SearchOutlined,
+  ClearOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -191,6 +193,17 @@ const ViewVendorViolationLog: React.FC = () => {
     setLoadingButton(true)
     setAppliedFilters(filtersInput)
     setPagination((prev) => ({ ...prev, current: 1 }))
+  }
+
+  const hasActiveFilters =
+    !!filtersInput.search ||
+    !!filtersInput.category ||
+    filtersInput.vendor_id !== undefined
+
+  const handleClearFilters = () => {
+    setFiltersInput({search: '', category: undefined, vendor_id: undefined})
+    setAppliedFilters({search: '', category: undefined, vendor_id: undefined})
+    setPagination((prev) => ({...prev, current: 1}))
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -378,89 +391,106 @@ const ViewVendorViolationLog: React.FC = () => {
     <div id='vendor-sp-violations'>
     <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
       <div className='card-header border-0 pt-5'>
-        <div className='card-title d-flex flex-column'>
-          <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
-            <div className='row g-2 mb-3'>
-              <div className='col-md-3'>
-                <div className='vendor-sp-search-wrapper'>
-                  <SearchOutlined className='vendor-sp-search-icon' />
-                  <Input
-                    className='vendor-sp-search'
-                    placeholder='Cari vendor...'
-                    allowClear
-                    value={filtersInput.search}
-                    onChange={(e) =>
-                      setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className='col-md-2'>
-                <Select
-                  className='vendor-sp-filter-select'
-                  placeholder='Kategori'
+        <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3'>
+          <h3 className='card-label fw-bold fs-3 mb-0'>Log Pelanggaran Vendor</h3>
+          <div className='d-flex gap-2 flex-wrap'>
+            {canExport && (
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleExport}
+                loading={exporting}
+                className='vendor-sp-recap-button'
+              >
+                <span className='d-none d-md-inline'>Download Excel</span>
+                <span className='d-md-none'>Export</span>
+              </Button>
+            )}
+            <Button
+              type='primary'
+              icon={<PlusOutlined />}
+              onClick={() => setAddModal(true)}
+              className='vendor-sp-recap-button'
+            >
+              <span className='d-none d-md-inline'>Catat Pelanggaran</span>
+              <span className='d-md-none'>Tambah</span>
+            </Button>
+          </div>
+        </div>
+        <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+          <div className='row g-2 align-items-end'>
+            <div className='col-12 col-md-4'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Pencarian</label>
+              <div className='vendor-sp-search-wrapper'>
+                <SearchOutlined className='vendor-sp-search-icon' />
+                <Input
+                  className='vendor-sp-search'
+                  placeholder='Cari nama vendor atau PIC...'
                   allowClear
-                  value={filtersInput.category}
-                  onChange={(value) =>
-                    setFiltersInput((prev) => ({ ...prev, category: value }))
+                  value={filtersInput.search}
+                  onChange={(e) =>
+                    setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
                   }
-                  style={{ width: '100%' }}
-                >
-                  {CATEGORIES.map((cat) => (
-                    <Option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-              <div className='col-md-2'>
-                <Select
-                  className='vendor-sp-filter-select'
-                  placeholder='Pilih Vendor'
-                  allowClear
-                  showSearch
-                  value={filtersInput.vendor_id}
-                  onChange={(value) =>
-                    setFiltersInput((prev) => ({ ...prev, vendor_id: value }))
-                  }
-                  filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={vendors.map((v) => ({
-                    value: v.id,
-                    label: v.company_name,
-                  }))}
-                  style={{ width: '100%' }}
                 />
               </div>
-              <div className='col-md-2'>
-                <Button
-                  className='btn-dark-primary'
-                  onClick={handleSubmitFilter}
-                  loading={loadingButton}
-                >
-                  {loadingButton ? 'Filtering..' : 'Submit'}
-                </Button>
-              </div>
-              <div className='col-md-3 d-flex flex-column align-items-stretch align-items-md-end gap-2'>
-                {canExport && (
-                  <Button
-                    icon={<DownloadOutlined />}
-                    onClick={handleExport}
-                    loading={exporting}
-                  >
-                    Download Excel
-                  </Button>
-                )}
-                <Button
-                  type='primary'
-                  icon={<PlusOutlined />}
-                  onClick={() => setAddModal(true)}
-                >
-                  <span className='d-none d-md-inline'>Catat Pelanggaran</span>
-                  <span className='d-md-none'>Tambah</span>
-                </Button>
-              </div>
+            </div>
+            <div className='col-6 col-md-2'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Kategori</label>
+              <Select
+                className='vendor-sp-filter-select'
+                placeholder='Semua Kategori'
+                allowClear
+                value={filtersInput.category}
+                onChange={(value) =>
+                  setFiltersInput((prev) => ({ ...prev, category: value }))
+                }
+                style={{ width: '100%' }}
+              >
+                {CATEGORIES.map((cat) => (
+                  <Option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+            <div className='col-6 col-md-2'>
+              <label className='form-label fw-semibold fs-7 mb-1'>Vendor</label>
+              <Select
+                className='vendor-sp-filter-select'
+                placeholder='Semua Vendor'
+                allowClear
+                showSearch
+                value={filtersInput.vendor_id}
+                onChange={(value) =>
+                  setFiltersInput((prev) => ({ ...prev, vendor_id: value }))
+                }
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={vendors.map((v) => ({
+                  value: v.id,
+                  label: v.company_name,
+                }))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div className='col-12 col-md-4 d-flex justify-content-end gap-2 flex-wrap'>
+              <Button
+                onClick={handleClearFilters}
+                disabled={!hasActiveFilters}
+                icon={<ClearOutlined />}
+              >
+                <span className='d-none d-sm-inline'>Reset Filter</span>
+                <span className='d-sm-none'>Reset</span>
+              </Button>
+              <Button
+                type='primary'
+                className='btn-dark-primary'
+                onClick={handleSubmitFilter}
+                loading={loadingButton}
+                icon={<SearchOutlined />}
+              >
+                {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
+              </Button>
             </div>
           </div>
         </div>
@@ -475,22 +505,46 @@ const ViewVendorViolationLog: React.FC = () => {
           loading={loading}
           pagination={false}
           scroll={{ x: 1000 }}
+          locale={{
+            emptyText: (
+              <div className='vendor-sp-empty-state'>
+                <FileSearchOutlined className='vendor-sp-empty-icon' />
+                <div className='vendor-sp-empty-title'>
+                  {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Data Pelanggaran'}
+                </div>
+                <div className='vendor-sp-empty-desc'>
+                  {hasActiveFilters
+                    ? 'Coba ubah atau reset filter untuk menampilkan data.'
+                    : 'Belum ada log pelanggaran vendor yang tercatat.'}
+                </div>
+                {hasActiveFilters && (
+                  <Button
+                    type='link'
+                    onClick={handleClearFilters}
+                    className='vendor-sp-empty-action'
+                  >
+                    Reset Filter
+                  </Button>
+                )}
+              </div>
+            ),
+          }}
         />
         <div className='pagination-container'>
           <span className='pagination-total'>
             {pagination.total === 0
-              ? 'Showing 0 of 0 Pelanggaran'
-              : `Showing ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+              ? 'Belum ada data Pelanggaran'
+              : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
                   pagination.current * pagination.pageSize,
                   pagination.total,
-                )} of ${pagination.total} Pelanggaran`}
+                )} dari ${pagination.total} Pelanggaran`}
           </span>
           <Pagination
             current={pagination.current}
             pageSize={pagination.pageSize}
             total={pagination.total}
             showSizeChanger
-            pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+            pageSizeOptions={[10, 20, 50, 100]}
             onChange={(page, size) =>
               setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
             }

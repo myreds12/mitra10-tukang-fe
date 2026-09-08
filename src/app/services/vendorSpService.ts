@@ -110,7 +110,7 @@ export const vendorSpService = {
     quarter: number;
     year: number;
     category?: string;
-  }): Promise<void> => {
+  }): Promise<{ size: number }> => {
     const response = await fetch(
       `${process.env.REACT_APP_API_URL}/vendor-sp/clean-vendor-recap/export`,
       {
@@ -131,9 +131,18 @@ export const vendorSpService = {
       } catch {}
       throw new Error(msg);
     }
-    await downloadPdf(
-      response,
-      `Rekap_Vendor_Bersih_Q${params.quarter}_${params.year}.pdf`,
-    );
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('PDF kosong — tidak ada data untuk parameter yang dipilih');
+    }
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Rekap_Vendor_Bersih_Q${params.quarter}_${params.year}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    return { size: blob.size };
   },
 };

@@ -156,6 +156,10 @@ const VendorRegisterPage: React.FC = () => {
   }
 
   const handleTncLanjutkan = () => {
+    if (!tnc?.content) {
+      setShowTncModal(false)
+      return
+    }
     setShowTncModal(false)
     doActualSubmit()
   }
@@ -237,6 +241,18 @@ const VendorRegisterPage: React.FC = () => {
             <div className="text-center py-4 text-danger">
               Gagal memuat syarat & ketentuan. Coba refresh halaman.
             </div>
+          ) : !tnc.content ? (
+            <div className="vendor-tnc-empty p-4 text-center">
+              <div className="vendor-tnc-empty-icon mb-3">
+                <span style={{fontSize: 48}}>📄</span>
+              </div>
+              <h5 className="mb-2">Syarat & Ketentuan Belum Tersedia</h5>
+              <p className="text-muted mb-0">
+                Syarat & ketentuan pendaftaran vendor belum di-set oleh Admin.
+                <br />
+                Silakan hubungi Admin Mitra10 untuk informasi lebih lanjut.
+              </p>
+            </div>
           ) : (
             <>
               <h5 className="mb-2">{tnc.title}</h5>
@@ -258,10 +274,10 @@ const VendorRegisterPage: React.FC = () => {
                   dangerouslySetInnerHTML={{ __html: tnc.content }}
                 />
               )}
-          </>
-        )}
-        </Modal.Body>
-        <Modal.Footer className="vendor-tnc-footer">
+            </>
+          )}
+          </Modal.Body>
+          <Modal.Footer className="vendor-tnc-footer">
           <div className="vendor-tnc-agree">
             <Form.Check
               id="vendor-tnc-agree"

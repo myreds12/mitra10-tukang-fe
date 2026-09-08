@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 import {Button, Descriptions, Empty, Space, Spin, Table, Tag} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
-import {ArrowLeftOutlined, FilePdfOutlined, FileTextOutlined} from '@ant-design/icons'
+import {ArrowLeftOutlined, FilePdfOutlined, FileTextOutlined, FileSearchOutlined} from '@ant-design/icons'
 import Swal from 'sweetalert2'
 import {vendorSpService} from '../../../services/vendorSpService'
 import {
@@ -180,44 +180,46 @@ const DetailVendorSP: React.FC = () => {
   return (
     <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
       <div className='card-header border-0 pt-5'>
-        <div className='card-title d-flex flex-column'>
-          <h3 className='card-label mb-1'>Detail Surat Peringatan Vendor</h3>
+        <div className='card-title d-flex flex-column mb-3'>
+          <h3 className='card-label fw-bold fs-3 mb-1'>Detail Surat Peringatan Vendor</h3>
           <span className='text-muted'>Informasi vendor, status SP, dan daftar pelanggaran terkait.</span>
         </div>
-        <div className='card-toolbar'>
-          <Space>
-            <Button
-              type='primary'
-              danger
-              icon={<FilePdfOutlined />}
-              loading={exportingPenalty}
-              onClick={handleExportPenalty}
-              disabled={!detail?.vendor?.id || !detail?.quarter || !detail?.year}
-            >
-              Cetak Bukti SP (PDF)
-            </Button>
-            <Button
-              icon={<FileTextOutlined />}
-              loading={exportingCertificate}
-              onClick={handleExportCertificate}
-              disabled={
-                !detail?.vendor?.id ||
-                !detail?.quarter ||
-                !detail?.year ||
-                hasActiveViolationsInQuarter
-              }
-              title={
-                hasActiveViolationsInQuarter
-                  ? 'Tidak bisa cetak surat bebas — vendor punya pelanggaran aktif di quarter ini'
-                  : 'Generate Surat Keterangan Bebas Pelanggaran'
-              }
-            >
-              Cetak Surat Bebas Pelanggaran (PDF)
-            </Button>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/vendor-sp/view')}>
-              Kembali
-            </Button>
-          </Space>
+        <div className='card-toolbar d-flex gap-2 flex-wrap'>
+          <Button
+            type='primary'
+            danger
+            icon={<FilePdfOutlined />}
+            loading={exportingPenalty}
+            onClick={handleExportPenalty}
+            disabled={!detail?.vendor?.id || !detail?.quarter || !detail?.year}
+            className='vendor-sp-recap-button'
+          >
+            <span className='d-none d-md-inline'>Cetak Bukti SP (PDF)</span>
+            <span className='d-md-none'>Bukti SP</span>
+          </Button>
+          <Button
+            icon={<FileTextOutlined />}
+            loading={exportingCertificate}
+            onClick={handleExportCertificate}
+            disabled={
+              !detail?.vendor?.id ||
+              !detail?.quarter ||
+              !detail?.year ||
+              hasActiveViolationsInQuarter
+            }
+            title={
+              hasActiveViolationsInQuarter
+                ? 'Tidak bisa cetak surat bebas — vendor punya pelanggaran aktif di quarter ini'
+                : 'Generate Surat Keterangan Bebas Pelanggaran'
+            }
+          >
+            <span className='d-none d-md-inline'>Cetak Surat Bebas Pelanggaran (PDF)</span>
+            <span className='d-md-none'>Surat Bebas</span>
+          </Button>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/vendor-sp/view')}>
+            <span className='d-none d-sm-inline'>Kembali</span>
+            <span className='d-sm-none'>Back</span>
+          </Button>
         </div>
       </div>
 
@@ -259,7 +261,12 @@ const DetailVendorSP: React.FC = () => {
                 <Descriptions.Item label='Catatan'>{detail.notes || '-'}</Descriptions.Item>
               </Descriptions>
 
-              <h5 className='mb-3'>Log Pelanggaran</h5>
+              <div className='d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2'>
+                <h5 className='mb-0'>Log Pelanggaran</h5>
+                <span className='text-muted small'>
+                  {violationRows.length} pelanggaran terkait
+                </span>
+              </div>
               <Table
                 className={vendorSpTableClassName}
                 columns={columns}
@@ -267,6 +274,19 @@ const DetailVendorSP: React.FC = () => {
                 rowKey='id'
                 pagination={false}
                 scroll={{x: 900}}
+                locale={{
+                  emptyText: (
+                    <div className='vendor-sp-empty-state'>
+                      <FileSearchOutlined className='vendor-sp-empty-icon' />
+                      <div className='vendor-sp-empty-title'>
+                        Tidak Ada Pelanggaran Terkait
+                      </div>
+                      <div className='vendor-sp-empty-desc'>
+                        SP ini tidak memiliki log pelanggaran yang terkait.
+                      </div>
+                    </div>
+                  ),
+                }}
               />
             </>
           )}

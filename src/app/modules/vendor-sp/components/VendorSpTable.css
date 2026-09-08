@@ -95,7 +95,12 @@
 }
 
 .vendor-sp-table .vendor-sp-action-button.action-success {
-  background-color: #0d6efd;
+  background-color: #198754;
+}
+
+.vendor-sp-table .vendor-sp-action-button.action-success:hover,
+.vendor-sp-table .vendor-sp-action-button.action-success:focus {
+  background-color: #146c43;
 }
 
 .vendor-sp-table .vendor-sp-action-button .anticon {
@@ -165,6 +170,29 @@
   .vendor-sp-table .vendor-sp-filter-group .ant-select,
   .vendor-sp-table .vendor-sp-filter-group .ant-input-search {
     width: 100% !important;
+  }
+
+  .vendor-sp-table .ant-table-tbody > tr > td .ant-space {
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+
+  .vendor-sp-table .vendor-sp-action-button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .vendor-sp-table .ant-pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .vendor-sp-table .ant-pagination-total-text {
+    width: 100%;
+    text-align: center;
+    margin-right: 0;
+    margin-bottom: 8px;
   }
 }
 
