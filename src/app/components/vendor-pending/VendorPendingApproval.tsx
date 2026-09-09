@@ -86,11 +86,11 @@ function getCurrentVendorId(): number | undefined {
 export const VendorPendingApproval: React.FC = () => {
   const navigate = useNavigate();
   const vendorId = useMemo(() => getCurrentVendorId(), []);
-  const { status, loading, error, refresh } = useVendorStatus(apiUrl, vendorId);
+  const { status, loading, error } = useVendorStatus(apiUrl, vendorId);
   const [vendorNameFallback, setVendorNameFallback] = useState('Vendor');
   const [stageFallback, setStageFallback] = useState<HomeStage>('pendaftaran');
   const [supportInfo, setSupportInfo] = useState<HomeContentItem | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
 
   useEffect(() => {
     // Best-effort local fallback: read from localStorage.user if WS not yet returned data
@@ -126,17 +126,6 @@ export const VendorPendingApproval: React.FC = () => {
     };
   }, []);
 
-  const [supportModalOpen, setSupportModalOpen] = useState(false);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await refresh();
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   const handleLengkapiProfil = () => {
     navigate('/pendaftar/dokumen');
   };
@@ -167,11 +156,27 @@ export const VendorPendingApproval: React.FC = () => {
           </span>
         </div>
         <div className='vp-topbar-vendor'>
-          <span className='vp-topbar-vendor-name'>{vendorName}</span>
+          <span className='vp-topbar-vendor-name'>
+            {vendorName}{' '}
+            <span style={{ opacity: 0.85, fontSize: '12px', fontWeight: 400 }}>
+              ({localStorage.getItem('userRole') || 'Pendaftar Vendor'})
+            </span>
+          </span>
           <span className={`vp-topbar-pill ${statusPill.className}`}>
             <span className='vp-topbar-pill-dot' />
             {statusPill.label}
           </span>
+          <button
+            type='button'
+            className='vp-btn-logout'
+            onClick={() => {
+              localStorage.clear();
+              navigate('/login');
+            }}
+            title='Keluar dari akun'
+          >
+            Keluar
+          </button>
         </div>
       </section>
 
@@ -185,22 +190,6 @@ export const VendorPendingApproval: React.FC = () => {
                 'Pendaftaran Anda sedang diproses oleh tim Mitra10. Tim kami akan menghubungi lewat email & WhatsApp setiap ada update.'}
             </p>
           </div>
-          <button
-            type='button'
-            className='vp-btn-outline'
-            onClick={() => setSupportModalOpen(true)}
-          >
-            🎧 {supportLabel}
-          </button>
-          <button
-            type='button'
-            className='vp-btn-ghost'
-            onClick={handleRefresh}
-            disabled={refreshing}
-            title='Refresh status pendaftaran'
-          >
-            {refreshing ? '...' : '↻ Refresh'}
-          </button>
         </div>
         <div className='vp-steps'>
           {STAGE_ORDER.map((s, idx) => {

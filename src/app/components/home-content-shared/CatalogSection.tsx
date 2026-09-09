@@ -77,9 +77,6 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ items }) => {
           <CatalogTileCard key={it.id} item={it} index={idx} />
         ))}
       </div>
-      <div className='catalog-caption'>
-        Foto kategori di atas masih placeholder warna karena mitra10.com membatasi pengambilan gambar otomatis &mdash; tinggal diganti foto asli per kategori saat integrasi. Link setiap kartu sudah mengarah ke halaman kategori resmi di mitra10.com.
-      </div>
     </>
   );
 };

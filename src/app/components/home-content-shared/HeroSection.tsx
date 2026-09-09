@@ -1,11 +1,14 @@
 import React from 'react';
 import { HeroPayload, HomeContentItem } from '../../services/homeContentService';
 import { resolveImageUrl } from './imageHelper';
+import { toAbsoluteUrl } from '../../../_metronic/helpers';
 
 export interface HeroSectionProps {
   item?: HomeContentItem | null;
   payload?: Partial<HeroPayload> | null;
 }
+
+const DEFAULT_BANNER = toAbsoluteUrl('/pendaftar-vendor/pendaftar-vendor-banner.png');
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ item, payload }) => {
   const p: Partial<HeroPayload> = payload || item?.payload || {};
@@ -18,7 +21,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ item, payload }) => {
     'Sambil menunggu verifikasi selesai, kenali dulu bagaimana platform ini membantu Anda mendapatkan order instalasi rutin dari pelanggan Mitra10 di kota Anda.';
 
   const rawImage = p.illustration_image ?? item?.image_url;
-  const imageUrl = resolveImageUrl(rawImage);
+  const imageUrl = resolveImageUrl(rawImage) || DEFAULT_BANNER;
 
   return (
     <div className='hero'>
@@ -29,27 +32,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ item, payload }) => {
         <p>{description}</p>
       </div>
       <div className='art'>
-        {imageUrl ? (
-          <img src={imageUrl} alt={headlineHighlight || 'Hero Illustration'} />
-        ) : (
-          <svg width='150' height='120' viewBox='0 0 150 120' fill='none'>
-            <rect x='20' y='55' width='110' height='55' rx='4' fill='#EEF1FF' />
-            <rect x='20' y='55' width='110' height='14' rx='4' fill='#1E2A78' />
-            <circle cx='34' cy='62' r='2.5' fill='#FBC02D' />
-            <circle cx='43' cy='62' r='2.5' fill='#E12429' />
-            <rect x='34' y='78' width='86' height='6' rx='3' fill='#D8DDF0' />
-            <rect x='34' y='90' width='60' height='6' rx='3' fill='#D8DDF0' />
-            <path
-              d='M55 55 L75 30 L95 55'
-              stroke='#E12429'
-              strokeWidth='6'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              fill='none'
-            />
-            <rect x='66' y='40' width='18' height='15' fill='#FBC02D' />
-          </svg>
-        )}
+        <img
+          src={imageUrl}
+          alt={headlineHighlight || 'Hero Banner'}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = '/pendaftar-vendor/pendaftar-vendor-banner.png';
+          }}
+        />
       </div>
     </div>
   );
