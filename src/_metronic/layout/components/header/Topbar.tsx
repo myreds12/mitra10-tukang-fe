@@ -142,7 +142,14 @@ const Topbar: FC = () => {
     }
   }
 
+  const userRole = localStorage.getItem('userRole') || ''
+  const isPendaftar =
+    window.location.pathname.startsWith('/pendaftar') ||
+    userRole === 'Pendaftar Vendor'
+
   useEffect(() => {
+    if (isPendaftar) return
+
     const syncNotifications = (event: Event) => {
       const {notifications, currentPage, totalData, totalUnread} = (
         event as CustomEvent
@@ -175,7 +182,7 @@ const Topbar: FC = () => {
       }
     }
     // eslint-disable-next-line
-  }, [])
+  }, [isPendaftar])
 
   useEffect(() => {
     getChatUnreadCount()
@@ -190,6 +197,7 @@ const Topbar: FC = () => {
 
   useEffect(() => {
     getStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSearch = async () => {
@@ -197,6 +205,10 @@ const Topbar: FC = () => {
     const data = await getNotifications(currentPage, pageSize)
     setNotifications(data)
     setLoadingSearch(false)
+  }
+
+  if (isPendaftar) {
+    return null
   }
 
   return (

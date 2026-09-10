@@ -83,60 +83,59 @@ const RegistrantHome: React.FC = () => {
       <CatalogSection items={catalogs} />
 
       {/* SUPPORT INFO SECTION */}
-      {support && (
-        <div
-          style={{
-            background: '#FFFFFF',
-            border: '1px solid #D0D5DD',
-            borderRadius: 8,
-            padding: '16px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            marginTop: 24,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A78', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>🎧</span>
-              <span>{supportPayload?.support_label || support.title || 'Hubungi Tim Support Mitra10'}</span>
+      {support && (() => {
+        const phone = supportPayload?.support_phone || support?.description || '+6281234567890';
+        const cleanWaPhone = phone.replace(/[^0-9]/g, '');
+        return (
+          <div
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #D0D5DD',
+              borderRadius: 8,
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              marginTop: 24,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A78', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>🎧</span>
+                <span>{supportPayload?.support_label || support.title || 'Hubungi Tim Support Mitra10'}</span>
+              </div>
+              <div style={{ fontSize: 13, color: '#374151', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>📞</span>
+                <span>Nomor Instalasi: <strong>{phone}</strong></span>
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>
-              <span>🕒 {supportPayload?.support_hours || support.subtitle || 'Senin - Jumat, 08:00 - 17:00 WIB'}</span>
-              {supportPayload?.support_email && (
-                <span style={{ marginLeft: 12 }}>✉️ {supportPayload.support_email}</span>
-              )}
-              {supportPayload?.support_phone && (
-                <span style={{ marginLeft: 12 }}>📱 {supportPayload.support_phone}</span>
-              )}
-            </div>
+            {cleanWaPhone && (
+              <a
+                href={`https://wa.me/${cleanWaPhone}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                style={{
+                  background: '#00A651',
+                  color: '#fff',
+                  padding: '10px 18px',
+                  borderRadius: 6,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>💬 WhatsApp Tim Support</span>
+              </a>
+            )}
           </div>
-          {supportPayload?.support_phone && (
-            <a
-              href={`https://wa.me/${supportPayload.support_phone.replace(/[^0-9]/g, '')}`}
-              target='_blank'
-              rel='noopener noreferrer'
-              style={{
-                background: '#00A651',
-                color: '#fff',
-                padding: '8px 16px',
-                borderRadius: 6,
-                fontWeight: 600,
-                fontSize: 12,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <span>💬 WhatsApp Tim Support</span>
-            </a>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       {/* FOOTER NOTE */}
       <div

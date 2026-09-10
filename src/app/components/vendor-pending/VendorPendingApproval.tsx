@@ -7,12 +7,6 @@ import './VendorPendingApproval.css';
 
 const apiUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
-function extractEmail(text: string | null | undefined): string | null {
-  if (!text) return null;
-  const match = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
-  return match ? match[0] : null;
-}
-
 function extractPhone(text: string | null | undefined): string | null {
   if (!text) return null;
   const match = text.match(/(\+?\d[\d\s-]{6,}\d)/);
@@ -131,10 +125,8 @@ export const VendorPendingApproval: React.FC = () => {
   };
 
   const payloadSupport = (supportInfo?.payload as any) || {};
-  const supportEmail = payloadSupport.support_email || extractEmail(supportInfo?.description) || 'vendor-support@mitra10.com';
   const supportPhone = payloadSupport.support_phone || extractPhone(supportInfo?.description) || '+6281234567890';
   const supportLabel = payloadSupport.support_label || supportInfo?.title || 'Hubungi Tim Support';
-  const supportHours = payloadSupport.support_hours || supportInfo?.subtitle || 'Senin - Jumat, 08:00 - 17:00 WIB';
   const supportNote = payloadSupport.support_note || 'Tim kami siap membantu kendala dan kelengkapan dokumen pendaftaran vendor Anda.';
 
   const isRejected = status?.stage === 'rejected' || stageFallback === 'rejected';
@@ -149,18 +141,12 @@ export const VendorPendingApproval: React.FC = () => {
     <>
       {/* Topbar */}
       <section className='vp-topbar'>
-        <div className='vp-topbar-logo'>
-          <span className='vp-topbar-mark'>
-            <span className='vp-topbar-mark-1'>Mitra</span>
-            <span className='vp-topbar-mark-2'>10</span>
-          </span>
+        <div className='vp-topbar-title'>
+          Pendaftar Vendor
         </div>
         <div className='vp-topbar-vendor'>
           <span className='vp-topbar-vendor-name'>
-            {vendorName}{' '}
-            <span style={{ opacity: 0.85, fontSize: '12px', fontWeight: 400 }}>
-              ({localStorage.getItem('userRole') || 'Pendaftar Vendor'})
-            </span>
+            {vendorName}
           </span>
           <span className={`vp-topbar-pill ${statusPill.className}`}>
             <span className='vp-topbar-pill-dot' />
@@ -290,32 +276,11 @@ export const VendorPendingApproval: React.FC = () => {
               marginBottom: 16,
             }}
           >
-            <div style={{ marginBottom: 10 }}>
-              <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
-                🕒 Jam Operasional Layanan
-              </span>
-              <strong style={{ fontSize: 13, color: '#1F2937' }}>
-                {supportHours}
-              </strong>
-            </div>
-
-            <div style={{ marginBottom: 10 }}>
-              <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
-                ✉️ Email Resmi Dukungan
-              </span>
-              <a
-                href={`mailto:${supportEmail}`}
-                style={{ fontSize: 13, color: '#1E2A78', fontWeight: 600 }}
-              >
-                {supportEmail}
-              </a>
-            </div>
-
             <div>
-              <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
-                📱 WhatsApp Dukungan Vendor
+              <span style={{ fontSize: 11, color: '#6B7280', display: 'block', marginBottom: 4 }}>
+                📞 Nomor Instalasi & Dukungan
               </span>
-              <span style={{ fontSize: 13, color: '#1F2937', fontWeight: 600 }}>
+              <span style={{ fontSize: 14, color: '#1F2937', fontWeight: 700 }}>
                 {supportPhone}
               </span>
             </div>
@@ -340,32 +305,12 @@ export const VendorPendingApproval: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: 8,
                 }}
               >
-                <span>💬 Chat WhatsApp</span>
+                <span>💬 WhatsApp Tim Support</span>
               </a>
             )}
-            <a
-              href={`mailto:${supportEmail}`}
-              style={{
-                flex: 1,
-                background: '#1E2A78',
-                color: '#fff',
-                textAlign: 'center',
-                padding: '10px 14px',
-                borderRadius: 6,
-                fontWeight: 600,
-                fontSize: 13,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <span>✉️ Kirim Email</span>
-            </a>
           </div>
         </div>
       </Modal>

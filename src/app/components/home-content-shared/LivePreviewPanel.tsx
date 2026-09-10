@@ -253,35 +253,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                   {currentSupport.support_label || 'Hubungi Tim Support Mitra10'}
                 </span>
               </div>
-              <div style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>
-                {currentSupport.support_hours ? (
-                  <span>🕒 {currentSupport.support_hours}</span>
-                ) : (
-                  <span>🕒 Senin - Jumat, 08:00 - 17:00 WIB</span>
-                )}
-                {currentSupport.support_email && (
-                  <span style={{ marginLeft: 12 }}>
-                    ✉️ {currentSupport.support_email}
-                  </span>
-                )}
-                {currentSupport.support_phone && (
-                  <span style={{ marginLeft: 12 }}>
-                    📱 {currentSupport.support_phone}
-                  </span>
-                )}
+              <div style={{ fontSize: 13, color: '#374151', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>📞</span>
+                <span>
+                  Nomor Instalasi: <strong>{currentSupport.support_phone || '+6281234567890'}</strong>
+                </span>
               </div>
-              {currentSupport.support_note && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: '#9CA3AF',
-                    marginTop: 2,
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {currentSupport.support_note}
-                </div>
-              )}
             </div>
             <button
               type='button'
@@ -289,18 +266,17 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                 background: '#00A651',
                 color: '#fff',
                 border: 'none',
-                padding: '8px 16px',
+                padding: '10px 18px',
                 borderRadius: 6,
                 fontWeight: 600,
-                fontSize: 12,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'flex',
+                fontSize: 13,
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 8,
+                cursor: 'pointer',
               }}
             >
-              <span>💬 WhatsApp Kami</span>
+              <span>💬 WhatsApp Tim Support</span>
             </button>
           </div>
         )}
