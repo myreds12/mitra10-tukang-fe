@@ -267,25 +267,6 @@ export const VendorPendingApproval: React.FC = () => {
             {supportNote}
           </p>
 
-          <div
-            style={{
-              background: '#F9FAFB',
-              borderRadius: 8,
-              padding: 14,
-              border: '1px solid #E5E7EB',
-              marginBottom: 16,
-            }}
-          >
-            <div>
-              <span style={{ fontSize: 11, color: '#6B7280', display: 'block', marginBottom: 4 }}>
-                📞 Nomor Instalasi & Dukungan
-              </span>
-              <span style={{ fontSize: 14, color: '#1F2937', fontWeight: 700 }}>
-                {supportPhone}
-              </span>
-            </div>
-          </div>
-
           <div style={{ display: 'flex', gap: 10 }}>
             {cleanPhoneForWa && (
               <a

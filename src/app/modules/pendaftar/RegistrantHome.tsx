@@ -103,14 +103,15 @@ const RegistrantHome: React.FC = () => {
             }}
           >
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A78', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A78', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>🎧</span>
                 <span>{supportPayload?.support_label || support.title || 'Hubungi Tim Support Mitra10'}</span>
               </div>
-              <div style={{ fontSize: 13, color: '#374151', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>📞</span>
-                <span>Nomor Instalasi: <strong>{phone}</strong></span>
-              </div>
+              {supportPayload?.support_note && (
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                  {supportPayload.support_note}
+                </div>
+              )}
             </div>
             {cleanWaPhone && (
               <a

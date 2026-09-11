@@ -22,14 +22,14 @@ const MasterLayout = () => {
 
   useEffect(() => {
     if (isPendaftar) {
-      document.body.classList.remove('aside-enabled', 'aside-fixed')
-      document.body.classList.add('no-aside')
+      document.body.classList.remove('aside-enabled', 'aside-fixed', 'header-fixed')
+      document.body.classList.add('no-aside', 'no-header')
     } else {
-      document.body.classList.add('aside-enabled', 'aside-fixed')
-      document.body.classList.remove('no-aside')
+      document.body.classList.add('aside-enabled', 'aside-fixed', 'header-fixed')
+      document.body.classList.remove('no-aside', 'no-header')
     }
     return () => {
-      document.body.classList.remove('no-aside')
+      document.body.classList.remove('no-aside', 'no-header')
     }
   }, [isPendaftar])
 
@@ -53,14 +53,14 @@ const MasterLayout = () => {
           <div
             className='wrapper d-flex flex-column flex-row-fluid'
             id='kt_wrapper'
-            style={isPendaftar ? {paddingLeft: 0} : undefined}
+            style={isPendaftar ? {paddingLeft: 0, paddingTop: 0} : undefined}
           >
-            <HeaderWrapper className='bg-primary' />
+            {!isPendaftar && <HeaderWrapper className='bg-primary' />}
 
             <div
               id='kt_content'
               className='content d-flex flex-column flex-column-fluid'
-              style={{marginTop: '-3.5rem'}}
+              style={isPendaftar ? {marginTop: 0, paddingTop: '16px'} : {marginTop: '-3.5rem'}}
             >
               <Content>
                 <Outlet />

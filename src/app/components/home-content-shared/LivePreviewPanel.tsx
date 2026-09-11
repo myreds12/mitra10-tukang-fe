@@ -253,12 +253,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                   {currentSupport.support_label || 'Hubungi Tim Support Mitra10'}
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: '#374151', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>📞</span>
-                <span>
-                  Nomor Instalasi: <strong>{currentSupport.support_phone || '+6281234567890'}</strong>
-                </span>
-              </div>
+              {currentSupport.support_note && (
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                  {currentSupport.support_note}
+                </div>
+              )}
             </div>
             <button
               type='button'
