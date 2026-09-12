@@ -7,6 +7,7 @@ import {VendorPendingApproval} from '../../components/vendor-pending/VendorPendi
 
 const RegistrantStatus = lazy(() => import('./RegistrantStatus'))
 const RegistrantDocuments = lazy(() => import('./RegistrantDocuments'))
+const ProgramDetailPage = lazy(() => import('./ProgramDetailPage'))
 
 /**
  * Dashboard Pendaftar Vendor (role "Pendaftar Vendor").
@@ -21,7 +22,7 @@ const RegistrantPage = () => {
         index
         element={
           <>
-            <PageTitle>Pendaftar Vendor</PageTitle>
+            <PageTitle>Register Vendor</PageTitle>
             <VendorPendingApproval />
             <RegistrantHome />
           </>
@@ -31,7 +32,7 @@ const RegistrantPage = () => {
         path='home'
         element={
           <>
-            <PageTitle>Pendaftar Vendor</PageTitle>
+            <PageTitle>Register Vendor</PageTitle>
             <VendorPendingApproval />
             <RegistrantHome />
           </>
@@ -55,6 +56,17 @@ const RegistrantPage = () => {
             <PageTitle>Kelengkapan Dokumen Vendor</PageTitle>
             <Suspense fallback={<TopBarProgress />}>
               <RegistrantDocuments />
+            </Suspense>
+          </>
+        }
+      />
+      <Route
+        path='program/:id'
+        element={
+          <>
+            <PageTitle>Detail Program &amp; Aktivasi</PageTitle>
+            <Suspense fallback={<TopBarProgress />}>
+              <ProgramDetailPage />
             </Suspense>
           </>
         }

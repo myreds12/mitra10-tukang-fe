@@ -1,5 +1,6 @@
 import React from 'react';
 import { BenefitAccentColor, BenefitPayload, HomeContentItem } from '../../services/homeContentService';
+import { resolveImageUrl } from './imageHelper';
 
 const ACCENT_MAP: Record<BenefitAccentColor | string, string> = {
   'brand-blue': '#1E2A78',
@@ -20,10 +21,18 @@ export const BenefitCard: React.FC<BenefitCardProps> = ({ item, payload }) => {
   const description = p.description ?? item?.description ?? 'Deskripsi benefit...';
   const accentKey = p.accent_color ?? 'brand-blue';
   const accentCode = ACCENT_MAP[accentKey] || '#1E2A78';
+  const rawImage = p.image || item?.image_url;
+  const imageUrl = resolveImageUrl(rawImage);
 
   return (
     <div className='benefit' style={{ '--accent': accentCode } as React.CSSProperties}>
-      <div className='ico'>{icon}</div>
+      <div className='ico'>
+        {imageUrl ? (
+          <img src={imageUrl} alt={title} className='bcard-icon-img' />
+        ) : (
+          icon
+        )}
+      </div>
       <div>
         <h4>{title}</h4>
         <p>{description}</p>

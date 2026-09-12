@@ -15,6 +15,7 @@ export interface BenefitPayload {
   title: string;
   description: string;
   accent_color: BenefitAccentColor;
+  image?: string | null;
 }
 
 export interface CatalogPayload {
@@ -30,28 +31,68 @@ export interface CatalogPayload {
 export interface SupportPayload {
   support_label: string; // e.g. "Hubungi Tim Support"
   support_email: string; // e.g. "vendor-support@mitra10.com"
-  support_phone: string; // e.g. "+6281234567890" (WhatsApp)
+  support_phone?: string;
   support_hours?: string; // e.g. "Senin - Jumat, 08:00 - 17:00 WIB"
   support_note?: string;
+  yellow_ai_bot_id?: string;
+}
+
+export interface ProgramPayload {
+  title: string;
+  description: string;
+  image_url?: string | null;
+  image?: string | null;
+  badge_label?: string | null;
+  badge?: string | null;
+  cta_label?: string | null;
+  link_url?: string | null;
+  has_external_link?: boolean;
+  external_cta_label?: string | null;
+  show_card_cta?: boolean;
+  order_index?: number;
+  is_active?: boolean;
+}
+
+export interface JobResultPayload {
+  title: string;
+  description: string;
+  media_type?: 'before_after' | 'video';
+  image_before_url?: string | null;
+  before_image?: string | null;
+  image_after_url?: string | null;
+  image?: string | null;
+  video_url?: string | null;
+  badge_label?: string | null;
+  tag?: string | null;
+  order_index?: number;
+  is_active?: boolean;
 }
 
 export interface UnifiedHomePayload {
   hero: HeroPayload;
   benefits: BenefitPayload[];
   catalogs: CatalogPayload[];
-  support: SupportPayload;
+  programs?: ProgramPayload[];
+  job_results?: JobResultPayload[];
+  support?: SupportPayload;
 }
 
 export interface HomeContentItem {
   id: number;
-  section: 'UNIFIED_HOME' | 'HERO' | 'BENEFIT' | 'CATALOG' | 'SUPPORT' | string;
-  section_type: 'UNIFIED_HOME' | 'HERO' | 'BENEFIT' | 'CATALOG' | 'SUPPORT';
-  payload: UnifiedHomePayload | HeroPayload | BenefitPayload | CatalogPayload | SupportPayload | any;
+  section: 'UNIFIED_HOME' | 'HERO' | 'BENEFIT' | 'CATALOG' | 'PROGRAM' | 'PROGRAM_BERJALAN' | 'JOB_RESULT' | 'HASIL_PEKERJAAN' | 'SUPPORT' | string;
+  section_type: 'UNIFIED_HOME' | 'HERO' | 'BENEFIT' | 'CATALOG' | 'PROGRAM' | 'PROGRAM_BERJALAN' | 'JOB_RESULT' | 'HASIL_PEKERJAAN' | 'SUPPORT' | string;
+  payload: UnifiedHomePayload | HeroPayload | BenefitPayload | CatalogPayload | ProgramPayload | JobResultPayload | SupportPayload | any;
   title: string | null;
   subtitle: string | null;
   description: string | null;
   icon: string | null;
   image_url: string | null;
+  badge_label?: string | null;
+  cta_label?: string | null;
+  image_before_url?: string | null;
+  image_after_url?: string | null;
+  video_url?: string | null;
+  media_type?: 'before_after' | 'video' | string | null;
   order_index: number;
   is_active: boolean;
   status: 'active' | 'inactive';
@@ -184,6 +225,17 @@ export const homeContentService = {
     formData.append('file', file);
     const response = await apiClient.post(
       '/home-content/admin/upload-image',
+      formData,
+    );
+    const d = response.data?.data ?? response.data;
+    return d?.data ?? d;
+  },
+
+  uploadVideo: async (file: File): Promise<{video_url: string; file_url: string}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(
+      '/home-content/admin/upload-video',
       formData,
     );
     const d = response.data?.data ?? response.data;

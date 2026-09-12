@@ -4,14 +4,9 @@ import { Modal } from 'antd';
 import { useVendorStatus, HomeStage } from '../../hooks/useVendorStatus';
 import { homeContentService, HomeContentItem } from '../../services/homeContentService';
 import './VendorPendingApproval.css';
+import { openYellowChat } from '../../utils/yellowMessenger';
 
 const apiUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-
-function extractPhone(text: string | null | undefined): string | null {
-  if (!text) return null;
-  const match = text.match(/(\+?\d[\d\s-]{6,}\d)/);
-  return match ? match[0].replace(/\s/g, '') : null;
-}
 
 const STAGE_ORDER: HomeStage[] = [
   'pendaftaran',
@@ -125,7 +120,6 @@ export const VendorPendingApproval: React.FC = () => {
   };
 
   const payloadSupport = (supportInfo?.payload as any) || {};
-  const supportPhone = payloadSupport.support_phone || extractPhone(supportInfo?.description) || '+6281234567890';
   const supportLabel = payloadSupport.support_label || supportInfo?.title || 'Hubungi Tim Support';
   const supportNote = payloadSupport.support_note || 'Tim kami siap membantu kendala dan kelengkapan dokumen pendaftaran vendor Anda.';
 
@@ -135,14 +129,12 @@ export const VendorPendingApproval: React.FC = () => {
   const statusPill =
     STATUS_PILL[status?.stage ?? stageFallback] ?? STATUS_PILL.pendaftaran;
 
-  const cleanPhoneForWa = (supportPhone || '').replace(/[^0-9]/g, '');
-
   return (
     <>
       {/* Topbar */}
       <section className='vp-topbar'>
         <div className='vp-topbar-title'>
-          Pendaftar Vendor
+          Register Vendor
         </div>
         <div className='vp-topbar-vendor'>
           <span className='vp-topbar-vendor-name'>
@@ -268,30 +260,31 @@ export const VendorPendingApproval: React.FC = () => {
           </p>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            {cleanPhoneForWa && (
-              <a
-                href={`https://wa.me/${cleanPhoneForWa}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                style={{
-                  flex: 1,
-                  background: '#00A651',
-                  color: '#fff',
-                  textAlign: 'center',
-                  padding: '10px 14px',
-                  borderRadius: 6,
-                  fontWeight: 600,
-                  fontSize: 13,
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                <span>💬 WhatsApp Tim Support</span>
-              </a>
-            )}
+            <button
+              type='button'
+              onClick={() => {
+                setSupportModalOpen(false);
+                openYellowChat();
+              }}
+              style={{
+                flex: 1,
+                background: '#1E2A78',
+                color: '#fff',
+                border: 'none',
+                textAlign: 'center',
+                padding: '10px 14px',
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <span>💬 Buka Live Chat Support</span>
+            </button>
           </div>
         </div>
       </Modal>

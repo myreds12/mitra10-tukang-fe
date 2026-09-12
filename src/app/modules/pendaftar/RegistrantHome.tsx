@@ -4,6 +4,8 @@ import { HeroSection } from '../../components/home-content-shared/HeroSection';
 import { BenefitSection } from '../../components/home-content-shared/BenefitSection';
 import { WorkflowSection } from '../../components/home-content-shared/WorkflowSection';
 import { CatalogSection } from '../../components/home-content-shared/CatalogSection';
+import { ProgramSection } from '../../components/home-content-shared/ProgramSection';
+import { JobResultSection } from '../../components/home-content-shared/JobResultSection';
 import '../../components/home-content-shared/HomeContentVisual.css';
 
 const RegistrantHome: React.FC = () => {
@@ -50,8 +52,12 @@ const RegistrantHome: React.FC = () => {
   const hero = items.find((i) => (i.section_type || i.section) === 'HERO');
   const benefits = items.filter((i) => (i.section_type || i.section) === 'BENEFIT');
   const catalogs = items.filter((i) => (i.section_type || i.section) === 'CATALOG');
-  const support = items.find((i) => (i.section_type || i.section) === 'SUPPORT');
-  const supportPayload = (support?.payload as any) || null;
+  const programs = items.filter((i) =>
+    ['PROGRAM', 'PROGRAM_BERJALAN'].includes(i.section_type || i.section),
+  );
+  const jobResults = items.filter((i) =>
+    ['JOB_RESULT', 'HASIL_PEKERJAAN'].includes(i.section_type || i.section),
+  );
 
   return (
     <div className='home-content-wrapper' style={{ marginTop: 20 }}>
@@ -82,61 +88,35 @@ const RegistrantHome: React.FC = () => {
       {/* CATALOG SECTION */}
       <CatalogSection items={catalogs} />
 
-      {/* SUPPORT INFO SECTION */}
-      {support && (() => {
-        const phone = supportPayload?.support_phone || support?.description || '+6281234567890';
-        const cleanWaPhone = phone.replace(/[^0-9]/g, '');
-        return (
-          <div
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #D0D5DD',
-              borderRadius: 8,
-              padding: '16px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              marginTop: 24,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A78', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>🎧</span>
-                <span>{supportPayload?.support_label || support.title || 'Hubungi Tim Support Mitra10'}</span>
-              </div>
-              {supportPayload?.support_note && (
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                  {supportPayload.support_note}
-                </div>
-              )}
-            </div>
-            {cleanWaPhone && (
-              <a
-                href={`https://wa.me/${cleanWaPhone}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                style={{
-                  background: '#00A651',
-                  color: '#fff',
-                  padding: '10px 18px',
-                  borderRadius: 6,
-                  fontWeight: 600,
-                  fontSize: 13,
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <span>💬 WhatsApp Tim Support</span>
-              </a>
-            )}
-          </div>
-        );
-      })()}
+      {/* PROGRAM BERJALAN */}
+      <ProgramSection items={programs} />
+
+      {/* HASIL PEKERJAAN (Before - After / Portofolio) */}
+      <JobResultSection items={jobResults} />
+
+      {/* ADMIN HO / SUPER USER CONFIGURATION NOTICE */}
+      <div
+        style={{
+          background: '#F0F5FF',
+          border: '1px solid #D6E4FF',
+          borderRadius: 8,
+          padding: '12px 18px',
+          marginTop: 20,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          color: '#1D39C4',
+          fontSize: 12.5,
+        }}
+      >
+        <span style={{ fontSize: 18, flexShrink: 0 }}>⚙️</span>
+        <div>
+          <span style={{ fontWeight: 600 }}>Pengaturan Konten: </span>
+          <span>
+            Semua konten pada halaman ini dapat disetting dan dikonfigurasi secara dinamis oleh <strong>Admin HO / Super User</strong> melalui menu Kelola Konten Home.
+          </span>
+        </div>
+      </div>
 
       {/* FOOTER NOTE */}
       <div
@@ -144,20 +124,11 @@ const RegistrantHome: React.FC = () => {
           marginTop: 34,
           paddingTop: 18,
           borderTop: '1px solid #E4E7EC',
-          display: 'flex',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 10,
+          textAlign: 'center',
           fontSize: 12,
           color: '#636B79',
         }}
       >
-        <div>
-          Punya pertanyaan seputar proses approval?{' '}
-          <a href='#faq-vendor' style={{ color: '#1E2A78', fontWeight: 600 }}>
-            Lihat FAQ Vendor
-          </a>
-        </div>
         <div>&copy; 2026 Mitra10 &mdash; Building Materials &amp; Home Improvement</div>
       </div>
     </div>

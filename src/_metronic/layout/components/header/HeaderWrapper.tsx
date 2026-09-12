@@ -48,7 +48,7 @@ export function HeaderWrapper({className, style}: HeaderWrapperProps) {
         {isPendaftar ? (
           <div className='d-flex align-items-center'>
             <span className='fs-2 fw-bold text-white' style={{ letterSpacing: '0.3px' }}>
-              Pendaftar Vendor
+              Register Vendor
             </span>
           </div>
         ) : (

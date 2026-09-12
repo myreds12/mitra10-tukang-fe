@@ -124,6 +124,19 @@
   line-height: 1;
   margin-top: 2px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.home-content-wrapper .benefit .ico img,
+.home-content-wrapper .benefit .ico .bcard-icon-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: block;
 }
 
 .home-content-wrapper .benefit h4 {
@@ -349,6 +362,393 @@
   font-style: italic;
 }
 
+/* =========================================================
+   PROGRAM BERJALAN (Promo & Aktivasi)
+   ========================================================= */
+.home-content-wrapper .program-section-wrap {
+  margin-top: 24px;
+}
+
+.home-content-wrapper .program-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.home-content-wrapper .program-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.home-content-wrapper .program-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 42, 120, 0.08);
+}
+
+.home-content-wrapper .program-banner {
+  position: relative;
+  height: 220px;
+  background: #EDF1F7;
+  overflow: hidden;
+}
+
+.home-content-wrapper .program-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-content-wrapper .program-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+}
+
+.home-content-wrapper .program-placeholder-icon {
+  font-size: 32px;
+}
+
+.home-content-wrapper .program-placeholder-text {
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.home-content-wrapper .program-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--brand-red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 16px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 4px rgba(225, 36, 41, 0.35);
+}
+
+.home-content-wrapper .program-body {
+  padding: 20px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.home-content-wrapper .program-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.home-content-wrapper .program-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.home-content-wrapper .program-badge-inline {
+  display: inline-block;
+  background: var(--brand-red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 14px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 4px rgba(225, 36, 41, 0.3);
+}
+
+.home-content-wrapper .program-injected-img-wrap {
+  margin: 10px 0;
+  text-align: center;
+}
+
+.home-content-wrapper .program-injected-img {
+  max-width: 100%;
+  max-height: 260px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  display: inline-block;
+  object-fit: cover;
+}
+
+.home-content-wrapper .program-injected-img-caption {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.home-content-wrapper .program-cta {
+  display: inline-block;
+  align-self: flex-start;
+  background: var(--brand-blue);
+  color: #fff !important;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.home-content-wrapper .program-cta:hover {
+  background: var(--brand-blue-light);
+}
+
+.home-content-wrapper .program-desc-snippet {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.home-content-wrapper .program-card-action-row {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.home-content-wrapper .program-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-blue);
+  color: #fff !important;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 2px 4px rgba(30, 42, 120, 0.2);
+}
+
+.home-content-wrapper .program-cta-btn:hover {
+  background: var(--brand-blue-light);
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   HASIL PEKERJAAN (Before & After / Portfolio)
+   ========================================================= */
+.home-content-wrapper .job-result-section-wrap {
+  margin-top: 26px;
+}
+
+.home-content-wrapper .job-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.home-content-wrapper .job-result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.home-content-wrapper .job-result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 42, 120, 0.08);
+}
+
+.home-content-wrapper .job-result-media {
+  position: relative;
+  height: 240px;
+  background: #111;
+  overflow: hidden;
+}
+
+.home-content-wrapper .job-result-media.video-mode {
+  height: 250px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-content-wrapper .job-result-video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  display: block;
+}
+
+.home-content-wrapper .job-result-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.home-content-wrapper .job-result-single {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.home-content-wrapper .job-result-single img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-content-wrapper .job-result-split {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.home-content-wrapper .job-result-pane {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.home-content-wrapper .job-result-pane.before {
+  border-right: 2px solid #fff;
+}
+
+.home-content-wrapper .job-result-pane img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-content-wrapper .job-pane-label {
+  position: absolute;
+  bottom: 8px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.home-content-wrapper .job-pane-label.before-label {
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.home-content-wrapper .job-pane-label.after-label {
+  right: 8px;
+  background: var(--brand-blue);
+}
+
+.home-content-wrapper .job-result-single .job-pane-label {
+  top: 10px;
+  right: 10px;
+  background: var(--brand-blue);
+}
+
+.home-content-wrapper .job-result-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+}
+
+.home-content-wrapper .job-placeholder-icon {
+  font-size: 32px;
+}
+
+.home-content-wrapper .job-placeholder-text {
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.home-content-wrapper .job-result-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.home-content-wrapper .job-result-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.home-content-wrapper .job-result-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.home-content-wrapper .job-tag-pill {
+  background: #E8EBF0;
+  color: var(--brand-blue);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.home-content-wrapper .job-result-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+  white-space: pre-line;
+}
+
+@media (min-width: 881px) {
+  .home-content-wrapper .program-grid,
+  .home-content-wrapper .job-result-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 880px) {
   .home-content-wrapper .hero {
     flex-direction: column;
@@ -359,5 +759,9 @@
   }
   .home-content-wrapper .catalog-grid {
     grid-template-columns: 1fr 1fr;
+  }
+  .home-content-wrapper .program-grid,
+  .home-content-wrapper .job-result-grid {
+    grid-template-columns: 1fr;
   }
 }
