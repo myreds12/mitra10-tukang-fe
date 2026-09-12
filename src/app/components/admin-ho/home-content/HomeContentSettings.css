@@ -1,204 +1,201 @@
-/* Halaman Settings - Kelola Konten Home Vendor
-   Brand color sama dengan RegistrantHome (var --brand-blue: #1E2A78)
-   Konsisten dengan styling project: card border-radius 10px, soft shadow */
+/* HomeContentSettings.css - Metronic 8 & Project Tukang Consistent Styling */
 
-:root {
-  --brand-blue: #1E2A78;
-  --brand-blue-bg: #F0F2FA;
-  --text-primary: #1A1A2E;
-  --text-secondary: #5A5A6E;
-  --border-light: #E8EAF1;
-  --card-shadow: 0 4px 12px rgba(30, 42, 120, 0.06);
-}
-
-.home-content-settings {
+#home-content-settings {
   width: 100%;
-  padding: 1.5rem;
-  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-.hc-header {
-  margin-bottom: 1.5rem;
-}
-
-.hc-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--brand-blue);
-  margin: 0 0 0.5rem;
-}
-
-.hc-subtitle {
-  font-size: 0.92rem;
-  color: var(--text-secondary);
-  margin: 0;
-  max-width: 720px;
-  line-height: 1.55;
-}
-
-.hc-error-banner {
-  padding: 0.85rem 1rem;
-  background: #FFF3CD;
-  color: #856404;
-  border-radius: 10px;
-  margin-bottom: 1.25rem;
-  font-size: 0.9rem;
-}
-
-.hc-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.hc-tabs {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.hc-tab {
-  padding: 0.45rem 0.9rem;
-  background: #fff;
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
-}
-
-.hc-tab:hover {
-  border-color: var(--brand-blue);
-  color: var(--brand-blue);
-}
-
-.hc-tab.active {
-  background: var(--brand-blue);
-  border-color: var(--brand-blue);
-  color: #fff;
+/* Ant Table Custom Theme to Match ViewVendor & ViewItem */
+#home-content-settings .ant-table-wrapper .ant-table-thead > tr > th {
+  color: #ffffff !important;
   font-weight: 600;
+  background-color: #183383 !important;
+  border-bottom: none;
+  font-size: 13px;
+  padding: 12px 10px;
 }
 
-.hc-tab-count {
-  margin-left: 0.25rem;
-  opacity: 0.75;
-  font-weight: 400;
+#home-content-settings .ant-table-wrapper .ant-table-container table > thead > tr:first-child > *:first-child {
+  border-start-start-radius: 0;
 }
 
-.hc-table {
-  background: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: var(--card-shadow);
+#home-content-settings .ant-table-wrapper .ant-table-container table > thead > tr:first-child > *:last-child {
+  border-start-end-radius: 0;
 }
 
-.hc-table .ant-table-thead > tr > th {
-  background: #F8F9FC !important;
-  color: var(--brand-blue) !important;
-  font-weight: 600;
-  border-bottom: 2px solid var(--brand-blue-bg);
+#home-content-settings .table-head-wrapper {
+  margin-bottom: 20px;
 }
 
-.hc-table .ant-table-tbody > tr > td {
-  border-bottom: 1px solid #F0F2FA;
+#home-content-settings .ant-table-fixed {
+  table-layout: fixed;
 }
 
-.hc-table .ant-table-tbody > tr:hover > td {
-  background: #FAFBFF !important;
+#home-content-settings .ant-table-tbody > tr.ant-table-row:hover > td {
+  background-color: #e2e8f0 !important;
 }
 
-.hc-image-preview {
-  margin-top: 0.5rem;
-  padding: 0.85rem;
-  background: var(--brand-blue-bg);
-  border-radius: 10px;
+#home-content-settings .ant-table-tbody > tr > td {
+  word-wrap: break-word;
+  word-break: break-word;
+  padding: 12px 10px;
+  font-size: 13px;
 }
 
-.hc-image-preview-header {
+#home-content-settings .table-striped-rows tr:nth-child(even) td {
+  background-color: #ffffff;
+}
+
+#home-content-settings .table-striped-rows tr:nth-child(odd) td {
+  background-color: #e4e9f7;
+}
+
+/* Search Bar Filter Consistent with ViewVendor & ViewItem */
+#home-content-settings .filter-search {
+  position: relative;
+  width: 100%;
+}
+
+#home-content-settings input.filter-ltr.form-control {
+  height: 42px !important;
+  padding-left: 36px !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+#home-content-settings .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 4;
+}
+
+/* Action Buttons Wrapper & Styling */
+#home-content-settings .button-wrapper {
   display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  gap: 8px;
 }
 
-.hc-image-preview-label {
-  font-size: 0.75rem;
+#home-content-settings .button-wrapper .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#home-content-settings .button-wrapper .btn:hover {
+  transform: translateY(-1px);
+}
+
+#home-content-settings .button-detail {
+  background-color: #183383 !important;
+  color: #fff !important;
+}
+
+#home-content-settings .button-edit {
+  background-color: #009ef7 !important;
+  color: #fff !important;
+}
+
+#home-content-settings .button-active {
+  background-color: #50cd89 !important;
+  color: #fff !important;
+}
+
+#home-content-settings .button-delete {
+  background-color: #f1416c !important;
+  color: #fff !important;
+}
+
+/* Form Container Tabs Inside Modal */
+.hc-form-tabs-container .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+
+.hc-form-tabs-container .ant-tabs-tab {
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--brand-blue);
+  font-size: 13px;
+  padding: 8px 14px;
 }
 
-.hc-image-preview .ant-image {
-  display: block;
-  background: #fff;
+.hc-form-tabs-container .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #183383 !important;
+}
+
+.hc-form-tabs-container .ant-tabs-ink-bar {
+  background: #183383 !important;
+}
+
+/* Item Card In Form */
+.hc-item-card {
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #E8EAF1;
+  background: #ffffff;
+  padding: 14px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
 }
 
-.hc-image-preview-hint {
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  word-break: break-all;
+.hc-item-card:hover {
+  border-color: #cbd5e1;
 }
 
-.hc-image-preview-hint code {
-  background: #fff;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.72rem;
-  color: var(--brand-blue);
-  border: 1px solid var(--border-light);
+/* Form Labels */
+.hc-form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  display: block;
 }
 
-/* Form section dividers */
-.hc-form-section {
-  padding: 0.25rem 0;
+.hc-form-help {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
 }
 
-.hc-form-section-title {
-  font-size: 0.75rem;
+/* Preview Box in Modal & Page */
+.hc-preview-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* 2 Main Tabs: Tab 1 Form & Tab 2 Preview */
+.hc-main-tabs .ant-tabs-nav {
+  margin-bottom: 24px;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.hc-main-tabs .ant-tabs-tab {
+  padding: 10px 24px !important;
+  border-radius: 6px !important;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--brand-blue);
-  margin-bottom: 0.85rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px dashed var(--brand-blue-bg);
+  font-size: 14px;
+  color: #64748b;
+  transition: all 0.2s ease;
 }
 
-.hc-form-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #F0F2FA;
+.hc-main-tabs .ant-tabs-tab-active {
+  background: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.hc-form-footer .ant-btn {
-  min-width: 100px;
+.hc-main-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #183383 !important;
 }
 
-@media (max-width: 767.98px) {
-  .home-content-settings {
-    padding: 1rem;
-  }
-
-  .hc-title {
-    font-size: 1.3rem;
-  }
-
-  .hc-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.hc-main-tabs .ant-tabs-ink-bar {
+  display: none !important;
 }

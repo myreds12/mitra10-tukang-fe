@@ -9,6 +9,7 @@ import {ThemeModeProvider} from '../partials'
 import {MenuComponent} from '../assets/ts/components'
 import LiveChatPopup from '../../app/modules/livechat/LiveChatPopup'
 import {useRegistrantIdleLogout} from '../../app/hooks/useRegistrantIdleLogout'
+import {initYellowChat, hideYellowChat} from '../../app/utils/yellowMessenger'
 
 const MasterLayout = () => {
   const location = useLocation()
@@ -19,6 +20,18 @@ const MasterLayout = () => {
   const isPendaftar =
     location.pathname.startsWith('/pendaftar') ||
     localStorage.getItem('userRole') === 'Pendaftar Vendor'
+
+  // Customer service widget (Yellow.ai) hanya aktif & tampil jika login sebagai Pendaftar Vendor
+  useEffect(() => {
+    if (isPendaftar) {
+      initYellowChat()
+    } else {
+      hideYellowChat()
+    }
+    return () => {
+      hideYellowChat()
+    }
+  }, [isPendaftar])
 
   useEffect(() => {
     if (isPendaftar) {

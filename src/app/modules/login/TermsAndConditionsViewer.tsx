@@ -95,14 +95,16 @@ const TermsAndConditionsViewer: React.FC<{show: boolean; onClose: () => void}> =
           </div>
         ) : terms ? (
           terms.document_type === 'PDF' ? (
-            // Tipe PDF: stream via endpoint backend (inline, Content-Disposition: inline,
-            // no-store) - browser tampilkan viewer built-in TANPA menawarkan download.
-            // Backend juga set X-Content-Type-Options: nosniff.
-            <iframe
-              src={`${apiUrl}/vendor-registration/terms-and-conditions/file`}
-              title={terms.title}
-              className='terms-viewer-pdf-frame'
-            />
+            <div
+              className='terms-viewer-pdf-container'
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <iframe
+                src={`${apiUrl}/vendor-registration/terms-and-conditions/file#toolbar=0&navpanes=0&scrollbar=1`}
+                title={terms.title}
+                className='terms-viewer-pdf-frame'
+              />
+            </div>
           ) : (
             <div
               className='terms-viewer-content'

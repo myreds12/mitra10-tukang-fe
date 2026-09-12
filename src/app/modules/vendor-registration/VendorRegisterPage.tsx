@@ -29,7 +29,7 @@ const VendorRegisterPage: React.FC = () => {
   const [tncLoading, setTncLoading] = useState<boolean>(false);
   const [tncAgreed, setTncAgreed] = useState<boolean>(false);
   const tncScrollRef = useRef<HTMLDivElement | null>(null);
-  const [tncScrolledToEnd, setTncScrolledToEnd] = useState<boolean>(false);
+  const [, setTncScrolledToEnd] = useState<boolean>(false);
 
   const { formData, images, tukangList, updateField, updateImage, addTukang, removeTukang, updateTukang } =
     useVendorRegistrationForm();
@@ -309,11 +309,16 @@ const VendorRegisterPage: React.FC = () => {
           ) : tnc.document_type === 'PDF' ? (
             <>
               <h5 className="mb-2">{tnc.title}</h5>
-              <iframe
-                src={`${(process.env.REACT_APP_API_URL || '').replace(/\/$/, '')}/vendor-registration/terms-and-conditions/file`}
-                title={tnc.title}
-                className="vendor-tnc-iframe"
-              />
+              <div
+                className="vendor-tnc-pdf-container"
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                <iframe
+                  src={`${(process.env.REACT_APP_API_URL || '').replace(/\/$/, '')}/vendor-registration/terms-and-conditions/file#toolbar=0&navpanes=0&scrollbar=1`}
+                  title={tnc.title}
+                  className="vendor-tnc-iframe"
+                />
+              </div>
             </>
           ) : !tnc.content || !tnc.content.trim() ? (
             <div className="vendor-tnc-empty p-4 text-center">

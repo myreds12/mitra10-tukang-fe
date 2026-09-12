@@ -227,7 +227,7 @@ const HomeContentSettingsPage = lazy(() => import('../components/admin-ho/home-c
         />
 
         <Route
-          path='home-content-settings'
+          path='home-content-settings/*'
           element={
             <SuspensedView>
               <HomeContentSettingsPage />

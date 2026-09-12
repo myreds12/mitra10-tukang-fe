@@ -189,6 +189,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
         <h4 className='program-title' onClick={handleOpenDetail} style={{ cursor: 'pointer' }}>
           {title}
         </h4>
+        {snippet ? <p className='program-desc'>{snippet}</p> : null}
         {showCardCta && (
           <div className='program-card-action-row'>
             <button
