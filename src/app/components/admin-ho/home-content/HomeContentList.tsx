@@ -26,7 +26,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { HomeContentItem, homeContentService } from '../../../services/homeContentService';
 import './HomeContentSettings.css';
 
-export const HomeContecobntList: React.FC = () => {
+export const HomeContentList: React.FC = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<HomeContentItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
