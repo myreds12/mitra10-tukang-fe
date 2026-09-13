@@ -10,21 +10,52 @@ export interface JobResultCardProps {
 }
 
 /**
- * Helper to convert YouTube URL (watch, short, embed) to embed URL
+ * Helper to convert any YouTube URL (watch, shorts, embed, youtu.be, iframe) or Vimeo to embed URL
  */
-function getEmbedVideoUrl(url?: string | null): string | null {
+export function getEmbedVideoUrl(url?: string | null): string | null {
   if (!url) return null;
-  const trimmed = url.trim();
+  let trimmed = url.trim();
+
+  // If user pasted full iframe tag: <iframe ... src="..." ...>
+  if (trimmed.includes('<iframe')) {
+    const srcMatch = trimmed.match(/src=["']([^"']+)["']/i);
+    if (srcMatch && srcMatch[1]) {
+      trimmed = srcMatch[1].trim();
+    }
+  }
+
+  // Already a standard YouTube embed URL
+  if (/^https?:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\/[a-zA-Z0-9_-]+/i.test(trimmed)) {
+    const match = trimmed.match(/embed\/([a-zA-Z0-9_-]{11})/i);
+    return match ? `https://www.youtube.com/embed/${match[1]}` : trimmed;
+  }
+
+  // YouTube Shorts: youtube.com/shorts/<id>
+  const shortsMatch = trimmed.match(/(?:youtube\.com|youtu\.be)\/shorts\/([a-zA-Z0-9_-]{11})/i);
+  if (shortsMatch && shortsMatch[1]) {
+    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  }
+
+  // Standard YouTube Watch / Live / v: youtube.com/watch?v=<id>, youtube.com/live/<id>, youtu.be/<id>
   const ytMatch = trimmed.match(
-    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
+    /(?:(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/(?:watch\?.*v=|embed\/|v\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
   );
   if (ytMatch && ytMatch[1]) {
     return `https://www.youtube.com/embed/${ytMatch[1]}`;
   }
-  const vimeoMatch = trimmed.match(/vimeo\.com\/(?:video\/)?([0-9]+)/i);
+
+  // Fallback regex for YouTube with query string or other path
+  const fallbackYt = trimmed.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (fallbackYt && fallbackYt[1]) {
+    return `https://www.youtube.com/embed/${fallbackYt[1]}`;
+  }
+
+  // Vimeo
+  const vimeoMatch = trimmed.match(/(?:vimeo\.com\/(?:video\/)?)([0-9]+)/i);
   if (vimeoMatch && vimeoMatch[1]) {
     return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   }
+
   return null;
 }
 
@@ -68,13 +99,19 @@ export const JobResultCard: React.FC<JobResultCardProps> = ({
   // Jika tidak ada media dan bukan mode preview admin: jangan render
   if (!hasMedia && !showPlaceholder) return null;
 
+  const mediaModeClass = isVideo
+    ? 'video-mode'
+    : hasBothImages
+    ? 'split-mode'
+    : 'single-mode';
+
   return (
-    <div className='job-result-card'>
-      <div className={`job-result-media ${isVideo ? 'video-mode' : ''}`}>
+    <div className={`job-result-card ${isVideo ? 'card-video-type' : 'card-image-type'}`}>
+      <div className={`job-result-media ${mediaModeClass}`}>
         {isVideo ? (
           resolvedVideoUrl ? (
             embedUrl ? (
-              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <div className='job-result-media-inner'>
                 <iframe
                   src={embedUrl}
                   title={title}
@@ -89,7 +126,7 @@ export const JobResultCard: React.FC<JobResultCardProps> = ({
                 )}
               </div>
             ) : (
-              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <div className='job-result-media-inner'>
                 <video
                   controls
                   playsInline
@@ -206,25 +243,83 @@ export const JobResultSection: React.FC<JobResultSectionProps> = ({ items, jobRe
   // Jika tidak ada item yang valid, sembunyikan section sepenuhnya
   if (validList.length === 0) return null;
 
+  const isVideoItem = (entry: any) => {
+    const isItem = Boolean(entry.id || entry.section || entry.section_type);
+    const p = isItem ? (entry.payload || entry) : entry;
+    return (
+      p.media_type === 'video' ||
+      entry.media_type === 'video' ||
+      Boolean(p.video_url || entry.video_url)
+    );
+  };
+
+  const imageList = validList.filter((entry) => !isVideoItem(entry));
+  const videoList = validList.filter((entry) => isVideoItem(entry));
+
   return (
     <div className='job-result-section-wrap'>
       <div className='sec-head'>
         <h2>Portofolio &amp; Hasil Pekerjaan Mitra</h2>
         <p>Standar mutu pengerjaan instalasi dan renovasi nyata oleh mitra resmi Mitra10.</p>
       </div>
-      <div className='job-result-grid'>
-        {validList.map((entry: any, idx: number) => {
-          const isItem = Boolean(entry.id || entry.section || entry.section_type);
-          return (
-            <JobResultCard
-              key={isItem ? entry.id : `job-${idx}`}
-              item={isItem ? entry : null}
-              payload={isItem ? undefined : entry}
-              index={idx}
-            />
-          );
-        })}
-      </div>
+
+      {/* BARIS 1: FOTO DOKUMENTASI (BEFORE - AFTER) */}
+      {imageList.length > 0 && (
+        <div className='job-result-subgroup'>
+          <div className='job-result-subgroup-head'>
+            <div className='subgroup-title-wrap'>
+              <span className='subgroup-icon'>📸</span>
+              <div>
+                <h3 className='subgroup-title'>Foto Dokumentasi Hasil Pekerjaan</h3>
+                <span className='subgroup-subtitle'>Perbandingan Sebelum vs Sesudah (Before - After) instalasi</span>
+              </div>
+            </div>
+            <span className='subgroup-count-pill'>{imageList.length} Dokumentasi</span>
+          </div>
+          <div className='job-result-grid job-result-image-grid'>
+            {imageList.map((entry: any, idx: number) => {
+              const isItem = Boolean(entry.id || entry.section || entry.section_type);
+              return (
+                <JobResultCard
+                  key={isItem ? entry.id : `job-img-${idx}`}
+                  item={isItem ? entry : null}
+                  payload={isItem ? undefined : entry}
+                  index={idx}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* BARIS 2: VIDEO DOKUMENTASI */}
+      {videoList.length > 0 && (
+        <div className='job-result-subgroup' style={imageList.length > 0 ? { marginTop: 32 } : undefined}>
+          <div className='job-result-subgroup-head'>
+            <div className='subgroup-title-wrap'>
+              <span className='subgroup-icon'>🎥</span>
+              <div>
+                <h3 className='subgroup-title'>Video Dokumentasi Pekerjaan</h3>
+                <span className='subgroup-subtitle'>Dokumentasi video proses pengerjaan instalasi</span>
+              </div>
+            </div>
+            <span className='subgroup-count-pill video-pill'>{videoList.length} Video</span>
+          </div>
+          <div className='job-result-grid job-result-video-grid'>
+            {videoList.map((entry: any, idx: number) => {
+              const isItem = Boolean(entry.id || entry.section || entry.section_type);
+              return (
+                <JobResultCard
+                  key={isItem ? entry.id : `job-vid-${idx}`}
+                  item={isItem ? entry : null}
+                  payload={isItem ? undefined : entry}
+                  index={idx}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

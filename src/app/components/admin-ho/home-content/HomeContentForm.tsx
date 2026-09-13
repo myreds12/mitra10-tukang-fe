@@ -19,6 +19,7 @@ import {
   PlusOutlined,
   DeleteOutlined,
   LoadingOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -35,6 +36,7 @@ import {
 } from '../../../services/homeContentService';
 import { LivePreviewPanel } from '../../home-content-shared/LivePreviewPanel';
 import { resolveImageUrl } from '../../home-content-shared/imageHelper';
+import { getEmbedVideoUrl } from '../../home-content-shared/JobResultSection';
 import { ProgramQuillEditor } from './ProgramQuillEditor';
 import {
   validateVideoFile,
@@ -1063,41 +1065,21 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
                                         />
                                       </div>
 
-                                      <Row gutter={8}>
-                                        <Col span={16}>
-                                          <div className='mb-2'>
-                                            <label className='hc-form-label'>Nama Kategori</label>
-                                            <Input
-                                              value={cat.name}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                setUnifiedPayload((prev) => {
-                                                  const list = [...prev.catalogs];
-                                                  list[idx] = { ...list[idx], name: val };
-                                                  return { ...prev, catalogs: list };
-                                                });
-                                              }}
-                                              placeholder='Contoh: Cat & Dinding'
-                                            />
-                                          </div>
-                                        </Col>
-                                        <Col span={8}>
-                                          <div className='mb-2'>
-                                            <label className='hc-form-label'>Icon Emoji</label>
-                                            <Input
-                                              value={cat.icon_fallback || '💡'}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                setUnifiedPayload((prev) => {
-                                                  const list = [...prev.catalogs];
-                                                  list[idx] = { ...list[idx], icon_fallback: val };
-                                                  return { ...prev, catalogs: list };
-                                                });
-                                              }}
-                                            />
-                                          </div>
-                                        </Col>
-                                      </Row>
+                                      <div className='mb-2'>
+                                        <label className='hc-form-label'>Nama Kategori</label>
+                                        <Input
+                                          value={cat.name}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setUnifiedPayload((prev) => {
+                                              const list = [...prev.catalogs];
+                                              list[idx] = { ...list[idx], name: val };
+                                              return { ...prev, catalogs: list };
+                                            });
+                                          }}
+                                          placeholder='Contoh: Cat & Dinding'
+                                        />
+                                      </div>
 
                                       <Row gutter={8}>
                                         <Col span={14}>
@@ -1491,36 +1473,83 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
                                   {/* MEDIA INPUT: BEFORE-AFTER OR VIDEO */}
                                   {job.media_type === 'video' ? (
                                     <div className='card card-bordered p-3 bg-lighten'>
-                                      <label className='hc-form-label'>Tautan Video (YouTube / Vimeo) atau File Video</label>
-                                      <Input
-                                        value={job.video_url || ''}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          setUnifiedPayload((prev) => {
-                                            const list = [...(prev.job_results || [])];
-                                            list[idx] = { ...list[idx], video_url: val };
-                                            return { ...prev, job_results: list };
-                                          });
-                                        }}
-                                        placeholder='https://www.youtube.com/watch?v=... atau https://vimeo.com/...'
-                                        style={{ marginBottom: 8 }}
-                                      />
-                                      <div className='d-flex align-items-center gap-2 flex-wrap'>
-                                        <Upload
-                                          accept='video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.webm,.mov,.mkv'
-                                          showUploadList={false}
-                                          beforeUpload={(f) => handleUploadJobResultVideo(f, idx)}
-                                        >
-                                          <AntButton size='small' icon={<UploadOutlined />}>
-                                            Unggah File Video (MP4 / WebM / MOV)
-                                          </AntButton>
-                                        </Upload>
-                                        {job.video_url && (
-                                          <AntButton size='small' type='text' danger onClick={() => handleClearJobResultVideo(idx)}>
-                                            Hapus Video
-                                          </AntButton>
+                                      {/* OPSI 1: LINK YOUTUBE / VIMEO */}
+                                      <div className='mb-3'>
+                                        <div className='d-flex align-items-center justify-content-between mb-1'>
+                                          <label className='hc-form-label fw-bold mb-0' style={{ color: '#C41818' }}>
+                                            <VideoCameraOutlined className='me-1' /> Link Video YouTube (Sangat Direkomendasikan)
+                                          </label>
+                                          <span className='badge badge-light-primary fs-9 fw-semibold'>Cepat &amp; Hemat Server</span>
+                                        </div>
+                                        <Input
+                                          value={job.video_url || ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setUnifiedPayload((prev) => {
+                                              const list = [...(prev.job_results || [])];
+                                              list[idx] = { ...list[idx], video_url: val };
+                                              return { ...prev, job_results: list };
+                                            });
+                                          }}
+                                          placeholder='Contoh: https://www.youtube.com/watch?v=... atau https://www.youtube.com/shorts/... atau https://youtu.be/...'
+                                          style={{ height: 38 }}
+                                        />
+                                        <span className='hc-form-help d-block mt-1 text-muted'>
+                                          💡 Mendukung link YouTube biasa, YouTube Shorts (format vertikal 4x6), youtu.be, Vimeo, atau kode embed.
+                                        </span>
+
+                                        {/* DETEKSI PREVIEW YOUTUBE / EMBED */}
+                                        {job.video_url && getEmbedVideoUrl(job.video_url) && (
+                                          <div
+                                            className='mt-2 p-2 rounded d-flex align-items-center justify-content-between flex-wrap gap-2'
+                                            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}
+                                          >
+                                            <div className='d-flex align-items-center gap-2'>
+                                              <span className='badge badge-light-danger fw-bold'>
+                                                ▶️ YouTube Terdeteksi
+                                              </span>
+                                              <span className='text-muted fs-8 text-truncate' style={{ maxWidth: 360 }}>
+                                                {getEmbedVideoUrl(job.video_url)}
+                                              </span>
+                                            </div>
+                                            <AntButton
+                                              size='small'
+                                              type='text'
+                                              danger
+                                              onClick={() => handleClearJobResultVideo(idx)}
+                                            >
+                                              Hapus Link
+                                            </AntButton>
+                                          </div>
                                         )}
                                       </div>
+
+                                      {/* OPSI 2: UPLOAD FILE VIDEO SENDIRI */}
+                                      <div className='pt-2 border-top'>
+                                        <div className='d-flex align-items-center justify-content-between mb-2'>
+                                          <label className='hc-form-label mb-0 text-gray-700'>
+                                            Atau Unggah File Video dari Komputer (MP4 / WebM / MOV):
+                                          </label>
+                                          {job.video_url && !getEmbedVideoUrl(job.video_url) && (
+                                            <AntButton size='small' type='text' danger onClick={() => handleClearJobResultVideo(idx)}>
+                                              Hapus File Video
+                                            </AntButton>
+                                          )}
+                                        </div>
+                                        <div className='d-flex align-items-center gap-2 flex-wrap'>
+                                          <Upload
+                                            accept='video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.webm,.mov,.mkv'
+                                            showUploadList={false}
+                                            beforeUpload={(f) => handleUploadJobResultVideo(f, idx)}
+                                          >
+                                            <AntButton size='small' icon={<UploadOutlined />}>
+                                              Pilih File Video untuk Diunggah
+                                            </AntButton>
+                                          </Upload>
+                                        </div>
+                                      </div>
+
+                                      {/* NOTES & OPERATIONAL HOURS */}
                                       <div
                                         className='mt-3 p-3 rounded'
                                         style={{
@@ -1532,14 +1561,14 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
                                       >
                                         <div className='d-flex align-items-center gap-2 mb-2 fw-bold' style={{ color: '#B45309' }}>
                                           <FontAwesomeIcon icon={faInfoCircle} />
-                                          Catatan &amp; Batasan Upload Video:
+                                          Catatan &amp; Ketentuan Video Portofolio:
                                         </div>
                                         <ul className='m-0 ps-3' style={{ lineHeight: 1.6 }}>
                                           <li>
-                                            <strong>Batas Ukuran &amp; Format:</strong> Maksimal <strong>30 MB</strong> (format yang didukung: <strong>MP4, WebM, MOV, MKV</strong>).
+                                            <strong>Link YouTube:</strong> Sangat disarankan menempelkan link video YouTube / YouTube Shorts. Video langsung dapat diputar dalam bingkai 4x6 tanpa batasan kuota upload server.
                                           </li>
                                           <li>
-                                            <strong>Kompresi Otomatis:</strong> Video &gt; 2 MB otomatis dikompresi ke resolusi <strong>720p HD</strong> (bitrate 1.2 Mbps) sebelum dikirim ke server.
+                                            <strong>Batas Upload File Video:</strong> Maksimal <strong>30 MB</strong> (format yang didukung: <strong>MP4, WebM, MOV, MKV</strong>). Video &gt; 2 MB otomatis dikompresi ke <strong>720p HD</strong> (1.2 Mbps).
                                           </li>
                                           <li className='fw-bold' style={{ color: '#B45309' }}>
                                             ⚠️ Harap upload video sebelum atau sesudah jam operasional mitra10.

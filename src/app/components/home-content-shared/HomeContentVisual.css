@@ -562,11 +562,73 @@
   margin-top: 26px;
 }
 
+.home-content-wrapper .job-result-subgroup {
+  margin-top: 20px;
+}
+
+.home-content-wrapper .job-result-subgroup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.home-content-wrapper .subgroup-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-content-wrapper .subgroup-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.home-content-wrapper .subgroup-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.home-content-wrapper .subgroup-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 2px;
+}
+
+.home-content-wrapper .subgroup-count-pill {
+  background: #E8EBF0;
+  color: var(--brand-blue);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.home-content-wrapper .subgroup-count-pill.video-pill {
+  background: #FFEBE8;
+  color: #D32F2F;
+}
+
 .home-content-wrapper .job-result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 18px;
   margin-top: 14px;
+}
+
+/* Row 1: Image Grid (Before - After) -> 2 per baris di desktop */
+.home-content-wrapper .job-result-image-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Row 2: Video Grid -> 4 per baris di desktop */
+.home-content-wrapper .job-result-video-grid {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .home-content-wrapper .job-result-card {
@@ -576,7 +638,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 420px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -586,19 +647,43 @@
   box-shadow: 0 4px 12px rgba(30, 42, 120, 0.08);
 }
 
+/* FRAME 4x6 KONTINER MEDIA */
 .home-content-wrapper .job-result-media {
   position: relative;
-  height: 240px;
+  width: 100%;
+  aspect-ratio: 4 / 6;
   background: #111;
   overflow: hidden;
 }
 
+/* Video: 4x6 portrait frame */
 .home-content-wrapper .job-result-media.video-mode {
-  height: 250px;
+  aspect-ratio: 4 / 6;
   background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Single Image: 4x6 frame */
+.home-content-wrapper .job-result-media.single-mode {
+  aspect-ratio: 4 / 6;
+  background: #1a1a1a;
+}
+
+/* Before - After Split:
+   Dua foto 4x6 berdampingan (Before [4x6] + After [4x6] = 8x6)
+   Rasio kontainer 8 / 6 (4 / 3) memastikan setiap separuh foto (Before & After)
+   berukuran tepat 4x6 portrait */
+.home-content-wrapper .job-result-media.split-mode {
+  aspect-ratio: 8 / 6;
+  background: #1a1a1a;
+}
+
+.home-content-wrapper .job-result-media-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .home-content-wrapper .job-result-video-player {
@@ -752,10 +837,7 @@
   .home-content-wrapper .program-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-}
-
-@media (min-width: 881px) {
-  .home-content-wrapper .job-result-grid {
+  .home-content-wrapper .job-result-video-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -771,13 +853,17 @@
   .home-content-wrapper .catalog-grid {
     grid-template-columns: 1fr 1fr;
   }
-  .home-content-wrapper .job-result-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 767px) {
   .home-content-wrapper .program-grid {
     grid-template-columns: 1fr;
   }
+  .home-content-wrapper .job-result-image-grid {
+    grid-template-columns: 1fr;
+  }
+  .home-content-wrapper .job-result-video-grid {
+    grid-template-columns: 1fr;
+  }
 }
+
