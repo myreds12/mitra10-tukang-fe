@@ -95,22 +95,9 @@ const RegistrantHome: React.FC = () => {
       <JobResultSection items={jobResults} />
 
       {/* ADMIN HO / SUPER USER CONFIGURATION NOTICE */}
-      <div
-        style={{
-          background: '#F0F5FF',
-          border: '1px solid #D6E4FF',
-          borderRadius: 8,
-          padding: '12px 18px',
-          marginTop: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          color: '#1D39C4',
-          fontSize: 12.5,
-        }}
-      >
-        <span style={{ fontSize: 18, flexShrink: 0 }}>⚙️</span>
-        <div>
+      <div className='home-admin-notice'>
+        <span className='home-admin-notice-ico'>⚙️</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontWeight: 600 }}>Pengaturan Konten: </span>
           <span>
             Semua konten pada halaman ini dapat disetting dan dikonfigurasi secara dinamis oleh <strong>Admin HO / Super User</strong> melalui menu Kelola Konten Home.
