@@ -16,7 +16,10 @@ export interface BenefitCardProps {
 export const BenefitCard: React.FC<BenefitCardProps> = ({ item, payload }) => {
   const p: Partial<BenefitPayload> = payload || item?.payload || {};
 
-  const icon = p.icon ?? item?.icon ?? '📦';
+  const rawIcon = p.icon ?? item?.icon ?? '';
+  // Jika icon mengandung tanda tanya '?' (akibat encoding DB non-unicode) atau kosong, jadikan kosong ('')
+  const cleanIcon = (!rawIcon || rawIcon.includes('?') || rawIcon.trim() === '') ? '' : rawIcon.trim();
+
   const title = p.title ?? item?.title ?? 'Benefit Title';
   const description = p.description ?? item?.description ?? 'Deskripsi benefit...';
   const accentKey = p.accent_color ?? 'brand-blue';
@@ -26,13 +29,15 @@ export const BenefitCard: React.FC<BenefitCardProps> = ({ item, payload }) => {
 
   return (
     <div className='benefit' style={{ '--accent': accentCode } as React.CSSProperties}>
-      <div className='ico'>
-        {imageUrl ? (
-          <img src={imageUrl} alt={title} className='bcard-icon-img' />
-        ) : (
-          icon
-        )}
-      </div>
+      {(imageUrl || cleanIcon) ? (
+        <div className='ico'>
+          {imageUrl ? (
+            <img src={imageUrl} alt={title} className='bcard-icon-img' />
+          ) : (
+            cleanIcon
+          )}
+        </div>
+      ) : null}
       <div>
         <h4>{title}</h4>
         <p>{description}</p>

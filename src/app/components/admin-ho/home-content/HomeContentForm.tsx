@@ -68,42 +68,42 @@ const DEFAULT_UNIFIED_PAYLOAD: UnifiedHomePayload = {
   },
   benefits: [
     {
-      icon: '📦',
+      icon: '',
       title: 'Order instalasi langsung dari pembeli',
       description:
         'Customer Mitra10 yang belanja material langsung memesan jasa pemasangan lewat platform. Tanpa perlu cari order sendiri.',
       accent_color: 'brand-blue',
     },
     {
-      icon: '💰',
+      icon: '',
       title: 'Tarif jasa transparan & pasti',
       description:
         'Harga jasa terstandarisasi jelas per item pekerjaan. Tidak ada tawar-menawar yang memotong margin Anda.',
       accent_color: 'brand-red',
     },
     {
-      icon: '🧾',
+      icon: '',
       title: 'Pencairan dana tepat waktu',
       description:
         'Begitu pekerjaan selesai & diverifikasi customer, pembayaran ditransfer langsung ke rekening bank vendor Anda.',
       accent_color: 'brand-yellow',
     },
     {
-      icon: '🛡️',
+      icon: '',
       title: 'Perlindungan & jaminan kerja',
       description:
         'Sistem komplain & garansi ditangani bersama tim Mitra10, sehingga risiko pekerjaan lebih terukur.',
       accent_color: 'brand-blue',
     },
     {
-      icon: '⭐',
+      icon: '',
       title: 'Tingkatkan reputasi vendor',
       description:
         'Rating & ulasan dari customer akan menaikkan level kemitraan Anda, membuka akses ke proyek bervolume lebih besar.',
       accent_color: 'brand-red',
     },
     {
-      icon: '🎓',
+      icon: '',
       title: 'Dukungan & pelatihan berkala',
       description:
         'Akses SOP instalasi Mitra10, briefing produk baru dari brand prinsipal, serta bantuan teknis dari tim lapangan.',
@@ -272,7 +272,10 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
               hero: p.hero || DEFAULT_UNIFIED_PAYLOAD.hero,
               benefits:
                 Array.isArray(p.benefits) && p.benefits.length > 0
-                  ? p.benefits
+                  ? p.benefits.map((b: any) => ({
+                      ...b,
+                      icon: b.icon && !b.icon.includes('?') ? b.icon : '',
+                    }))
                   : DEFAULT_UNIFIED_PAYLOAD.benefits,
               catalogs:
                 Array.isArray(p.catalogs) && p.catalogs.length > 0
@@ -382,7 +385,7 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
       benefits: [
         ...prev.benefits,
         {
-          icon: '⭐',
+          icon: '',
           title: 'Keuntungan Tambahan',
           description: 'Deskripsi keuntungan baru bagi mitra instalasi.',
           accent_color: 'brand-blue',
@@ -930,10 +933,29 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
                                       </div>
 
                                       <div className='mb-2'>
-                                        <label className='hc-form-label'>Icon Emoji</label>
-                                        <div className='d-flex align-items-center gap-2'>
+                                        <div className='d-flex align-items-center justify-content-between'>
+                                          <label className='hc-form-label mb-0'>Icon Emoji (Opsional, Default Kosong)</label>
+                                          {ben.icon && (
+                                            <AntButton
+                                              type='link'
+                                              danger
+                                              size='small'
+                                              style={{ padding: 0, height: 'auto', fontSize: 11 }}
+                                              onClick={() => {
+                                                setUnifiedPayload((prev) => {
+                                                  const list = [...prev.benefits];
+                                                  list[idx] = { ...list[idx], icon: '' };
+                                                  return { ...prev, benefits: list };
+                                                });
+                                              }}
+                                            >
+                                              ✕ Kosongkan
+                                            </AntButton>
+                                          )}
+                                        </div>
+                                        <div className='d-flex align-items-center gap-2 mt-1'>
                                           <Input
-                                            value={ben.icon || ''}
+                                            value={ben.icon && !ben.icon.includes('?') ? ben.icon : ''}
                                             onChange={(e) => {
                                               const val = e.target.value;
                                               setUnifiedPayload((prev) => {
@@ -942,6 +964,7 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
                                                 return { ...prev, benefits: list };
                                               });
                                             }}
+                                            placeholder='Kosong'
                                             style={{ width: 80 }}
                                           />
                                           <div className='d-flex gap-1 flex-wrap'>

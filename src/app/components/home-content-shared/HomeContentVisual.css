@@ -626,9 +626,10 @@
   grid-template-columns: repeat(2, 1fr);
 }
 
-/* Row 2: Video Grid -> 4 per baris di desktop */
+/* Row 2: Video Grid -> 1 per baris (satu baris satu baris saja) */
 .home-content-wrapper .job-result-video-grid {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;
+  gap: 24px;
 }
 
 .home-content-wrapper .job-result-card {
@@ -645,6 +646,47 @@
 .home-content-wrapper .job-result-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(30, 42, 120, 0.08);
+}
+
+/* Card Video: Layout Khusus 1 Baris 1 Video Card */
+.home-content-wrapper .job-result-card.card-video-type {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 420px;
+}
+
+.home-content-wrapper .job-result-card.card-video-type .job-result-media.video-mode {
+  width: 320px;
+  min-width: 320px;
+  max-width: 320px;
+  aspect-ratio: 4 / 6;
+  flex-shrink: 0;
+  height: auto;
+  align-self: stretch;
+}
+
+.home-content-wrapper .job-result-card.card-video-type .job-result-body {
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+}
+
+.home-content-wrapper .job-result-card.card-video-type .job-result-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.home-content-wrapper .job-result-card.card-video-type .job-result-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
 }
 
 /* FRAME 4x6 KONTINER MEDIA */
@@ -837,9 +879,6 @@
   .home-content-wrapper .program-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .home-content-wrapper .job-result-video-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (max-width: 880px) {
@@ -852,6 +891,22 @@
   }
   .home-content-wrapper .catalog-grid {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .home-content-wrapper .job-result-card.card-video-type {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .home-content-wrapper .job-result-card.card-video-type .job-result-media.video-mode {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    aspect-ratio: 4 / 6;
+  }
+  .home-content-wrapper .job-result-card.card-video-type .job-result-body {
+    padding: 18px 20px;
   }
 }
 
