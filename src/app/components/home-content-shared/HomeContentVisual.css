@@ -648,38 +648,44 @@
   box-shadow: 0 4px 12px rgba(30, 42, 120, 0.08);
 }
 
-/* Card Video: Layout Khusus 1 Baris 1 Video Card */
+/* Card Video: Full Satu Baris (Video di Atas Full Width, Deskripsi di Bawah) */
 .home-content-wrapper .job-result-card.card-video-type {
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
+  flex-direction: column;
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  min-height: 420px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.home-content-wrapper .job-result-card.card-video-type:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(30, 42, 120, 0.09);
 }
 
 .home-content-wrapper .job-result-card.card-video-type .job-result-media.video-mode {
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
-  aspect-ratio: 4 / 6;
-  flex-shrink: 0;
-  height: auto;
-  align-self: stretch;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 540px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .home-content-wrapper .job-result-card.card-video-type .job-result-body {
-  padding: 28px 32px;
+  padding: 22px 26px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  flex: 1;
 }
 
 .home-content-wrapper .job-result-card.card-video-type .job-result-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -894,21 +900,6 @@
   }
 }
 
-@media (max-width: 820px) {
-  .home-content-wrapper .job-result-card.card-video-type {
-    flex-direction: column;
-    min-height: auto;
-  }
-  .home-content-wrapper .job-result-card.card-video-type .job-result-media.video-mode {
-    width: 100%;
-    min-width: 100%;
-    max-width: 100%;
-    aspect-ratio: 4 / 6;
-  }
-  .home-content-wrapper .job-result-card.card-video-type .job-result-body {
-    padding: 18px 20px;
-  }
-}
 
 @media (max-width: 767px) {
   .home-content-wrapper .program-grid {
