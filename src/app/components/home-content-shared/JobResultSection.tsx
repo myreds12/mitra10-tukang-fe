@@ -24,16 +24,19 @@ export function getEmbedVideoUrl(url?: string | null): string | null {
     }
   }
 
+  // Helper to append parameters that disable fullscreen / maximize
+  const formatYt = (id: string) => `https://www.youtube.com/embed/${id}?fs=0&modestbranding=1&rel=0`;
+
   // Already a standard YouTube embed URL
   if (/^https?:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\/[a-zA-Z0-9_-]+/i.test(trimmed)) {
     const match = trimmed.match(/embed\/([a-zA-Z0-9_-]{11})/i);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : trimmed;
+    return match ? formatYt(match[1]) : (trimmed.includes('?') ? `${trimmed}&fs=0` : `${trimmed}?fs=0`);
   }
 
   // YouTube Shorts: youtube.com/shorts/<id>
   const shortsMatch = trimmed.match(/(?:youtube\.com|youtu\.be)\/shorts\/([a-zA-Z0-9_-]{11})/i);
   if (shortsMatch && shortsMatch[1]) {
-    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+    return formatYt(shortsMatch[1]);
   }
 
   // Standard YouTube Watch / Live / v: youtube.com/watch?v=<id>, youtube.com/live/<id>, youtu.be/<id>
@@ -41,19 +44,19 @@ export function getEmbedVideoUrl(url?: string | null): string | null {
     /(?:(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/(?:watch\?.*v=|embed\/|v\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
   );
   if (ytMatch && ytMatch[1]) {
-    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    return formatYt(ytMatch[1]);
   }
 
   // Fallback regex for YouTube with query string or other path
   const fallbackYt = trimmed.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/)([^"&?\/\s]{11})/i);
   if (fallbackYt && fallbackYt[1]) {
-    return `https://www.youtube.com/embed/${fallbackYt[1]}`;
+    return formatYt(fallbackYt[1]);
   }
 
   // Vimeo
   const vimeoMatch = trimmed.match(/(?:vimeo\.com\/(?:video\/)?)([0-9]+)/i);
   if (vimeoMatch && vimeoMatch[1]) {
-    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}?fullscreen=0`;
   }
 
   return null;
@@ -117,18 +120,14 @@ export const JobResultCard: React.FC<JobResultCardProps> = ({
                   title={title}
                   className='job-result-iframe'
                   allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-                  allowFullScreen
                 />
-                {badge && (
-                  <span className='job-pane-label' style={{ top: 10, right: 10 }}>
-                    {badge}
-                  </span>
-                )}
               </div>
             ) : (
               <div className='job-result-media-inner'>
                 <video
                   controls
+                  controlsList='nofullscreen nodownload noremoteplayback'
+                  disablePictureInPicture
                   playsInline
                   preload='metadata'
                   src={resolvedVideoUrl}
@@ -136,11 +135,6 @@ export const JobResultCard: React.FC<JobResultCardProps> = ({
                 >
                   Browser Anda tidak mendukung pemutaran video langsung.
                 </video>
-                {badge && (
-                  <span className='job-pane-label' style={{ top: 10, right: 10 }}>
-                    {badge}
-                  </span>
-                )}
               </div>
             )
           ) : (

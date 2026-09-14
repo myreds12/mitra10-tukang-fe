@@ -15,14 +15,20 @@ export const CatalogTileCard: React.FC<CatalogTileCardProps> = ({
 }) => {
   const p: Partial<CatalogPayload> = payload || item?.payload || {};
 
-  const name = p.name ?? item?.title ?? 'Nama Kategori';
+  const rawName = p.name ?? item?.title ?? 'Nama Kategori';
+  const name = typeof rawName === 'string' ? rawName.replace(/\?+/g, '').trim() || 'Nama Kategori' : rawName;
   const rawImage = p.image ?? item?.image_url;
   const imageUrl = resolveImageUrl(rawImage);
-  const iconFallback = p.icon_fallback ?? item?.icon ?? '💡';
-  const badgeText = p.badge_text ?? null;
+  const rawBadge = p.badge_text ?? null;
+  const badgeText = typeof rawBadge === 'string' ? rawBadge.replace(/\?+/g, '').trim() || null : rawBadge;
   const linkUrl = p.link_url ?? (typeof item?.description === 'string' && item.description.startsWith('http') ? item.description : 'https://www.mitra10.com');
   const buttonLabel = p.button_label || 'Lihat Produk →';
   const isSecondary = p.button_style === 'secondary';
+
+  // Sanitasi icon fallback: hilangkan jika null, kosong, atau mengandung tanda tanya '?' / '??'
+  const rawIcon = p.icon_fallback ?? item?.icon;
+  const hasQuestionMark = typeof rawIcon === 'string' && rawIcon.includes('?');
+  const iconFallback = (rawIcon && !hasQuestionMark) ? rawIcon.trim() : null;
 
   const gradClass = `grad-${(index % 6) + 1}`;
   const tileClass = imageUrl
@@ -39,7 +45,7 @@ export const CatalogTileCard: React.FC<CatalogTileCardProps> = ({
         style={imageUrl ? { backgroundImage: `url('${imageUrl}')` } : undefined}
       >
         {badgeText && <span className='cat-tile-badge'>{badgeText}</span>}
-        {!imageUrl && iconFallback && (
+        {!imageUrl && iconFallback && !iconFallback.includes('?') && (
           <span className='cat-tile-icowrap'>{iconFallback}</span>
         )}
         <span className='cat-tile-overlay'>

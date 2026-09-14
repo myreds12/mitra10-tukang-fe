@@ -759,6 +759,18 @@
   display: block;
 }
 
+/* PURE VIDEO CONTROLS: Hilangkan tombol mute / volume dan maximize / fullscreen */
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-volume-control-container,
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-mute-button,
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-volume-slider,
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-volume-slider-container {
+  display: none !important;
+}
+
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
 .home-content-wrapper .job-result-iframe {
   width: 100%;
   height: 100%;
