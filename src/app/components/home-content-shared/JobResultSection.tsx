@@ -182,17 +182,21 @@ export const JobResultCard: React.FC<JobResultCardProps> = ({
         )}
       </div>
 
-      <div className='job-result-body'>
-        <div className='job-result-header-row'>
-          <h4 className='job-result-title'>{title}</h4>
-          {badge && (
-            <span className='job-tag-pill'>
-              {badge}
-            </span>
+      {(!isVideo || (description && description.trim()) || (title && title.trim() && title !== 'Hasil Pekerjaan')) && (
+        <div className='job-result-body'>
+          <div className='job-result-header-row'>
+            <h4 className='job-result-title'>{title}</h4>
+            {badge && (
+              <span className='job-tag-pill'>
+                {badge}
+              </span>
+            )}
+          </div>
+          {description && (
+            <p className='job-result-desc' style={{ whiteSpace: 'pre-line' }}>{description}</p>
           )}
         </div>
-        <p className='job-result-desc' style={{ whiteSpace: 'pre-line' }}>{description}</p>
-      </div>
+      )}
     </div>
   );
 };

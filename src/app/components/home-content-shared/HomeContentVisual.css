@@ -669,9 +669,11 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s, box-shadow 0.2s;
@@ -686,8 +688,7 @@
   width: 100%;
   min-width: 100%;
   max-width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 540px;
+  aspect-ratio: 1034 / 506;
   background: #000;
   display: flex;
   align-items: center;
@@ -720,13 +721,14 @@
   overflow: hidden;
 }
 
-/* Video: 4x6 portrait frame */
+/* Video: Widescreen banner frame (1034 x 506) */
 .home-content-wrapper .job-result-media.video-mode {
-  aspect-ratio: 4 / 6;
+  aspect-ratio: 1034 / 506;
   background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 /* Single Image: 4x6 frame */
@@ -1001,9 +1003,6 @@
   .home-content-wrapper .job-result-image-grid {
     grid-template-columns: 1fr;
   }
-  .home-content-wrapper .job-result-card.card-video-type .job-result-media.video-mode {
-    max-height: 380px;
-  }
   .home-content-wrapper .job-result-card.card-video-type .job-result-body {
     padding: 18px 20px;
   }
@@ -1182,9 +1181,6 @@
   .home-content-wrapper .job-result-desc {
     font-size: 12px;
     line-height: 1.5;
-  }
-  .home-content-wrapper .job-result-card.card-video-type .job-result-media.video-mode {
-    max-height: 250px;
   }
   .home-content-wrapper .job-result-card.card-video-type .job-result-body {
     padding: 14px 14px 16px;
