@@ -759,7 +759,7 @@
   display: block;
 }
 
-/* PURE VIDEO CONTROLS: Hilangkan tombol mute / volume dan maximize / fullscreen */
+/* PURE VIDEO CONTROLS: Hilangkan tombol mute / volume, maximize / fullscreen, serta titik 3 / playback speed */
 .home-content-wrapper .job-result-video-player::-webkit-media-controls-volume-control-container,
 .home-content-wrapper .job-result-video-player::-webkit-media-controls-mute-button,
 .home-content-wrapper .job-result-video-player::-webkit-media-controls-volume-slider,
@@ -768,6 +768,12 @@
 }
 
 .home-content-wrapper .job-result-video-player::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-overflow-button,
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-overflow-menu-list,
+.home-content-wrapper .job-result-video-player::-webkit-media-controls-playback-speed-button {
   display: none !important;
 }
 

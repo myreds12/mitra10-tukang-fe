@@ -126,12 +126,13 @@ export const JobResultCard: React.FC<JobResultCardProps> = ({
               <div className='job-result-media-inner'>
                 <video
                   controls
-                  controlsList='nofullscreen nodownload noremoteplayback'
+                  controlsList='nofullscreen nodownload noremoteplayback noplaybackrate'
                   disablePictureInPicture
                   playsInline
                   preload='metadata'
                   src={resolvedVideoUrl}
                   className='job-result-video-player'
+                  onContextMenu={(e) => e.preventDefault()}
                 >
                   Browser Anda tidak mendukung pemutaran video langsung.
                 </video>
