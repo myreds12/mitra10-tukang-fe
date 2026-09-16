@@ -21,17 +21,13 @@ const MasterLayout = () => {
     location.pathname.startsWith('/pendaftar') ||
     localStorage.getItem('userRole') === 'Pendaftar Vendor'
 
-  // Customer service widget (Yellow.ai) hanya aktif & tampil jika login sebagai Pendaftar Vendor
+  // Customer service widget (Yellow.ai) aktif untuk semua dashboard & user di sebelah kiri
   useEffect(() => {
-    if (isPendaftar) {
-      initYellowChat()
-    } else {
-      hideYellowChat()
-    }
+    initYellowChat()
     return () => {
       hideYellowChat()
     }
-  }, [isPendaftar])
+  }, [])
 
   useEffect(() => {
     if (isPendaftar) {

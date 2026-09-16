@@ -251,7 +251,11 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
   const [selectedProgramIndex, setSelectedProgramIndex] = useState<number>(0);
 
   // Form State
-  const [packageTitle, setPackageTitle] = useState<string>('Paket Konten Home Mitra10');
+  const [packageTitle, setPackageTitle] = useState<string>(
+    isEdit
+      ? 'Paket Konten Home Mitra10'
+      : `Paket Konten Home ${new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}`
+  );
   const [unifiedPayload, setUnifiedPayload] = useState<UnifiedHomePayload>(
     JSON.parse(JSON.stringify(DEFAULT_UNIFIED_PAYLOAD))
   );
@@ -765,7 +769,7 @@ export const HomeContentForm: React.FC<Props> = ({ isEdit: isEditProp }) => {
                 <div className='d-flex align-items-center justify-content-md-end gap-3 mt-3 mt-md-0'>
                   <div>
                     <span className='hc-form-label fs-6 fw-bold text-gray-800 mb-0'>Status Tampil di Portal Vendor</span>
-                    <span className='hc-form-help'>Jika aktif, paket ini akan langsung tampil bagi vendor</span>
+                    <span className='hc-form-help'>Jika aktif, paket ini otomatis menjadi tampilan utama & paket lain dinonaktifkan</span>
                   </div>
                   <Switch
                     checked={packageIsActive}

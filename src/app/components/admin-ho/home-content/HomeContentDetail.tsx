@@ -8,6 +8,7 @@ import {
   faArrowLeft,
   faPen,
   faCheck,
+  faPowerOff,
   faCalendarAlt,
 } from '@fortawesome/free-solid-svg-icons';
 import {
@@ -59,7 +60,25 @@ export const HomeContentDetail: React.FC = () => {
   const handleToggleActive = async () => {
     if (!item) return;
     if (item.is_active) {
-      message.warning('Minimal harus ada 1 paket Home Content yang aktif di sistem.');
+      const confirm = await Swal.fire({
+        title: 'Nonaktifkan Paket Konten?',
+        text: `Paket "${item.title || 'Paket'}" akan dinonaktifkan. Portal vendor akan menggunakan tampilan default sistem sampai paket diaktifkan kembali.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Nonaktifkan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#7e8299',
+      });
+      if (!confirm.isConfirmed) return;
+
+      try {
+        await homeContentService.toggleActive(item.id, false);
+        message.success(`Paket "${item.title}" berhasil dinonaktifkan.`);
+        fetchDetail();
+      } catch (err: any) {
+        message.error('Gagal menonaktifkan paket home content.');
+      }
       return;
     }
 
@@ -71,6 +90,7 @@ export const HomeContentDetail: React.FC = () => {
       confirmButtonText: 'Ya, Aktifkan Sekarang',
       cancelButtonText: 'Batal',
       confirmButtonColor: '#183383',
+      cancelButtonColor: '#7e8299',
     });
     if (!confirm.isConfirmed) return;
 
@@ -129,7 +149,17 @@ export const HomeContentDetail: React.FC = () => {
           </div>
 
           <div className='card-toolbar d-flex gap-3'>
-            {!item.is_active && (
+            {item.is_active ? (
+              <button
+                type='button'
+                className='btn btn-sm btn-warning d-inline-flex align-items-center gap-2'
+                style={{ backgroundColor: '#ffc107', borderColor: '#ffc107', color: '#000' }}
+                onClick={handleToggleActive}
+              >
+                <FontAwesomeIcon icon={faPowerOff} />
+                Nonaktifkan Paket
+              </button>
+            ) : (
               <button
                 type='button'
                 className='btn btn-sm btn-success d-inline-flex align-items-center gap-2'

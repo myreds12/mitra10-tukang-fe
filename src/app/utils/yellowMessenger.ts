@@ -28,7 +28,35 @@ declare global {
 
 const DEFAULT_BOT_ID = 'x1657090256339';
 const HIDE_STYLE_ID = 'hide-yellow-ai-style';
+const POSITION_STYLE_ID = 'yellow-ai-position-left-style';
 const SCRIPT_ID = 'yellow-ai-web-widget-script';
+
+/**
+ * Apply CSS rules to enforce Yellow.ai widget positioning on the bottom-left.
+ */
+function applyLeftPositionStyle(): void {
+  if (typeof document === 'undefined') return;
+  if (!document.getElementById(POSITION_STYLE_ID)) {
+    const style = document.createElement('style');
+    style.id = POSITION_STYLE_ID;
+    style.innerHTML = `
+      #ymPluginDiv {
+        left: 20px !important;
+        right: auto !important;
+        z-index: 99999 !important;
+      }
+      #ym-chat-btn, .ym-chat-button {
+        left: 20px !important;
+        right: auto !important;
+      }
+      #ymPluginDiv iframe {
+        left: 0 !important;
+        right: auto !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
 
 /**
  * Check if the current authenticated session is a Pendaftar Vendor.
@@ -43,7 +71,7 @@ export function isPendaftarVendorUser(): boolean {
 }
 
 /**
- * Initialize / show the Yellow.ai live chat widget for Pendaftar Vendor.
+ * Initialize / show the Yellow.ai live chat widget for all users, aligned to the bottom-left.
  */
 export function initYellowChat(botId = DEFAULT_BOT_ID): void {
   if (typeof window === 'undefined') return;
@@ -54,7 +82,15 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
     hideStyle.remove();
   }
 
-  window.ymConfig = { bot: botId, host: 'https://cloud.yellow.ai' };
+  // Apply left alignment styles and configuration
+  applyLeftPositionStyle();
+
+  window.ymConfig = {
+    bot: botId,
+    host: 'https://cloud.yellow.ai',
+    ...(window.ymConfig || {}),
+    alignLeft: true,
+  };
 
   if (window.YellowMessengerPlugin?.show) {
     try {
