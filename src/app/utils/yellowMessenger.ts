@@ -23,39 +23,108 @@ declare global {
       toggleChat?: () => void;
       init?: () => void;
     };
+    hasYellowEventListener?: boolean;
   }
 }
 
 const DEFAULT_BOT_ID = 'x1657090256339';
 const HIDE_STYLE_ID = 'hide-yellow-ai-style';
-const POSITION_STYLE_ID = 'yellow-ai-position-left-style';
+const OLD_POSITION_STYLE_ID = 'yellow-ai-position-left-style';
+const POSITION_STYLE_ID = 'yellow-ai-position-right-style';
 const SCRIPT_ID = 'yellow-ai-web-widget-script';
 
 /**
- * Apply CSS rules to enforce Yellow.ai widget positioning on the bottom-left.
+ * Apply CSS rules to enforce Yellow.ai widget positioning on the bottom-right,
+ * stacking vertically (atas-bawah) with the existing internal live chat widget.
  */
-function applyLeftPositionStyle(): void {
+function applyRightPositionStyle(): void {
   if (typeof document === 'undefined') return;
-  if (!document.getElementById(POSITION_STYLE_ID)) {
-    const style = document.createElement('style');
+
+  // Hapus style posisi kiri lama jika tersisa
+  const oldLeftStyle = document.getElementById(OLD_POSITION_STYLE_ID);
+  if (oldLeftStyle) {
+    oldLeftStyle.remove();
+  }
+
+  let style = document.getElementById(POSITION_STYLE_ID) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement('style');
     style.id = POSITION_STYLE_ID;
-    style.innerHTML = `
-      #ymPluginDiv {
-        left: 20px !important;
-        right: auto !important;
-        z-index: 99999 !important;
-      }
-      #ym-chat-btn, .ym-chat-button {
-        left: 20px !important;
-        right: auto !important;
-      }
-      #ymPluginDiv iframe {
-        left: 0 !important;
-        right: auto !important;
-      }
-    `;
     document.head.appendChild(style);
   }
+
+  style.innerHTML = `
+    /* Posisi default Yellow.ai di kanan (misal pada login page atau saat livechat internal tidak tampil) */
+    #ymDivBar,
+    #ymDivCircle,
+    #ymPluginDiv,
+    #ym-chat-btn,
+    .ym-chat-button,
+    #ym-auto-pop-up-container {
+      left: auto !important;
+      right: 18px !important;
+      bottom: 20px !important;
+      z-index: 9996 !important;
+      transition: bottom 0.25s ease, opacity 0.2s ease !important;
+    }
+
+    /* Saat internal livechat aktif (di dashboard):
+       Naikkan margin Yellow.ai berada di atas livechat popup (LiveChatPopup top: 76px, Yellow.ai bottom: 95px) */
+    body.has-internal-livechat #ymDivBar,
+    body.has-internal-livechat #ymDivCircle,
+    body.has-internal-livechat #ymPluginDiv,
+    body.has-internal-livechat #ym-chat-btn,
+    body.has-internal-livechat .ym-chat-button,
+    body.has-internal-livechat #ym-auto-pop-up-container,
+    body:has(#livechat-popup-btn) #ymDivBar,
+    body:has(#livechat-popup-btn) #ymDivCircle,
+    body:has(#livechat-popup-btn) #ymPluginDiv,
+    body:has(#livechat-popup-btn) #ym-chat-btn,
+    body:has(#livechat-popup-btn) .ym-chat-button,
+    body:has(#livechat-popup-btn) #ym-auto-pop-up-container {
+      left: auto !important;
+      right: 18px !important;
+      bottom: 95px !important;
+      z-index: 9996 !important;
+    }
+
+    /* Saat popup panel internal livechat dibuka: sembunyikan launcher Yellow.ai agar tidak menghalangi panel chat */
+    body.livechat-popup-is-open #ymDivBar,
+    body.livechat-popup-is-open #ymDivCircle,
+    body.livechat-popup-is-open #ymPluginDiv,
+    body.livechat-popup-is-open #ym-chat-btn,
+    body.livechat-popup-is-open .ym-chat-button,
+    body.livechat-popup-is-open #ym-auto-pop-up-container {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    /* Ketika jendela percakapan Yellow.ai terbuka / aktif */
+    #ymFrameHolder {
+      bottom: 20px !important;
+      right: 18px !important;
+      z-index: 99999 !important;
+    }
+    #ymPluginDiv:has(iframe) {
+      bottom: 20px !important;
+      right: 18px !important;
+      z-index: 99999 !important;
+    }
+    body.yellow-ai-is-open #ymPluginDiv {
+      bottom: 20px !important;
+      right: 18px !important;
+      z-index: 99999 !important;
+    }
+    #ymPluginDiv iframe,
+    #ymIframe,
+    iframe[id*="ym-"],
+    iframe[id*="yellow"] {
+      left: auto !important;
+      right: 0 !important;
+      z-index: 99999 !important;
+    }
+  `;
 }
 
 /**
@@ -71,7 +140,8 @@ export function isPendaftarVendorUser(): boolean {
 }
 
 /**
- * Initialize / show the Yellow.ai live chat widget for all users, aligned to the bottom-left.
+ * Initialize / show the Yellow.ai live chat widget for all users on all pages,
+ * positioned on the right side and stacked vertically with the internal live chat.
  */
 export function initYellowChat(botId = DEFAULT_BOT_ID): void {
   if (typeof window === 'undefined') return;
@@ -82,14 +152,14 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
     hideStyle.remove();
   }
 
-  // Apply left alignment styles and configuration
-  applyLeftPositionStyle();
+  // Apply right alignment & stacked styles
+  applyRightPositionStyle();
 
   window.ymConfig = {
     bot: botId,
     host: 'https://cloud.yellow.ai',
     ...(window.ymConfig || {}),
-    alignLeft: true,
+    alignLeft: false,
   };
 
   if (window.YellowMessengerPlugin?.show) {
@@ -98,6 +168,29 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
     } catch (e) {
       // ignore
     }
+  }
+
+  // Listener event buka/tutup chat Yellow.ai
+  if (!window.hasYellowEventListener) {
+    window.hasYellowEventListener = true;
+    window.addEventListener('message', (event) => {
+      try {
+        const eventCode = event.data?.event_code || event.data?.event;
+        if (
+          eventCode === 'ym-client-chat-opened' ||
+          eventCode === 'chat-opened' ||
+          eventCode === 'open'
+        ) {
+          document.body.classList.add('yellow-ai-is-open');
+        } else if (
+          eventCode === 'ym-client-chat-closed' ||
+          eventCode === 'chat-closed' ||
+          eventCode === 'close'
+        ) {
+          document.body.classList.remove('yellow-ai-is-open');
+        }
+      } catch (e) {}
+    });
   }
 
   const existingScript = document.getElementById(SCRIPT_ID);
@@ -128,7 +221,7 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
 }
 
 /**
- * Completely hide / suppress Yellow.ai live chat widget when not logged in as Pendaftar Vendor.
+ * Completely hide / suppress Yellow.ai live chat widget.
  */
 export function hideYellowChat(): void {
   if (typeof window === 'undefined') return;
@@ -168,6 +261,8 @@ export function hideYellowChat(): void {
 export function openYellowChat(): void {
   if (typeof window === 'undefined') return;
 
+  document.body.classList.add('yellow-ai-is-open');
+
   // Make sure it's initialized and unhidden
   initYellowChat();
 
@@ -195,7 +290,7 @@ export function openYellowChat(): void {
 
   // Fallback: trigger click on Yellow.ai launcher button in DOM if present
   const yellowLauncher = document.querySelector<HTMLElement>(
-    '#ymPluginDiv, #ym-chat-btn, .ym-chat-button, [class*="yellowmessenger"], [id*="yellowmessenger"]'
+    '#ymDivBar, #ymDivCircle, #ymPluginDiv, #ym-chat-btn, .ym-chat-button, [class*="yellowmessenger"], [id*="yellowmessenger"]'
   );
   if (yellowLauncher) {
     yellowLauncher.click();

@@ -9,7 +9,7 @@ import {ThemeModeProvider} from '../partials'
 import {MenuComponent} from '../assets/ts/components'
 import LiveChatPopup from '../../app/modules/livechat/LiveChatPopup'
 import {useRegistrantIdleLogout} from '../../app/hooks/useRegistrantIdleLogout'
-import {initYellowChat, hideYellowChat} from '../../app/utils/yellowMessenger'
+import {initYellowChat} from '../../app/utils/yellowMessenger'
 
 const MasterLayout = () => {
   const location = useLocation()
@@ -21,12 +21,9 @@ const MasterLayout = () => {
     location.pathname.startsWith('/pendaftar') ||
     localStorage.getItem('userRole') === 'Pendaftar Vendor'
 
-  // Customer service widget (Yellow.ai) aktif untuk semua dashboard & user di sebelah kiri
+  // Pastikan Yellow.ai aktif di dashboard
   useEffect(() => {
     initYellowChat()
-    return () => {
-      hideYellowChat()
-    }
   }, [])
 
   useEffect(() => {

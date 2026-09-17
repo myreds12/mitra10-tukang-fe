@@ -1063,6 +1063,30 @@ const LiveChatPopup: React.FC = () => {
   const isAllowed = allowedRoles.includes(userRole)
 
   const [open, setOpen] = useState(false)
+
+  // Sinkronisasi status livechat internal ke class body agar widget eksternal (Yellow.ai)
+  // tersusun rapi secara vertikal (atas-bawah) tanpa tumpang tindih.
+  useEffect(() => {
+    if (isAllowed) {
+      document.body.classList.add('has-internal-livechat')
+      return () => {
+        document.body.classList.remove('has-internal-livechat')
+      }
+    } else {
+      document.body.classList.remove('has-internal-livechat')
+    }
+  }, [isAllowed])
+
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add('livechat-popup-is-open')
+    } else {
+      document.body.classList.remove('livechat-popup-is-open')
+    }
+    return () => {
+      document.body.classList.remove('livechat-popup-is-open')
+    }
+  }, [open])
   const [view, setView] = useState<'rooms' | 'chat'>('rooms')
   const [rooms, setRooms] = useState<Room[]>([])
   const [activeRoom, setActiveRoom] = useState<Room | null>(null)
@@ -1430,6 +1454,8 @@ const LiveChatPopup: React.FC = () => {
     <>
       {/* ── FLOATING BUTTON ──────────────────────────────── */}
       <button
+        id='livechat-popup-btn'
+        className='livechat-popup-btn'
         onClick={() => setOpen((v) => !v)}
         style={{
           position: 'fixed',

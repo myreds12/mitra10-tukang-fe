@@ -20,7 +20,6 @@ import {
   faEye,
   faPlus,
   faCircleInfo,
-  faPowerOff,
 } from '@fortawesome/free-solid-svg-icons';
 import { formatDateWithTime } from '../../../../_metronic/helpers';
 import type { ColumnsType } from 'antd/es/table';
@@ -54,6 +53,7 @@ export const HomeContentList: React.FC = () => {
 
   const handleToggleActive = async (record: HomeContentItem) => {
     if (record.is_active) {
+
       const confirm = await Swal.fire({
         title: 'Nonaktifkan Paket Konten?',
         text: `Paket "${record.title || 'Paket'}" akan dinonaktifkan. Halaman beranda vendor akan menggunakan tampilan default sistem sampai ada paket lain yang diaktifkan.`,
@@ -256,22 +256,7 @@ export const HomeContentList: React.FC = () => {
             </BsButton>
           </OverlayTrigger>
 
-          {r.is_active ? (
-            <OverlayTrigger
-              placement='bottom'
-              delay={{ show: 250, hide: 400 }}
-              overlay={renderTooltip('Nonaktifkan Paket')}
-            >
-              <BsButton
-                variant='warning'
-                className='button-inactive'
-                style={{ backgroundColor: '#ffc107', borderColor: '#ffc107', color: '#000' }}
-                onClick={() => handleToggleActive(r)}
-              >
-                <FontAwesomeIcon icon={faPowerOff} fontSize='13px' />
-              </BsButton>
-            </OverlayTrigger>
-          ) : (
+          {!r.is_active && (
             <OverlayTrigger
               placement='bottom'
               delay={{ show: 250, hide: 400 }}
@@ -287,19 +272,21 @@ export const HomeContentList: React.FC = () => {
             </OverlayTrigger>
           )}
 
-          <OverlayTrigger
-            placement='bottom'
-            delay={{ show: 250, hide: 400 }}
-            overlay={renderTooltip(r.is_active ? 'Hapus Paket (Sedang Aktif)' : 'Hapus Paket')}
-          >
-            <BsButton
-              variant='danger'
-              className='button-delete'
-              onClick={() => handleDeletePackage(r)}
+          {!r.is_active && (
+            <OverlayTrigger
+              placement='bottom'
+              delay={{ show: 250, hide: 400 }}
+              overlay={renderTooltip('Hapus Paket')}
             >
-              <FontAwesomeIcon icon={faTrash} fontSize='13px' />
-            </BsButton>
-          </OverlayTrigger>
+              <BsButton
+                variant='danger'
+                className='button-delete'
+                onClick={() => handleDeletePackage(r)}
+              >
+                <FontAwesomeIcon icon={faTrash} fontSize='13px' />
+              </BsButton>
+            </OverlayTrigger>
+          )}
         </div>
       ),
     },
@@ -338,9 +325,9 @@ export const HomeContentList: React.FC = () => {
             <FontAwesomeIcon icon={faCircleInfo} className='fs-2 text-primary me-4 mt-1' />
             <div className='d-flex flex-stack flex-grow-1'>
               <div className='fw-semibold'>
-                <h5 className='text-gray-900 fw-bold m-0'>Manajemen Paket Konten Home Vendor</h5>
+                <h5 className='text-gray-900 fw-bold m-0'>Aturan Konten Home Satu Kesatuan</h5>
                 <div className='fs-7 text-gray-700 mt-1'>
-                  Anda dapat membuat banyak paket konten (sebagai draft, variasi promo, atau versi berkala). Hanya 1 paket yang aktif sebagai tampilan portal vendor. Anda bebas mengaktifkan paket lain kapan saja (otomatis menggantikan paket aktif sebelumnya) atau menonaktifkan paket aktif.
+                  Konten halaman pendaftar dikelola sebagai satu kesatuan paket utuh. Mengaktifkan satu paket akan otomatis menonaktifkan paket sebelumnya agar tampilan vendor selalu sinkron 100%.
                 </div>
               </div>
             </div>
