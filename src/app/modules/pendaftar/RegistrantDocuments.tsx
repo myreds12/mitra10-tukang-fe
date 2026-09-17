@@ -132,15 +132,40 @@ const RegistrantDocuments: React.FC = () => {
 
       await vendorPortalService.updateMyDocuments(fd);
 
+      // 1. Dispatch custom DOM event
+      window.dispatchEvent(new CustomEvent('vendor-profile-updated'));
+
+      // 2. Set storage flag for cross-tab sync
+      try {
+        localStorage.setItem('vendor_profile_updated_at', String(Date.now()));
+      } catch (e) {}
+
+      // 3. Post to BroadcastChannel if available
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const ch = new BroadcastChannel('vendor-portal-sync');
+          ch.postMessage({ type: 'PROFILE_UPDATED' });
+          ch.close();
+        }
+      } catch (e) {}
+
+      // Refresh to calculate realtime percentage on document page
+      fetchDocuments();
+
       Swal.fire({
         title: 'Berhasil Disimpan!',
-        text: 'Data dan berkas dokumen kelengkapan profil Anda berhasil diperbarui.',
+        text: 'Kelengkapan dokumen berhasil diperbarui. Status profil Anda telah disinkronkan secara realtime.',
         icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Kembali ke Beranda',
+        cancelButtonText: 'Tetap di Sini',
         confirmButtonColor: '#1E2A78',
+        cancelButtonColor: '#7e8299',
+      }).then((res) => {
+        if (res.isConfirmed) {
+          navigate('/pendaftar/home');
+        }
       });
-
-      // Refresh to calculate realtime percentage
-      fetchDocuments();
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Gagal menyimpan kelengkapan dokumen';
       Swal.fire('Gagal Menyimpan', Array.isArray(msg) ? msg.join('<br/>') : String(msg), 'error');

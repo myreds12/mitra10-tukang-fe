@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { Modal } from 'antd';
 import { useVendorStatus, HomeStage } from '../../hooks/useVendorStatus';
 import { homeContentService, HomeContentItem } from '../../services/homeContentService';
@@ -75,7 +76,7 @@ function getCurrentVendorId(): number | undefined {
 export const VendorPendingApproval: React.FC = () => {
   const navigate = useNavigate();
   const vendorId = useMemo(() => getCurrentVendorId(), []);
-  const { status, loading, error } = useVendorStatus(apiUrl, vendorId);
+  const { status, loading, error, refresh } = useVendorStatus(apiUrl, vendorId);
   const [vendorNameFallback, setVendorNameFallback] = useState('Vendor');
   const [stageFallback, setStageFallback] = useState<HomeStage>('pendaftaran');
   const [supportInfo, setSupportInfo] = useState<HomeContentItem | null>(null);
@@ -119,6 +120,24 @@ export const VendorPendingApproval: React.FC = () => {
     navigate('/pendaftar/dokumen');
   };
 
+  const handleLogout = async () => {
+    const confirm = await Swal.fire({
+      title: 'Keluar dari Akun?',
+      text: 'Apakah Anda yakin ingin keluar dari akun pendaftar vendor?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#183383',
+      cancelButtonColor: '#7e8299',
+    });
+    if (!confirm.isConfirmed) return;
+
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/login';
+  };
+
   const payloadSupport = (supportInfo?.payload as any) || {};
   const supportLabel = payloadSupport.support_label || supportInfo?.title || 'Hubungi Tim Support';
   const supportNote = payloadSupport.support_note || 'Tim kami siap membantu kendala dan kelengkapan dokumen pendaftaran vendor Anda.';
@@ -147,10 +166,7 @@ export const VendorPendingApproval: React.FC = () => {
           <button
             type='button'
             className='vp-btn-logout'
-            onClick={() => {
-              localStorage.clear();
-              navigate('/login');
-            }}
+            onClick={handleLogout}
             title='Keluar dari akun'
           >
             Keluar
@@ -204,7 +220,28 @@ export const VendorPendingApproval: React.FC = () => {
       {/* Profile completion card */}
       <div className='vp-profile-card'>
         <div className='vp-profile-left'>
-          <h3>Profil Anda {status?.profile_completion ?? 0}% lengkap</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <h3 style={{ margin: 0 }}>Profil Anda {status?.profile_completion ?? 0}% lengkap</h3>
+            <button
+              type='button'
+              onClick={() => refresh()}
+              disabled={loading}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                padding: '2px 6px',
+                fontSize: 14,
+                color: '#6B7280',
+                borderRadius: 4,
+                lineHeight: 1,
+                opacity: loading ? 0.5 : 1,
+              }}
+              title='Segarkan data profil secara realtime'
+            >
+              🔄
+            </button>
+          </div>
           <div className='vp-profile-pct'>
             {status?.profile_completed ?? 0} dari {status?.profile_total ?? 5} dokumen sudah dilengkapi
           </div>

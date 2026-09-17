@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import apiClient from '../services/apiClient';
 
 export type HomeStage =
   | 'pendaftaran'
@@ -61,44 +62,99 @@ export function useVendorStatus(
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
-  const fetchStatus = useCallback(async () => {
-    if (!apiUrl) return;
-    const token = localStorage.getItem('accessToken');
-    setLoading(true);
-    setError('');
-    try {
-      const response = await fetch(`${apiUrl}/vendor-portal/me`, {
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  const fetchStatus = useCallback(
+    async (silent = false) => {
+      if (!apiUrl) return;
+      if (!silent) setLoading(true);
+      setError('');
+      try {
+        const response = await apiClient.get('/vendor-portal/me', {
+          params: {
+            fresh: 'true',
+            _t: Date.now(),
+          },
+        });
+        const data = response.data?.data ?? response.data;
+        if (data) {
+          setStatus(data as VendorPortalStatus);
+        }
+      } catch (err: any) {
+        console.error('useVendorStatus fetch error:', err);
+        if (!silent) setError('Gagal memuat status registrasi. Coba lagi nanti.');
+      } finally {
+        if (!silent) setLoading(false);
       }
-      const body = await response.json();
-      const data = body?.data ?? body;
-      if (data) {
-        setStatus(data as VendorPortalStatus);
-      }
-    } catch (err: any) {
-      console.error('useVendorStatus fetch error:', err);
-      setError('Gagal memuat status registrasi. Coba lagi nanti.');
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl]);
+    },
+    [apiUrl]
+  );
 
   const refresh = useCallback(async () => {
-    await fetchStatus();
+    await fetchStatus(false);
   }, [fetchStatus]);
 
   useEffect(() => {
     if (!apiUrl) return;
-    fetchStatus();
-    // Catatan: WebSocket subscription dihapus karena CRACO/CRA bundle
-    // untuk socket.io-client bermasalah (io is not a function). Update
-    // status realtime diganti manual via tombol Refresh di UI.
+
+    // 1. Initial fetch
+    fetchStatus(false);
+
+    // 2. Realtime sync handler
+    const handleSyncEvent = () => {
+      fetchStatus(true);
+    };
+
+    // a) Local DOM CustomEvent (saat simpan data di tab yang sama)
+    window.addEventListener('vendor-profile-updated', handleSyncEvent);
+
+    // b) Window focus & tab visibility change (saat user beralih kembali ke tab Beranda)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchStatus(true);
+      }
+    };
+    window.addEventListener('focus', handleSyncEvent);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // c) Storage event listener (saat simpan data di tab/jendela lain)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'vendor_profile_updated_at') {
+        fetchStatus(true);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // d) BroadcastChannel listener (antar tab modern)
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel('vendor-portal-sync');
+        channel.onmessage = (msg) => {
+          if (msg?.data?.type === 'PROFILE_UPDATED') {
+            fetchStatus(true);
+          }
+        };
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // e) Polling periodik (setiap 20 detik saat window aktif)
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchStatus(true);
+      }
+    }, 20000);
+
+    return () => {
+      window.removeEventListener('vendor-profile-updated', handleSyncEvent);
+      window.removeEventListener('focus', handleSyncEvent);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorage);
+      if (channel) {
+        channel.close();
+      }
+      clearInterval(intervalId);
+    };
   }, [apiUrl, fetchStatus]);
 
   return {

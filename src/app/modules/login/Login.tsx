@@ -283,15 +283,26 @@ export function Login() {
                   Daftar sebagai Vendor
                 </Link>
 
-                {/* Tombol Syarat & Ketentuan - viewer read-only (HTML, tanpa download) */}
-                <Button
-                  type='button'
-                  variant='link'
-                  className='mt-3 p-0 text-muted'
-                  onClick={() => setShowTerms(true)}
-                >
-                  Syarat &amp; Ketentuan
-                </Button>
+                {/* Tautan Syarat & Ketentuan - viewer read-only (HTML, tanpa download) */}
+                <div className='mt-4 pt-1'>
+                  <button
+                    type='button'
+                    className='btn-link border-0 bg-transparent text-muted'
+                    style={{
+                      fontSize: '12px',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: '#6c757d',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#183383')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#6c757d')}
+                    onClick={() => setShowTerms(true)}
+                  >
+                    Syarat &amp; Ketentuan Pendaftaran
+                  </button>
+                </div>
               </div>
             </form>
           </div>
