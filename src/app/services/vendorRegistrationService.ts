@@ -10,6 +10,8 @@ export const vendorRegistrationService = {
   startPitching: (id: string | number, data?: any) => apiClient.put(`/vendor-registration/${id}/start-pitching`, data),
   finalApprove: (id: string | number, data?: any) => apiClient.put(`/vendor-registration/${id}/final-approve`, data),
   reject: (id: string | number, data: any) => apiClient.put(`/vendor-registration/${id}/reject`, data),
+  resendEmail: (id: string | number) => apiClient.post(`/vendor-registration/${id}/resend-email`),
+  getEmailStatus: (id: string | number) => apiClient.get(`/vendor-registration/${id}/email-status`),
 };
 
 // Public endpoints (no auth)

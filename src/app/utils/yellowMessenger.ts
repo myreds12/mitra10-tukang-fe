@@ -54,47 +54,85 @@ function applyRightPositionStyle(): void {
   }
 
   style.innerHTML = `
-    /* Posisi default Yellow.ai di kanan (misal pada login page atau saat livechat internal tidak tampil) */
+    /* Sembunyikan tombol / bubble launcher bawaan Yellow.ai agar hanya tombol gambar yang tampil */
     #ymDivBar,
     #ymDivCircle,
-    #ymPluginDiv,
+    #ymPluginDiv > div:not(#ymFrameHolder):not(:has(iframe)),
     #ym-chat-btn,
     .ym-chat-button,
     #ym-auto-pop-up-container {
-      left: auto !important;
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Tombol Kustom Yellow.ai: Hanya Gambar (WhatsApp_Image Mitra10 Live Chat) */
+    #yellow-ai-custom-launcher,
+    .yellow-ai-custom-launcher {
+      position: fixed !important;
       right: 18px !important;
       bottom: 20px !important;
       z-index: 9996 !important;
-      transition: bottom 0.25s ease, opacity 0.2s ease !important;
+      width: 82px !important;
+      height: auto !important;
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15)) !important;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 0.2s ease,
+                  bottom 0.25s ease !important;
+    }
+
+    #yellow-ai-custom-launcher img,
+    .yellow-ai-custom-launcher img {
+      width: 100% !important;
+      height: auto !important;
+      display: block !important;
+      pointer-events: none !important;
+      user-select: none !important;
+    }
+
+    #yellow-ai-custom-launcher:hover,
+    .yellow-ai-custom-launcher:hover {
+      transform: translateY(-3px) scale(1.06) !important;
+      filter: drop-shadow(0 6px 16px rgba(19, 50, 142, 0.35)) !important;
+    }
+
+    #yellow-ai-custom-launcher:active,
+    .yellow-ai-custom-launcher:active {
+      transform: translateY(0) scale(0.96) !important;
     }
 
     /* Saat internal livechat aktif (di dashboard):
-       Naikkan margin Yellow.ai berada di atas livechat popup (LiveChatPopup top: 76px, Yellow.ai bottom: 95px) */
-    body.has-internal-livechat #ymDivBar,
-    body.has-internal-livechat #ymDivCircle,
-    body.has-internal-livechat #ymPluginDiv,
-    body.has-internal-livechat #ym-chat-btn,
-    body.has-internal-livechat .ym-chat-button,
-    body.has-internal-livechat #ym-auto-pop-up-container,
-    body:has(#livechat-popup-btn) #ymDivBar,
-    body:has(#livechat-popup-btn) #ymDivCircle,
-    body:has(#livechat-popup-btn) #ymPluginDiv,
-    body:has(#livechat-popup-btn) #ym-chat-btn,
-    body:has(#livechat-popup-btn) .ym-chat-button,
-    body:has(#livechat-popup-btn) #ym-auto-pop-up-container {
-      left: auto !important;
-      right: 18px !important;
-      bottom: 95px !important;
-      z-index: 9996 !important;
+       Posisikan tombol gambar Yellow.ai persis di atas tombol livechat internal (bottom: 84px, right: 12px) */
+    body.has-internal-livechat #yellow-ai-custom-launcher,
+    body.has-internal-livechat .yellow-ai-custom-launcher,
+    body:has(#livechat-popup-btn) #yellow-ai-custom-launcher,
+    body:has(#livechat-popup-btn) .yellow-ai-custom-launcher {
+      right: 12px !important;
+      bottom: 84px !important;
     }
 
-    /* Saat popup panel internal livechat dibuka: sembunyikan launcher Yellow.ai agar tidak menghalangi panel chat */
-    body.livechat-popup-is-open #ymDivBar,
-    body.livechat-popup-is-open #ymDivCircle,
-    body.livechat-popup-is-open #ymPluginDiv,
-    body.livechat-popup-is-open #ym-chat-btn,
-    body.livechat-popup-is-open .ym-chat-button,
-    body.livechat-popup-is-open #ym-auto-pop-up-container {
+    /* Saat popup panel internal livechat dibuka: sembunyikan launcher Yellow.ai agar tidak menimpa */
+    body.livechat-popup-is-open #yellow-ai-custom-launcher,
+    body.livechat-popup-is-open .yellow-ai-custom-launcher {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      transform: scale(0.8) !important;
+    }
+
+    /* Ketika jendela percakapan Yellow.ai terbuka / aktif: sembunyikan launcher gambar agar tidak menutupi chat */
+    body.yellow-ai-is-open #yellow-ai-custom-launcher,
+    body.yellow-ai-is-open .yellow-ai-custom-launcher {
       opacity: 0 !important;
       visibility: hidden !important;
       pointer-events: none !important;
@@ -140,6 +178,38 @@ export function isPendaftarVendorUser(): boolean {
 }
 
 /**
+ * Ensure custom image launcher is mounted in document body.
+ */
+export function ensureYellowLauncher(): void {
+  if (typeof document === 'undefined') return;
+
+  let launcher = document.getElementById('yellow-ai-custom-launcher');
+  if (!launcher) {
+    launcher = document.createElement('button');
+    launcher.id = 'yellow-ai-custom-launcher';
+    launcher.className = 'yellow-ai-custom-launcher';
+    launcher.setAttribute('aria-label', 'Live Chat CS Mitra10');
+    launcher.setAttribute('title', 'Live Chat CS Mitra10');
+    launcher.setAttribute('type', 'button');
+
+    const img = document.createElement('img');
+    const publicUrl = process.env.PUBLIC_URL || '';
+    img.src = `${publicUrl}/media/livechat-yellow-ai.png`;
+    img.alt = 'Live Chat Mitra10';
+    img.draggable = false;
+
+    launcher.appendChild(img);
+    launcher.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleYellowChat();
+    });
+
+    document.body.appendChild(launcher);
+  }
+}
+
+/**
  * Initialize / show the Yellow.ai live chat widget for all users on all pages,
  * positioned on the right side and stacked vertically with the internal live chat.
  */
@@ -155,11 +225,20 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
   // Apply right alignment & stacked styles
   applyRightPositionStyle();
 
+  // Pastikan launcher gambar kustom terpasang
+  ensureYellowLauncher();
+
+  const customLauncher = document.getElementById('yellow-ai-custom-launcher');
+  if (customLauncher) {
+    customLauncher.style.display = '';
+  }
+
   window.ymConfig = {
     bot: botId,
     host: 'https://cloud.yellow.ai',
     ...(window.ymConfig || {}),
     alignLeft: false,
+    hideChatButton: true,
   };
 
   if (window.YellowMessengerPlugin?.show) {
@@ -225,6 +304,11 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
  */
 export function hideYellowChat(): void {
   if (typeof window === 'undefined') return;
+
+  const customLauncher = document.getElementById('yellow-ai-custom-launcher');
+  if (customLauncher) {
+    customLauncher.style.display = 'none';
+  }
 
   if (window.YellowMessengerPlugin?.closeBot) {
     try {

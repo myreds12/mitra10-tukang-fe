@@ -1,8 +1,8 @@
 /* Table */
 
 #view-vendor-registration .ant-table-wrapper .ant-table-thead > tr > th {
-  color: #ffff;
-  font-weight: 500;
+  color: #ffffff;
+  font-weight: 600;
   background-color: #183383;
 }
 
@@ -20,40 +20,44 @@
   border-start-end-radius: 0;
 }
 
-#view-vendor-registration .table-head-wrapper {
-  margin-bottom: 20px;
-}
-
+/* Status Tabs */
 #view-vendor-registration .vendor-registration-status-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 #view-vendor-registration .status-tab {
-  min-height: 44px;
+  min-height: 42px;
   border: 1px solid var(--bs-gray-300, #dee2e6);
   border-radius: var(--bs-border-radius, 0.475rem);
   background: var(--bs-body-bg, #ffffff);
   color: var(--bs-gray-700, #5e6278);
-  padding: 0.55rem 0.85rem;
+  padding: 0.5rem 0.9rem;
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
   font-size: 13px;
   font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+#view-vendor-registration .status-tab:hover {
+  border-color: #183383;
+  color: #183383;
 }
 
 #view-vendor-registration .status-tab strong {
-  min-width: 28px;
-  height: 24px;
+  min-width: 26px;
+  height: 22px;
   border-radius: var(--bs-border-radius, 0.475rem);
   background: var(--bs-gray-200, #e9ecef);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
+  padding: 0 6px;
 }
 
 #view-vendor-registration .status-tab.active {
@@ -62,6 +66,7 @@
   background: rgba(24, 51, 131, 0.08);
 }
 
+/* Table styling */
 #view-vendor-registration .vendor-registration-table {
   --vendor-table-row-hover-bg: var(--bs-gray-200, #dcdcdc);
   --vendor-table-row-even-bg: var(--bs-body-bg, #ffffff);
@@ -109,57 +114,102 @@
   background-color: var(--vendor-table-row-odd-bg);
 }
 
-/* Searchbar */
+/* Filter Bar Container & Responsive Items */
+#view-vendor-registration .table-head-wrapper {
+  margin-bottom: 1.5rem;
+}
 
-#view-vendor-registration .filter-search {
-  width: 40%;
+#view-vendor-registration .filter-bar-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+#view-vendor-registration .filter-item {
+  display: flex;
+  flex-direction: column;
+}
+
+#view-vendor-registration .filter-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bs-gray-700, #5e6278);
+  margin-bottom: 0.35rem;
+  line-height: 1.2;
+}
+
+#view-vendor-registration .filter-search-box {
+  flex: 1 1 260px;
+  max-width: 380px;
+}
+
+#view-vendor-registration .filter-date-box {
+  flex: 0 0 175px;
+}
+
+#view-vendor-registration .filter-submit-box {
+  flex: 0 0 auto;
+}
+
+#view-vendor-registration .search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+#view-vendor-registration .filter-input {
+  height: 42px !important;
+  font-size: 13px;
+  border: 1px solid var(--bs-gray-300, #dee2e6);
+  border-radius: var(--bs-border-radius, 0.475rem);
+  padding: 0.45rem 0.75rem;
 }
 
 #view-vendor-registration input.filter-ltr.form-control {
-  height: 45px !important;
-  padding-left: 35px !important;
+  padding-left: 36px !important;
 }
 
-#view-vendor-registration .filter-search .search-icon {
-  float: left;
-  margin-left: 11px;
-  margin-top: -30px;
-  position: relative;
-}
-
-/* Filter */
-
-#view-vendor-registration .select__control.css-13cymwt-control {
-  height: 45px;
-}
-
-#view-vendor-registration .form-control.p-0.css-b62m3t-container {
-  z-index: 99 !important;
-  border: none;
+#view-vendor-registration .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #a1a5b7;
 }
 
 /* Button Submit */
 #view-vendor-registration .btn-dark-primary {
-  background-color: #020080 !important;
-  border-color: #020080 !important;
-  color: white !important;
-  height: 45px;
+  background-color: #183383 !important;
+  border-color: #183383 !important;
+  color: #ffffff !important;
+  height: 42px !important;
+  min-width: 100px;
+  padding: 0 1.25rem;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--bs-border-radius, 0.475rem);
+  transition: all 0.2s ease;
 }
 
 #view-vendor-registration .btn-dark-primary:hover {
-  background-color: #020060 !important;
-  border-color: #020060 !important;
+  background-color: #0f2259 !important;
+  border-color: #0f2259 !important;
 }
 
 /* Action Button Wrapper */
 #view-vendor-registration .button-wrapper {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 #view-vendor-registration .action-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--vendor-table-action-size);
@@ -194,6 +244,19 @@
   border-color: var(--bs-primary, #009ef7);
 }
 
+#view-vendor-registration .action-button.btn-light-warning {
+  color: #d97706;
+  background-color: #fef3c7;
+  border-color: transparent;
+}
+
+#view-vendor-registration .action-button.btn-light-warning:hover,
+#view-vendor-registration .action-button.btn-light-warning:focus {
+  color: #ffffff;
+  background-color: #d97706;
+  border-color: #d97706;
+}
+
 #view-vendor-registration .action-button.btn-danger,
 #view-vendor-registration .action-button.btn-primary {
   color: var(--bs-white, #ffffff);
@@ -211,6 +274,45 @@
   border-color: var(--bs-danger-active, #d9214e);
 }
 
+/* Email Status Cell & Badges */
+#view-vendor-registration .email-status-cell {
+  white-space: nowrap;
+}
+
+#view-vendor-registration .email-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--vendor-table-badge-radius);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+#view-vendor-registration .email-badge-sent {
+  color: #059669;
+  background-color: #d1fae5;
+  border: 1px solid #a7f3d0;
+}
+
+#view-vendor-registration .email-badge-pending {
+  color: #d97706;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+#view-vendor-registration .email-badge-failed {
+  color: #dc2626;
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+#view-vendor-registration .email-status-date {
+  font-size: 10.5px;
+  color: var(--bs-gray-600, #7e8299);
+}
+
+/* Registration Status Badge */
 #view-vendor-registration .status-badge {
   display: inline-flex;
   align-items: center;
@@ -268,25 +370,31 @@
   color: white;
 }
 
+/* Responsive Media Queries */
 @media (max-width: 991.98px) {
-  #view-vendor-registration .filter-search {
-    width: 100%;
+  #view-vendor-registration .filter-bar-container {
+    gap: 0.75rem;
   }
 
-  #view-vendor-registration .form-control.p-0.css-b62m3t-container {
-    width: 100%;
+  #view-vendor-registration .filter-search-box {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  #view-vendor-registration .filter-date-box {
+    flex: 1 1 calc(50% - 0.4rem);
+  }
+
+  #view-vendor-registration .filter-submit-box {
+    flex: 1 1 100%;
   }
 
   #view-vendor-registration .btn-dark-primary {
-    width: 100%;
-  }
-
-  #view-vendor-registration .vendor-registration-status-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100% !important;
   }
 
   #view-vendor-registration .status-tab {
+    flex: 1 1 calc(50% - 0.4rem);
     justify-content: space-between;
   }
 
@@ -308,12 +416,16 @@
     padding: 1rem;
   }
 
-  #view-vendor-registration .vendor-registration-status-tabs {
-    grid-template-columns: 1fr;
+  #view-vendor-registration .filter-date-box {
+    flex: 1 1 100%;
+  }
+
+  #view-vendor-registration .status-tab {
+    flex: 1 1 100%;
   }
 
   #view-vendor-registration .status-badge {
-    min-width: 120px;
+    min-width: 110px;
     white-space: normal;
   }
 

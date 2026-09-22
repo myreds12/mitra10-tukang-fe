@@ -4,13 +4,29 @@ import {useNavigate} from 'react-router-dom'
 import { vendorRegistrationService } from '../../../services/vendorRegistrationService'
 import Swal from 'sweetalert2'
 import {Table, Spin, Pagination, PaginationProps} from 'antd'
-import {Row, Form, OverlayTrigger, Tooltip, FormGroup, Button} from 'react-bootstrap'
+import {Form, OverlayTrigger, Tooltip, Button} from 'react-bootstrap'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {LoadingOutlined} from '@ant-design/icons'
-import {faSearch, faFileAlt, faCheckCircle, faTimes, faHistory} from '@fortawesome/free-solid-svg-icons'
+import {
+  faSearch,
+  faFileAlt,
+  faCheckCircle,
+  faTimes,
+  faHistory,
+  faPaperPlane,
+  faExclamationTriangle,
+} from '@fortawesome/free-solid-svg-icons'
 import './ViewVendorRegistration.css'
 
 import type {ColumnsType} from 'antd/es/table'
+
+interface EmailStatus {
+  sent: boolean
+  status: 'TERKIRIM' | 'GAGAL' | 'BELUM_TERKIRIM'
+  sent_at: string | null
+  recipient: string
+  log_id?: number | null
+}
 
 interface VendorRegistration {
   id: number
@@ -34,6 +50,7 @@ interface VendorRegistration {
     id: number
     bank_name: string
   }
+  email_status?: EmailStatus
 }
 
 const ViewVendorRegistration: React.FC = () => {
@@ -64,6 +81,7 @@ const ViewVendorRegistration: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(10)
   const [loadingButton, setLoadingButton] = useState<boolean>(false)
   const [stats, setStats] = useState<Record<string, number>>({})
+  const [resendingId, setResendingId] = useState<number | null>(null)
 
   // Filter State
   const [companyNameFilter, setCompanyNameFilter] = useState<string>('')
@@ -81,6 +99,44 @@ const ViewVendorRegistration: React.FC = () => {
   }
 
   const debouncedCompanyName = useDebounce(companyNameFilter, 500)
+
+  const handleResendEmail = async (record: VendorRegistration) => {
+    const recipient = record.pic_email || record.email_address
+    const result = await Swal.fire({
+      title: 'Kirim Ulang Email?',
+      text: `Kirim ulang email notifikasi / kredensial akun ke ${recipient}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#183383',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, Kirim',
+      cancelButtonText: 'Batal',
+    })
+
+    if (!result.isConfirmed) return
+
+    setResendingId(record.id)
+    try {
+      const response = await vendorRegistrationService.resendEmail(record.id)
+      Swal.fire({
+        title: 'Berhasil',
+        text: response.data?.message || `Email berhasil dikirim ulang ke ${recipient}`,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false,
+      })
+      fetchData(currentPage, pageSize)
+    } catch (error: any) {
+      console.error('Error resending email:', error)
+      Swal.fire({
+        title: 'Gagal',
+        text: error?.response?.data?.message || 'Gagal mengirim ulang email.',
+        icon: 'error',
+      })
+    } finally {
+      setResendingId(null)
+    }
+  }
 
   // Pagination
   const itemRender: PaginationProps['itemRender'] = (_, type, originalElement) => {
@@ -167,11 +223,55 @@ const ViewVendorRegistration: React.FC = () => {
       },
     },
     {
+      title: 'Status Email',
+      key: 'email_status',
+      align: 'center',
+      width: 140,
+      render: (record: VendorRegistration) => {
+        const emailStatus = record.email_status
+        const isSent = emailStatus?.sent
+        const isFailed = emailStatus?.status === 'GAGAL'
+
+        let badgeClass = 'email-badge-pending'
+        let label = 'Belum Terkirim'
+        let icon = faExclamationTriangle
+
+        if (isSent) {
+          badgeClass = 'email-badge-sent'
+          label = 'Terkirim'
+          icon = faCheckCircle
+        } else if (isFailed) {
+          badgeClass = 'email-badge-failed'
+          label = 'Gagal'
+          icon = faTimes
+        }
+
+        return (
+          <div className='email-status-cell d-flex flex-column align-items-center gap-1'>
+            <span className={`email-status-badge ${badgeClass}`}>
+              <FontAwesomeIcon icon={icon} className='me-1' style={{fontSize: '11px'}} />
+              {label}
+            </span>
+            {emailStatus?.sent_at && (
+              <span className='email-status-date'>
+                {new Date(emailStatus.sent_at).toLocaleDateString('id-ID', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            )}
+          </div>
+        )
+      },
+    },
+    {
       title: 'Tanggal',
       dataIndex: 'created_at',
       key: 'created_at',
       align: 'center',
-      width: 150,
+      width: 140,
       render: (date: string) => {
         return new Date(date).toLocaleDateString('id-ID', {
           day: '2-digit',
@@ -187,12 +287,13 @@ const ViewVendorRegistration: React.FC = () => {
       key: 'action',
       fixed: 'right',
       align: 'center',
-      width: 150,
+      width: 200,
       render: (record) => {
         const id = record.id
+        const isResending = resendingId === record.id
 
         return (
-          <div className='button-wrapper d-flex justify-content-center align-items-center gap-2'>
+          <div className='button-wrapper d-flex justify-content-center align-items-center gap-2 flex-nowrap'>
             <OverlayTrigger
               placement='bottom'
               delay={{show: 250, hide: 400}}
@@ -226,6 +327,27 @@ const ViewVendorRegistration: React.FC = () => {
                 <FontAwesomeIcon icon={faHistory} fontSize={'13px'} />
               </a>
             </OverlayTrigger>
+
+            {!record.email_status?.sent && (
+              <OverlayTrigger
+                placement='bottom'
+                delay={{show: 250, hide: 400}}
+                overlay={<Tooltip id={`tooltip-resend-action-${id}`}>Kirim Ulang Email</Tooltip>}
+              >
+                <button
+                  type='button'
+                  className='btn btn-icon btn-sm btn-light-warning rounded action-button shadow-none'
+                  disabled={isResending}
+                  onClick={() => handleResendEmail(record)}
+                >
+                  {isResending ? (
+                    <span className='spinner-border spinner-border-sm' role='status' style={{width: '12px', height: '12px'}} />
+                  ) : (
+                    <FontAwesomeIcon icon={faPaperPlane} fontSize={'12px'} />
+                  )}
+                </button>
+              </OverlayTrigger>
+            )}
 
             {(record.status === 1 || record.status === 2) && (
               <>
@@ -383,26 +505,28 @@ const ViewVendorRegistration: React.FC = () => {
             })}
           </div>
 
-          <Row className='table-head-wrapper'>
-            <div className='d-flex flex-column flex-sm-row flex-md-row flex-lg-row flex-xl-row flex-xxl-row align-items-start align-items-sm-center align-items-md-center align-items-lg-center align-items-xl-center align-items-xxl-center justify-content-start gap-3'>
-              <div className='filter-search'>
-                <FormGroup>
+          <div className='table-head-wrapper'>
+            <div className='filter-bar-container'>
+              <div className='filter-item filter-search-box'>
+                <Form.Label className='filter-field-label'>Pencarian</Form.Label>
+                <div className='search-input-wrapper'>
                   <Form.Control
                     placeholder='Nama Perusahaan'
-                    className='filter-ltr'
+                    className='filter-input filter-ltr'
                     onChange={handleChangeCompanyNameFilter}
                     value={companyNameFilter}
                   />
                   <span className='search-icon'>
-                    <FontAwesomeIcon icon={faSearch} className='text-black' size='sm' />
+                    <FontAwesomeIcon icon={faSearch} size='sm' />
                   </span>
-                </FormGroup>
+                </div>
               </div>
 
-              <FormGroup>
-                <Form.Label className='mb-1'>Tanggal Dari</Form.Label>
+              <div className='filter-item filter-date-box'>
+                <Form.Label className='filter-field-label'>Tanggal Dari</Form.Label>
                 <Form.Control
                   type='date'
+                  className='filter-input'
                   aria-label='Tanggal mulai'
                   value={dateFromFilter}
                   onChange={(event) => {
@@ -410,12 +534,13 @@ const ViewVendorRegistration: React.FC = () => {
                     setCurrentPage(1)
                   }}
                 />
-              </FormGroup>
+              </div>
 
-              <FormGroup>
-                <Form.Label className='mb-1'>Tanggal Sampai</Form.Label>
+              <div className='filter-item filter-date-box'>
+                <Form.Label className='filter-field-label'>Tanggal Sampai</Form.Label>
                 <Form.Control
                   type='date'
+                  className='filter-input'
                   aria-label='Tanggal akhir'
                   min={dateFromFilter || undefined}
                   value={dateToFilter}
@@ -424,17 +549,20 @@ const ViewVendorRegistration: React.FC = () => {
                     setCurrentPage(1)
                   }}
                 />
-              </FormGroup>
+              </div>
 
-              <Button
-                className='btn-dark-primary button-submit m-0'
-                disabled={loadingButton}
-                onClick={handleSubmitFilter}
-              >
-                {loadingButton ? 'Filtering..' : 'Submit'}
-              </Button>
+              <div className='filter-item filter-submit-box'>
+                <Form.Label className='filter-field-label invisible d-none d-lg-block'>&nbsp;</Form.Label>
+                <Button
+                  className='btn-dark-primary button-submit m-0 d-inline-flex align-items-center justify-content-center'
+                  disabled={loadingButton}
+                  onClick={handleSubmitFilter}
+                >
+                  {loadingButton ? 'Filtering..' : 'Submit'}
+                </Button>
+              </div>
             </div>
-          </Row>
+          </div>
 
           <Spin
             tip='Loading...'
