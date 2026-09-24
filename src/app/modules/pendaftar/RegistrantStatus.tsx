@@ -32,18 +32,13 @@ interface MyRegistration {
 const STATUS_CONFIG: Record<number, {label: string; stage: string; className: string}> = {
   1: {
     label: 'Menunggu Approve',
-    stage: 'Pendaftaran - menunggu verifikasi admin',
+    stage: 'Menunggu review & verifikasi admin',
     className: 'registrant-status-badge registrant-status-pending',
   },
   2: {
     label: 'Proses Pitching',
-    stage: 'Verifikasi & Review Admin',
+    stage: 'Proses Pitching bersama tim Mitra10',
     className: 'registrant-status-badge registrant-status-review',
-  },
-  3: {
-    label: 'Disetujui',
-    stage: 'Diterima sebagai Vendor',
-    className: 'registrant-status-badge registrant-status-approved',
   },
   4: {
     label: 'Ditolak',
@@ -75,7 +70,16 @@ const RegistrantStatus: React.FC = () => {
           timeout: 10000,
         })
         const data = response.data?.data ?? response.data
-        setRegistrations(data?.data ?? [])
+        const items: MyRegistration[] = data?.data ?? []
+
+        // Jika pendaftaran sudah disetujui, langsung arahkan ke dashboard vendor
+        if (items.some((r) => r.status === 3)) {
+          localStorage.setItem('userRole', 'Owner Vendor')
+          window.location.replace('/home')
+          return
+        }
+
+        setRegistrations(items)
       } catch (err: any) {
         console.error('Error fetching my registrations:', err)
         setError(
@@ -149,9 +153,16 @@ const RegistrantStatus: React.FC = () => {
         return (
           <div className='registrant-status-cell'>
             <span className={config.className}>{config.label}</span>
-            {status === 4 && record.rejection_reason ? (
-              <div className='registrant-status-reason' title={record.rejection_reason}>
-                {record.rejection_reason}
+            {status === 4 ? (
+              <div
+                className='registrant-status-reason'
+                style={{ textAlign: 'left', marginTop: 4, fontSize: 11, lineHeight: 1.4 }}
+              >
+                <div>
+                  <strong>Alasan:</strong> {record.rejection_reason || 'Belum memenuhi kriteria'}
+                </div>
+                <div style={{ color: '#6B7280' }}>• Daftar ulang setelah 1 bulan</div>
+                <div style={{ color: '#6B7280' }}>• Data dihapus sistem dalam 3 hari</div>
               </div>
             ) : null}
           </div>

@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import apiClient from '../services/apiClient';
 
 export type HomeStage =
+  | 'menunggu_approve'
+  | 'proses_pitching'
+  | 'approved'
+  | 'rejected'
   | 'pendaftaran'
   | 'verifikasi'
   | 'review_admin'
-  | 'approval'
-  | 'approved'
-  | 'rejected';
+  | 'approval';
 
 export interface ProfileFlags {
   company_data: boolean;
@@ -21,7 +23,10 @@ export interface VendorPortalStatus {
   vendor_id: number;
   vendor_name: string;
   stage: HomeStage;
+  status_int?: number;
   stage_note?: string;
+  rejection_reason?: string;
+  reapply_date?: string | null;
   profile: ProfileFlags;
   profile_completion: number;
   profile_completed: number;
@@ -29,22 +34,26 @@ export interface VendorPortalStatus {
   updated_at: number;
 }
 
-const STAGE_LABEL: Record<HomeStage, string> = {
-  pendaftaran: 'Pendaftaran',
-  verifikasi: 'Verifikasi',
-  review_admin: 'Review Admin',
-  approval: 'Approval',
+const STAGE_LABEL: Record<string, string> = {
+  menunggu_approve: 'Menunggu Approve',
+  proses_pitching: 'Proses Pitching',
   approved: 'Diterima sebagai Vendor',
-  rejected: 'Pendaftaran Ditolak',
+  rejected: 'Ditolak',
+  pendaftaran: 'Menunggu Approve',
+  verifikasi: 'Proses Pitching',
+  review_admin: 'Proses Pitching',
+  approval: 'Proses Pitching',
 };
 
-const STAGE_STATUS_PILL: Record<HomeStage, { label: string; color: string }> = {
-  pendaftaran: { label: 'Menunggu Pendaftaran', color: '#FBC02D' },
-  verifikasi: { label: 'Menunggu Verifikasi', color: '#FBC02D' },
-  review_admin: { label: 'Menunggu Review Admin', color: '#FBC02D' },
-  approval: { label: 'Menunggu Approval', color: '#FBC02D' },
-  approved: { label: 'Vendor Aktif', color: '#16A34A' },
+const STAGE_STATUS_PILL: Record<string, { label: string; color: string }> = {
+  menunggu_approve: { label: 'Menunggu Approve', color: '#FBC02D' },
+  proses_pitching: { label: 'Proses Pitching', color: '#183383' },
+  approved: { label: 'Vendor Diterima', color: '#16A34A' },
   rejected: { label: 'Pendaftaran Ditolak', color: '#E12429' },
+  pendaftaran: { label: 'Menunggu Approve', color: '#FBC02D' },
+  verifikasi: { label: 'Proses Pitching', color: '#183383' },
+  review_admin: { label: 'Proses Pitching', color: '#183383' },
+  approval: { label: 'Proses Pitching', color: '#183383' },
 };
 
 export function useVendorStatus(

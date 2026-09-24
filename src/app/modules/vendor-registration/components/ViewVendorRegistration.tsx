@@ -64,11 +64,8 @@ const ViewVendorRegistration: React.FC = () => {
   }
 
   const statusTabs = [
-    {value: undefined, label: 'Semua', countKey: 'total'},
     {value: 1, label: 'Menunggu Approve', countKey: 'menunggu_approve'},
     {value: 2, label: 'Proses Pitching', countKey: 'proses_pitching'},
-    {value: 3, label: 'Disetujui', countKey: 'disetujui'},
-    {value: 4, label: 'Ditolak', countKey: 'ditolak'},
   ]
 
   // Loading state
@@ -87,7 +84,7 @@ const ViewVendorRegistration: React.FC = () => {
   const [companyNameFilter, setCompanyNameFilter] = useState<string>('')
   const [dateFromFilter, setDateFromFilter] = useState<string>('')
   const [dateToFilter, setDateToFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined)
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(1)
 
   const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value)
@@ -417,6 +414,8 @@ const ViewVendorRegistration: React.FC = () => {
       }
       if (statusFilter !== undefined) {
         params.status = statusFilter
+      } else {
+        params.status = 1
       }
 
       const response = await vendorRegistrationService.getAll(params)

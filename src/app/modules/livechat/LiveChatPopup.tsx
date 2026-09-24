@@ -5,7 +5,8 @@ import Swal from 'sweetalert2'
 import {getStoreDisplayName, getVendorDisplayName, normalizeLiveChatRoom} from './roomDisplay'
 import {isLiveChatVideo, LIVECHAT_UPLOAD_ACCEPT, validateLiveChatUpload} from './uploadValidation'
 
-const API_URL = process.env.REACT_APP_LIVECHAT_API_URL || 'https://apigatewayinstalasi.mitra10.com/live-chat'
+const API_URL =
+  process.env.REACT_APP_LIVECHAT_API_URL || 'https://apigatewayinstalasi.mitra10.com/live-chat'
 
 // ─── HELPERS ─────────────────────────────────────────────────
 const formatTime = (date: string) => {
@@ -139,9 +140,13 @@ const api = {
       body: JSON.stringify({vendorId}),
     }).then((r) => r.json()),
   getStores: (token: string, search?: string) =>
-    fetch(`${API_URL}/rooms/stores${search ? `?search=${encodeURIComponent(search)}` : ''}`, {headers: buildHeaders(token)}).then((r) => r.json()),
+    fetch(`${API_URL}/rooms/stores${search ? `?search=${encodeURIComponent(search)}` : ''}`, {
+      headers: buildHeaders(token),
+    }).then((r) => r.json()),
   getVendors: (token: string, search?: string) =>
-    fetch(`${API_URL}/rooms/vendors${search ? `?search=${encodeURIComponent(search)}` : ''}`, {headers: buildHeaders(token)}).then((r) => r.json()),
+    fetch(`${API_URL}/rooms/vendors${search ? `?search=${encodeURIComponent(search)}` : ''}`, {
+      headers: buildHeaders(token),
+    }).then((r) => r.json()),
   uploadFile: (token: string, roomId: number, file: File) => {
     const form = new FormData()
     form.append('file', file)
@@ -165,10 +170,10 @@ const api = {
             if (match) errorMessage = `Upload gagal: ${match[1]}`
           }
         }
-        return { success: false, message: errorMessage }
+        return {success: false, message: errorMessage}
       }
       if (!contentType.includes('application/json')) {
-        return { success: false, message: 'Respons server tidak valid. Pastikan koneksi stabil.' }
+        return {success: false, message: 'Respons server tidak valid. Pastikan koneksi stabil.'}
       }
       return r.json()
     })
@@ -288,21 +293,25 @@ const CreateModal: React.FC<{
   const getStoreOptions = (inputValue: string) =>
     allStores
       .filter((s) => s.store_name.toLowerCase().includes(inputValue.toLowerCase()))
-      .map((s) => ({ value: String(s.id), label: s.store_name }))
+      .map((s) => ({value: String(s.id), label: s.store_name}))
 
   // Helper to get vendor options filtered by search (from local data)
   const getVendorOptions = (inputValue: string) =>
     allVendors
       .filter((v) => v.company_name.toLowerCase().includes(inputValue.toLowerCase()))
-      .map((v) => ({ value: String(v.id), label: v.company_name }))
+      .map((v) => ({value: String(v.id), label: v.company_name}))
 
   // Load stores on first open
   const loadStoresIfNeeded = useCallback(() => {
     if (allStores.length === 0) {
       setLoadingList(true)
-      api.getStores(token, '').then((r: any) => {
-        setAllStores((r.data || []) as Store[])
-      }).catch(() => {}).finally(() => setLoadingList(false))
+      api
+        .getStores(token, '')
+        .then((r: any) => {
+          setAllStores((r.data || []) as Store[])
+        })
+        .catch(() => {})
+        .finally(() => setLoadingList(false))
     }
   }, [allStores.length, token])
 
@@ -310,9 +319,13 @@ const CreateModal: React.FC<{
   const loadVendorsIfNeeded = useCallback(() => {
     if (allVendors.length === 0) {
       setLoadingList(true)
-      api.getVendors(token, '').then((r: any) => {
-        setAllVendors((r.data || []) as Vendor[])
-      }).catch(() => {}).finally(() => setLoadingList(false))
+      api
+        .getVendors(token, '')
+        .then((r: any) => {
+          setAllVendors((r.data || []) as Vendor[])
+        })
+        .catch(() => {})
+        .finally(() => setLoadingList(false))
     }
   }, [allVendors.length, token])
 
@@ -494,7 +507,9 @@ const CreateModal: React.FC<{
                     <i className={`bi ${item.icon}`} style={{color: '#0f63ff', fontSize: 18}} />
                   </div>
                   <div>
-                    <div style={{fontWeight: 700, fontSize: 13, color: '#102a43'}}>{item.label}</div>
+                    <div style={{fontWeight: 700, fontSize: 13, color: '#102a43'}}>
+                      {item.label}
+                    </div>
                     <div style={{fontSize: 11, color: '#6b7c93'}}>{item.sub}</div>
                   </div>
                   <i className='bi bi-chevron-right text-muted ms-auto' />
@@ -1272,8 +1287,10 @@ const LiveChatPopup: React.FC = () => {
           setMessages(res.data.reverse()) // oldest-first for display, newest at bottom
         }
         await api.markAsRead(token, room.id)
-        setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, unreadCount: 0 } : r)))
-      } catch (e) { console.error(e) } finally {
+        setRooms((prev) => prev.map((r) => (r.id === room.id ? {...r, unreadCount: 0} : r)))
+      } catch (e) {
+        console.error(e)
+      } finally {
         setLoadingMessages(false)
         setTimeout(() => messagesEndRef.current?.scrollIntoView({behavior: 'auto'}), 100)
       }
@@ -1459,37 +1476,55 @@ const LiveChatPopup: React.FC = () => {
         onClick={() => setOpen((v) => !v)}
         style={{
           position: 'fixed',
-          bottom: 18,
-          right: 12,
+          bottom: 20,
+          right: 96,
           zIndex: 9998,
-          width: 58,
-          height: 58,
-          borderRadius: 18,
-          background: 'linear-gradient(135deg, #0f63ff 0%, #08a2cd 100%)',
-          border: '1px solid rgba(255,255,255,0.24)',
+          width: open ? 50 : 82,
+          height: open ? 50 : 'auto',
+          borderRadius: open ? 16 : 0,
+          background: open ? 'linear-gradient(135deg, #0f63ff 0%, #08a2cd 100%)' : 'transparent',
+          border: 'none',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 18px 36px rgba(15,99,255,0.3)',
-          transition: 'transform 0.2s, box-shadow 0.2s',
+          padding: 0,
+          boxShadow: open ? '0 12px 28px rgba(15,99,255,0.3)' : 'none',
+          filter: open ? 'none' : 'drop-shadow(0 4px 10px rgba(0,0,0,0.15))',
+          transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
         onMouseEnter={(e) => {
-          ;(e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
-          ;(e.currentTarget as HTMLElement).style.boxShadow = '0 24px 42px rgba(15,99,255,0.4)'
+          ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-2px) scale(1.05)'
+          if (!open) {
+            ;(e.currentTarget as HTMLElement).style.filter =
+              'drop-shadow(0 6px 16px rgba(19,50,142,0.35))'
+          }
         }}
         onMouseLeave={(e) => {
-          ;(e.currentTarget as HTMLElement).style.transform = 'scale(1)'
-          ;(e.currentTarget as HTMLElement).style.boxShadow = '0 18px 36px rgba(15,99,255,0.3)'
+          ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0) scale(1)'
+          if (!open) {
+            ;(e.currentTarget as HTMLElement).style.filter =
+              'drop-shadow(0 4px 10px rgba(0,0,0,0.15))'
+          }
         }}
+        aria-label={open ? 'Tutup Live Chat' : 'Buka Live Chat'}
       >
-        <i className={`bi ${open ? 'bi-x-lg' : 'bi-chat-dots-fill'} text-white fs-4`} />
+        {open ? (
+          <i className='bi bi-x-lg text-white fs-4' />
+        ) : (
+          <img
+            src={`${process.env.PUBLIC_URL || ''}/media/livechat-yellow-ai.png`}
+            alt='Live Chat Mitra10'
+            draggable={false}
+            style={{width: '100%', height: 'auto', display: 'block', pointerEvents: 'none'}}
+          />
+        )}
         {!open && totalUnread > 0 && (
           <div
             style={{
               position: 'absolute',
-              top: 0,
-              right: 0,
+              top: -4,
+              right: -4,
               background: '#f1416c',
               color: '#fff',
               borderRadius: '50%',
@@ -1705,159 +1740,162 @@ const LiveChatPopup: React.FC = () => {
                     const isActive = activeRoom?.id === room.id
                     return (
                       <div
-                      key={room.id}
-                      onClick={() => openRoom(room)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '12px 14px',
-                        cursor: 'pointer',
-                        border: isActive ? '1px solid #b8d6ff' : '1px solid #e2ebf5',
-                        borderRadius: 18,
-                        background: isActive ? '#eef6ff' : '#ffffff',
-                        marginBottom: 8,
-                        boxShadow: isActive
-                          ? '0 14px 28px rgba(15, 99, 255, 0.14)'
-                          : '0 10px 24px rgba(15, 23, 42, 0.04)',
-                        transition: 'background 0.12s, transform 0.12s, box-shadow 0.12s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = isActive ? '#eef6ff' : '#f8fbff'
-                        e.currentTarget.style.transform = 'translateY(-1px)'
-                        e.currentTarget.style.boxShadow = isActive
-                          ? '0 16px 30px rgba(15, 99, 255, 0.18)'
-                          : '0 14px 28px rgba(15, 23, 42, 0.08)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = isActive ? '#eef6ff' : '#ffffff'
-                        e.currentTarget.style.transform = 'translateY(0)'
-                        e.currentTarget.style.boxShadow = isActive
-                          ? '0 14px 28px rgba(15, 99, 255, 0.14)'
-                          : '0 10px 24px rgba(15, 23, 42, 0.04)'
-                      }}
-                    >
-                      {/* Icon */}
-                      <div
+                        key={room.id}
+                        onClick={() => openRoom(room)}
                         style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 10,
-                          flexShrink: 0,
-                          background:
-                            room.type === 'DIRECT_STORE'
-                              ? '#e8fff0'
-                              : room.type === 'DIRECT_VENDOR'
-                              ? '#fff8e8'
-                              : '#e8f4ff',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '1px solid rgba(15, 23, 42, 0.04)',
+                          gap: 10,
+                          padding: '12px 14px',
+                          cursor: 'pointer',
+                          border: isActive ? '1px solid #b8d6ff' : '1px solid #e2ebf5',
+                          borderRadius: 18,
+                          background: isActive ? '#eef6ff' : '#ffffff',
+                          marginBottom: 8,
+                          boxShadow: isActive
+                            ? '0 14px 28px rgba(15, 99, 255, 0.14)'
+                            : '0 10px 24px rgba(15, 23, 42, 0.04)',
+                          transition: 'background 0.12s, transform 0.12s, box-shadow 0.12s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = isActive ? '#eef6ff' : '#f8fbff'
+                          e.currentTarget.style.transform = 'translateY(-1px)'
+                          e.currentTarget.style.boxShadow = isActive
+                            ? '0 16px 30px rgba(15, 99, 255, 0.18)'
+                            : '0 14px 28px rgba(15, 23, 42, 0.08)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = isActive ? '#eef6ff' : '#ffffff'
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = isActive
+                            ? '0 14px 28px rgba(15, 99, 255, 0.14)'
+                            : '0 10px 24px rgba(15, 23, 42, 0.04)'
                         }}
                       >
-                        <i
-                          className={`bi ${getRoomTypeIcon(room)}`}
-                          style={{
-                            color:
-                              room.type === 'DIRECT_STORE'
-                                ? '#50cd89'
-                                : room.type === 'DIRECT_VENDOR'
-                                ? '#ffa800'
-                                : '#009ef7',
-                            fontSize: 16,
-                          }}
-                        />
-                      </div>
-
-                      {/* Info */}
-                      <div style={{flex: 1, minWidth: 0}}>
+                        {/* Icon */}
                         <div
                           style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 10,
+                            flexShrink: 0,
+                            background:
+                              room.type === 'DIRECT_STORE'
+                                ? '#e8fff0'
+                                : room.type === 'DIRECT_VENDOR'
+                                ? '#fff8e8'
+                                : '#e8f4ff',
                             display: 'flex',
-                            justifyContent: 'space-between',
                             alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(15, 23, 42, 0.04)',
                           }}
                         >
-                          <span
+                          <i
+                            className={`bi ${getRoomTypeIcon(room)}`}
                             style={{
-                              fontWeight: 600,
-                              fontSize: 13,
-                              color: '#1a1a2e',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              maxWidth: 180,
+                              color:
+                                room.type === 'DIRECT_STORE'
+                                  ? '#50cd89'
+                                  : room.type === 'DIRECT_VENDOR'
+                                  ? '#ffa800'
+                                  : '#009ef7',
+                              fontSize: 16,
+                            }}
+                          />
+                        </div>
+
+                        {/* Info */}
+                        <div style={{flex: 1, minWidth: 0}}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
                             }}
                           >
-                            {getRoomLabel(room)}
-                          </span>
-                          {(room.unreadCount || 0) > 0 && (
                             <span
                               style={{
-                                background: '#009ef7',
-                                color: '#fff',
-                                borderRadius: '50%',
-                                width: 18,
-                                height: 18,
-                                fontSize: 10,
-                                fontWeight: 700,
+                                fontWeight: 600,
+                                fontSize: 13,
+                                color: '#1a1a2e',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: 180,
+                              }}
+                            >
+                              {getRoomLabel(room)}
+                            </span>
+                            {(room.unreadCount || 0) > 0 && (
+                              <span
+                                style={{
+                                  background: '#009ef7',
+                                  color: '#fff',
+                                  borderRadius: '50%',
+                                  width: 18,
+                                  height: 18,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {(room.unreadCount || 0) > 9 ? '9+' : room.unreadCount}
+                              </span>
+                            )}
+                            <button
+                              className='btn btn-sm btn-icon'
+                              onClick={(e) => handleDeleteRoom(room, e)}
+                              disabled={deletingRoomId === room.id}
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 8,
+                                border: 'none',
+                                background: deletingRoomId === room.id ? '#fce8e8' : '#fff0f0',
+                                color: '#f1416c',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
+                                cursor: deletingRoomId === room.id ? 'not-allowed' : 'pointer',
+                                opacity: deletingRoomId === room.id ? 0.6 : 1,
+                              }}
+                              title='Hapus room'
+                            >
+                              {deletingRoomId === room.id ? (
+                                <span
+                                  className='spinner-border spinner-border-sm'
+                                  style={{width: 10, height: 10}}
+                                />
+                              ) : (
+                                <i className='bi bi-trash-fill' style={{fontSize: 11}} />
+                              )}
+                            </button>
+                          </div>
+                          {room.lastMessage ? (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: '#7b8794',
+                                marginTop: 4,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
                             >
-                              {(room.unreadCount || 0) > 9 ? '9+' : room.unreadCount}
-                            </span>
+                              {room.lastMessage.senderName}: {room.lastMessage.content}
+                            </div>
+                          ) : (
+                            <div style={{fontSize: 11, color: '#9fb0c2', marginTop: 4}}>
+                              Belum ada pesan
+                            </div>
                           )}
-                          <button
-                            className='btn btn-sm btn-icon'
-                            onClick={(e) => handleDeleteRoom(room, e)}
-                            disabled={deletingRoomId === room.id}
-                            style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: 8,
-                              border: 'none',
-                              background: deletingRoomId === room.id ? '#fce8e8' : '#fff0f0',
-                              color: '#f1416c',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                              cursor: deletingRoomId === room.id ? 'not-allowed' : 'pointer',
-                              opacity: deletingRoomId === room.id ? 0.6 : 1,
-                            }}
-                            title='Hapus room'
-                          >
-                            {deletingRoomId === room.id ? (
-                              <span className='spinner-border spinner-border-sm' style={{width: 10, height: 10}} />
-                            ) : (
-                              <i className='bi bi-trash-fill' style={{fontSize: 11}} />
-                            )}
-                          </button>
                         </div>
-                        {room.lastMessage ? (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: '#7b8794',
-                              marginTop: 4,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            {room.lastMessage.senderName}: {room.lastMessage.content}
-                          </div>
-                        ) : (
-                          <div style={{fontSize: 11, color: '#9fb0c2', marginTop: 4}}>
-                            Belum ada pesan
-                          </div>
-                        )}
                       </div>
-                    </div>
                     )
                   })
                 )}
@@ -2139,7 +2177,8 @@ const LiveChatPopup: React.FC = () => {
                       cursor: !input.trim() || sending ? 'not-allowed' : 'pointer',
                       flexShrink: 0,
                       transition: 'background 0.15s, transform 0.15s',
-                      boxShadow: !input.trim() || sending ? 'none' : '0 12px 26px rgba(15, 99, 255, 0.22)',
+                      boxShadow:
+                        !input.trim() || sending ? 'none' : '0 12px 26px rgba(15, 99, 255, 0.22)',
                     }}
                   >
                     {sending ? (

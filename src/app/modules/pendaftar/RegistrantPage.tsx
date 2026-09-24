@@ -16,6 +16,11 @@ const ProgramDetailPage = lazy(() => import('./ProgramDetailPage'))
  * hanya dialokasikan ke route ini) dan di backend (role-check manual per endpoint).
  */
 const RegistrantPage = () => {
+  const userRole = localStorage.getItem('userRole')
+  if (userRole && userRole !== 'Pendaftar Vendor') {
+    return <Navigate to='/home' replace />
+  }
+
   return (
     <Routes>
       <Route
