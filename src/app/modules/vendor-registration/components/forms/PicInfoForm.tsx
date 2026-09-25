@@ -66,8 +66,15 @@ export const PicInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlur })
             type="email"
             value={data.pic_email}
             onChange={(e) => onChange('pic_email', e.target.value)}
+            onBlur={(e) => onBlur && onBlur('pic_email', e.target.value)}
             placeholder="email@pic.com"
+            isInvalid={Boolean(errors?.pic_email)}
           />
+          {errors?.pic_email && (
+            <div className="text-danger mt-1 fs-7 fw-semibold">
+              {errors.pic_email}
+            </div>
+          )}
         </Form.Group>
       </Row>
 

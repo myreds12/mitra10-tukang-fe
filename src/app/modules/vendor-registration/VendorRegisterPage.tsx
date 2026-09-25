@@ -85,6 +85,8 @@ const VendorRegisterPage: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<{
     npwp_number?: string;
     ktp_number?: string;
+    email_address?: string;
+    pic_email?: string;
   }>({});
   const [tukangKtpErrors, setTukangKtpErrors] = useState<Record<number, string>>({});
 
@@ -153,6 +155,44 @@ const VendorRegisterPage: React.FC = () => {
     }
   };
 
+  const handleEmailAddressBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.email_address;
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('email', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          email_address: data.message || 'Email sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.email_address;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check Email Perusahaan uniqueness', err);
+    }
+  };
+
+  const handleCompanyBlur = (field: string, value: string) => {
+    if (field === 'npwp_number') {
+      handleNpwpBlur(field, value);
+    } else if (field === 'email_address') {
+      handleEmailAddressBlur(field, value);
+    }
+  };
+
   const handlePicKtpBlur = async (_field: string, value: string) => {
     const val = (value || '').trim();
     if (!val) {
@@ -179,6 +219,44 @@ const VendorRegisterPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to check PIC KTP uniqueness', err);
+    }
+  };
+
+  const handlePicEmailBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.pic_email;
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('email', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          pic_email: data.message || 'Email sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.pic_email;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check PIC Email uniqueness', err);
+    }
+  };
+
+  const handlePicBlur = (field: string, value: string) => {
+    if (field === 'ktp_number') {
+      handlePicKtpBlur(field, value);
+    } else if (field === 'pic_email') {
+      handlePicEmailBlur(field, value);
     }
   };
 
@@ -255,6 +333,14 @@ const VendorRegisterPage: React.FC = () => {
       Swal.fire({ title: 'Warning', text: fieldErrors.ktp_number, icon: 'warning' })
       return false
     }
+    if (fieldErrors.email_address) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.email_address, icon: 'warning' })
+      return false
+    }
+    if (fieldErrors.pic_email) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.pic_email, icon: 'warning' })
+      return false
+    }
     const hasTukangKtpError = Object.values(tukangKtpErrors).some(Boolean)
     if (hasTukangKtpError) {
       Swal.fire({
@@ -283,6 +369,26 @@ const VendorRegisterPage: React.FC = () => {
         setFieldErrors((prev) => ({ ...prev, ktp_number: ktpData.message || 'KTP Sudah terdaftar' }))
         Swal.fire({ title: 'Warning', text: 'KTP Sudah terdaftar', icon: 'warning' })
         return false
+      }
+
+      if (formData.email_address && formData.email_address.trim()) {
+        const emailRes = await publicVendorService.checkUnique('email', formData.email_address.trim())
+        const emailData = emailRes.data?.data ?? emailRes.data
+        if (emailData?.is_registered) {
+          setFieldErrors((prev) => ({ ...prev, email_address: emailData.message || 'Email sudah terdaftar' }))
+          Swal.fire({ title: 'Warning', text: 'Email Perusahaan sudah terdaftar', icon: 'warning' })
+          return false
+        }
+      }
+
+      if (formData.pic_email && formData.pic_email.trim()) {
+        const picEmailRes = await publicVendorService.checkUnique('email', formData.pic_email.trim())
+        const picEmailData = picEmailRes.data?.data ?? picEmailRes.data
+        if (picEmailData?.is_registered) {
+          setFieldErrors((prev) => ({ ...prev, pic_email: picEmailData.message || 'Email sudah terdaftar' }))
+          Swal.fire({ title: 'Warning', text: 'Email PIC sudah terdaftar', icon: 'warning' })
+          return false
+        }
       }
 
       for (let idx = 0; idx < tukangList.length; idx++) {
@@ -453,13 +559,13 @@ const VendorRegisterPage: React.FC = () => {
               data={formData}
               onChange={handleUpdateField}
               errors={fieldErrors}
-              onBlur={handleNpwpBlur}
+              onBlur={handleCompanyBlur}
             />
             <PicInfoForm
               data={formData}
               onChange={handleUpdateField}
               errors={fieldErrors}
-              onBlur={handlePicKtpBlur}
+              onBlur={handlePicBlur}
             />
             <TukangInfoForm
               tukangList={tukangList}

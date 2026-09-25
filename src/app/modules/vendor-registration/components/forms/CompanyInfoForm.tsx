@@ -61,8 +61,15 @@ export const CompanyInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlu
             type="email"
             value={data.email_address}
             onChange={(e) => onChange('email_address', e.target.value)}
+            onBlur={(e) => onBlur && onBlur('email_address', e.target.value)}
             placeholder="email@perusahaan.com"
+            isInvalid={Boolean(errors?.email_address)}
           />
+          {errors?.email_address && (
+            <div className="text-danger mt-1 fs-7 fw-semibold">
+              {errors.email_address}
+            </div>
+          )}
         </Form.Group>
       </Row>
 
