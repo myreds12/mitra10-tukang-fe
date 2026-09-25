@@ -285,7 +285,8 @@ const VendorRegisterPage: React.FC = () => {
         return false
       }
 
-      for (const [idx, t] of tukangList.entries()) {
+      for (let idx = 0; idx < tukangList.length; idx++) {
+        const t = tukangList[idx]
         const ktp = (t.ktp_number || '').trim()
         if (ktp) {
           const tRes = await publicVendorService.checkUnique('ktp_tukang', ktp)
