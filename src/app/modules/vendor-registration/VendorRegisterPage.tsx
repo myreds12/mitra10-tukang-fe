@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { Form, Button, Card, Modal } from 'react-bootstrap';
 import { publicVendorService } from '../../services/vendorRegistrationService';
 
-import { useVendorRegistrationForm } from './hooks/useVendorRegistrationForm';
+import { useVendorRegistrationForm, TukangItem } from './hooks/useVendorRegistrationForm';
 import { CompanyInfoForm } from './components/forms/CompanyInfoForm';
 import { PicInfoForm } from './components/forms/PicInfoForm';
 import { DocumentUploadForm } from './components/forms/DocumentUploadForm';
@@ -82,17 +82,226 @@ const VendorRegisterPage: React.FC = () => {
     if (atBottom) setTncScrolledToEnd(true)
   }
 
-  const validateForm = () => {
-    let valid = true
+  const [fieldErrors, setFieldErrors] = useState<{
+    npwp_number?: string;
+    ktp_number?: string;
+  }>({});
+  const [tukangKtpErrors, setTukangKtpErrors] = useState<Record<number, string>>({});
 
+  const handleUpdateField = (field: string, value: any) => {
+    updateField(field, value);
+    if (fieldErrors[field as keyof typeof fieldErrors]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field as keyof typeof fieldErrors];
+        return next;
+      });
+    }
+  };
+
+  const handleUpdateTukang = (index: number, field: keyof TukangItem, value: any) => {
+    updateTukang(index, field, value);
+    if (field === 'ktp_number' && tukangKtpErrors[index]) {
+      setTukangKtpErrors((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    }
+  };
+
+  const handleRemoveTukang = (index: number) => {
+    removeTukang(index);
+    setTukangKtpErrors((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([key, val]) => {
+        const i = Number(key);
+        if (i < index) next[i] = val;
+        else if (i > index) next[i - 1] = val;
+      });
+      return next;
+    });
+  };
+
+  const handleNpwpBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.npwp_number;
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('npwp', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          npwp_number: data.message || 'No NPWP sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.npwp_number;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check NPWP uniqueness', err);
+    }
+  };
+
+  const handlePicKtpBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        ktp_number: 'Nomor KTP PIC wajib diisi',
+      }));
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('ktp_pic', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          ktp_number: data.message || 'KTP Sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.ktp_number;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check PIC KTP uniqueness', err);
+    }
+  };
+
+  const handleTukangKtpBlur = async (idx: number, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setTukangKtpErrors((prev) => {
+        const next = { ...prev };
+        delete next[idx];
+        return next;
+      });
+      return;
+    }
+
+    const digits = val.replace(/\D/g, '');
+    const isInternalDuplicate = tukangList.some((t, i) => {
+      if (i === idx) return false;
+      const otherVal = (t.ktp_number || '').trim();
+      const otherDigits = otherVal.replace(/\D/g, '');
+      return (otherVal && otherVal === val) || (digits && otherDigits && digits === otherDigits);
+    });
+
+    if (isInternalDuplicate) {
+      setTukangKtpErrors((prev) => ({
+        ...prev,
+        [idx]: 'No KTP sudah terdaftar',
+      }));
+      return;
+    }
+
+    try {
+      const res = await publicVendorService.checkUnique('ktp_tukang', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setTukangKtpErrors((prev) => ({
+          ...prev,
+          [idx]: data.message || 'No KTP sudah terdaftar',
+        }));
+      } else {
+        setTukangKtpErrors((prev) => {
+          const next = { ...prev };
+          delete next[idx];
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check Tukang KTP uniqueness', err);
+    }
+  };
+
+  const validateForm = async () => {
     if (!formData.company_name) {
       Swal.fire({ title: 'Warning', text: 'Nama Perusahaan wajib diisi', icon: 'warning' })
-      valid = false
-    } else if (!formData.pic_name) {
-      Swal.fire({ title: 'Warning', text: 'Nama PIC wajib diisi', icon: 'warning' })
-      valid = false
+      return false
     }
-    return valid
+    if (!formData.pic_name) {
+      Swal.fire({ title: 'Warning', text: 'Nama PIC wajib diisi', icon: 'warning' })
+      return false
+    }
+    if (!formData.ktp_number || !formData.ktp_number.trim()) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        ktp_number: 'Nomor KTP PIC wajib diisi',
+      }))
+      Swal.fire({ title: 'Warning', text: 'Nomor KTP PIC wajib diisi', icon: 'warning' })
+      return false
+    }
+
+    if (fieldErrors.npwp_number) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.npwp_number, icon: 'warning' })
+      return false
+    }
+    if (fieldErrors.ktp_number) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.ktp_number, icon: 'warning' })
+      return false
+    }
+    const hasTukangKtpError = Object.values(tukangKtpErrors).some(Boolean)
+    if (hasTukangKtpError) {
+      Swal.fire({
+        title: 'Warning',
+        text: 'Terdapat Nomor KTP Tukang yang sudah terdaftar atau duplikat.',
+        icon: 'warning',
+      })
+      return false
+    }
+
+    // Pre-flight uniqueness check before submit
+    try {
+      if (formData.npwp_number && formData.npwp_number.trim()) {
+        const npwpRes = await publicVendorService.checkUnique('npwp', formData.npwp_number.trim())
+        const npwpData = npwpRes.data?.data ?? npwpRes.data
+        if (npwpData?.is_registered) {
+          setFieldErrors((prev) => ({ ...prev, npwp_number: npwpData.message || 'No NPWP sudah terdaftar' }))
+          Swal.fire({ title: 'Warning', text: 'No NPWP sudah terdaftar', icon: 'warning' })
+          return false
+        }
+      }
+
+      const ktpRes = await publicVendorService.checkUnique('ktp_pic', formData.ktp_number.trim())
+      const ktpData = ktpRes.data?.data ?? ktpRes.data
+      if (ktpData?.is_registered) {
+        setFieldErrors((prev) => ({ ...prev, ktp_number: ktpData.message || 'KTP Sudah terdaftar' }))
+        Swal.fire({ title: 'Warning', text: 'KTP Sudah terdaftar', icon: 'warning' })
+        return false
+      }
+
+      for (const [idx, t] of tukangList.entries()) {
+        const ktp = (t.ktp_number || '').trim()
+        if (ktp) {
+          const tRes = await publicVendorService.checkUnique('ktp_tukang', ktp)
+          const tData = tRes.data?.data ?? tRes.data
+          if (tData?.is_registered) {
+            setTukangKtpErrors((prev) => ({ ...prev, [idx]: tData.message || 'No KTP sudah terdaftar' }))
+            Swal.fire({ title: 'Warning', text: `No KTP tukang (${ktp}) sudah terdaftar`, icon: 'warning' })
+            return false
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Validation uniqueness check error', err)
+    }
+
+    return true
   }
 
   const doActualSubmit = async () => {
@@ -156,7 +365,8 @@ const VendorRegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!validateForm()) return
+    const isValid = await validateForm()
+    if (!isValid) return
     setTncAgreed(false)
     setTncScrolledToEnd(false)
 
@@ -238,13 +448,25 @@ const VendorRegisterPage: React.FC = () => {
 
         <Card.Body className="vendor-register-body">
           <Form onSubmit={handleSubmit} noValidate>
-            <CompanyInfoForm data={formData} onChange={updateField} />
-            <PicInfoForm data={formData} onChange={updateField} />
+            <CompanyInfoForm
+              data={formData}
+              onChange={handleUpdateField}
+              errors={fieldErrors}
+              onBlur={handleNpwpBlur}
+            />
+            <PicInfoForm
+              data={formData}
+              onChange={handleUpdateField}
+              errors={fieldErrors}
+              onBlur={handlePicKtpBlur}
+            />
             <TukangInfoForm
               tukangList={tukangList}
               onAdd={addTukang}
-              onRemove={removeTukang}
-              onUpdate={updateTukang}
+              onRemove={handleRemoveTukang}
+              onUpdate={handleUpdateTukang}
+              ktpErrors={tukangKtpErrors}
+              onKtpBlur={handleTukangKtpBlur}
             />
             <DocumentUploadForm images={images} onChange={updateImage} />
 

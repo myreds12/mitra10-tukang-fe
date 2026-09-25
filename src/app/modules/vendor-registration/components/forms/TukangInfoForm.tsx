@@ -19,6 +19,8 @@ interface TukangInfoFormProps {
   onAdd: () => void
   onRemove: (index: number) => void
   onUpdate: (index: number, field: keyof TukangItem, value: any) => void
+  ktpErrors?: Record<number, string>
+  onKtpBlur?: (index: number, value: string) => void
 }
 
 export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
@@ -26,6 +28,8 @@ export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
   onAdd,
   onRemove,
   onUpdate,
+  ktpErrors,
+  onKtpBlur,
 }) => {
   const apiUrl = process.env.REACT_APP_API_URL
   const animatedComponents = makeAnimated()
@@ -175,7 +179,14 @@ export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
                       placeholder='Nomor KTP'
                       value={tukang.ktp_number}
                       onChange={(e) => onUpdate(idx, 'ktp_number', e.target.value)}
+                      onBlur={(e) => onKtpBlur && onKtpBlur(idx, e.target.value)}
+                      isInvalid={Boolean(ktpErrors?.[idx])}
                     />
+                    {ktpErrors?.[idx] && (
+                      <div className='text-danger mt-1 fs-7 fw-semibold'>
+                        {ktpErrors[idx]}
+                      </div>
+                    )}
                   </Form.Group>
                 </Col>
 

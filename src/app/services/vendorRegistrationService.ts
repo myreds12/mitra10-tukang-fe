@@ -19,4 +19,8 @@ export const publicVendorService = {
   register: (data: any) => axios.post(`${process.env.REACT_APP_API_URL}/vendor-registration/register`, data),
   validateToken: (token: string) => axios.get(`${process.env.REACT_APP_API_URL}/vendor-registration/validate-token`, { params: { token } }),
   createUser: (data: any) => axios.post(`${process.env.REACT_APP_API_URL}/vendor-registration/create-user`, data),
+  checkUnique: (type: 'npwp' | 'ktp_pic' | 'ktp_tukang', value: string) =>
+    axios.get(`${process.env.REACT_APP_API_URL}/vendor-registration/check-unique`, {
+      params: { type, value },
+    }),
 };

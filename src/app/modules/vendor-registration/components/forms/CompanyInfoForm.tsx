@@ -7,9 +7,11 @@ import axios from 'axios';
 interface Props {
   data: any;
   onChange: (field: string, value: any) => void;
+  errors?: Record<string, string>;
+  onBlur?: (field: string, value: any) => void;
 }
 
-export const CompanyInfoForm: React.FC<Props> = ({ data, onChange }) => {
+export const CompanyInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlur }) => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const animatedComponents = makeAnimated();
 
@@ -73,6 +75,25 @@ export const CompanyInfoForm: React.FC<Props> = ({ data, onChange }) => {
             onChange={(e) => onChange('phone_number', e.target.value)}
             placeholder="08xxxxxxxxxx"
           />
+        </Form.Group>
+      </Row>
+
+      <Row className="form-body mb-3">
+        <Form.Group>
+          <Form.Label style={{ fontWeight: 500 }}>NPWP Perusahaan</Form.Label>
+          <Form.Control
+            type="text"
+            value={data.npwp_number || ''}
+            onChange={(e) => onChange('npwp_number', e.target.value)}
+            onBlur={(e) => onBlur && onBlur('npwp_number', e.target.value)}
+            placeholder="Nomor NPWP Perusahaan"
+            isInvalid={Boolean(errors?.npwp_number)}
+          />
+          {errors?.npwp_number && (
+            <div className="text-danger mt-1 fs-7 fw-semibold">
+              {errors.npwp_number}
+            </div>
+          )}
         </Form.Group>
       </Row>
 
