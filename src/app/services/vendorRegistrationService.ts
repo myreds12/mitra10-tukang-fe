@@ -20,7 +20,19 @@ export const publicVendorService = {
   validateToken: (token: string) => axios.get(`${process.env.REACT_APP_API_URL}/vendor-registration/validate-token`, { params: { token } }),
   createUser: (data: any) => axios.post(`${process.env.REACT_APP_API_URL}/vendor-registration/create-user`, data),
   checkUnique: (
-    type: 'npwp' | 'ktp_pic' | 'ktp_tukang' | 'email' | 'email_address' | 'pic_email',
+    type:
+      | 'npwp'
+      | 'ktp_pic'
+      | 'ktp_tukang'
+      | 'email'
+      | 'email_address'
+      | 'pic_email'
+      | 'company_name'
+      | 'company'
+      | 'phone'
+      | 'phone_company'
+      | 'phone_pic'
+      | 'phone_tukang',
     value: string,
   ) =>
     axios.get(`${process.env.REACT_APP_API_URL}/vendor-registration/check-unique`, {

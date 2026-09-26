@@ -53,8 +53,15 @@ export const PicInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlur })
               type="text"
               value={data.pic_phone}
               onChange={(e) => onChange('pic_phone', e.target.value)}
+              onBlur={(e) => onBlur && onBlur('pic_phone', e.target.value)}
               placeholder="08xxxxxxxxxx"
+              isInvalid={Boolean(errors?.pic_phone)}
             />
+            {errors?.pic_phone && (
+              <div className="text-danger mt-1 fs-7 fw-semibold">
+                {errors.pic_phone}
+              </div>
+            )}
           </Form.Group>
         </Col>
       </Row>

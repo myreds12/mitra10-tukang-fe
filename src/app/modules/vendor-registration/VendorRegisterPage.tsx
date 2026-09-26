@@ -87,8 +87,12 @@ const VendorRegisterPage: React.FC = () => {
     ktp_number?: string;
     email_address?: string;
     pic_email?: string;
+    company_name?: string;
+    phone_number?: string;
+    pic_phone?: string;
   }>({});
   const [tukangKtpErrors, setTukangKtpErrors] = useState<Record<number, string>>({});
+  const [tukangPhoneErrors, setTukangPhoneErrors] = useState<Record<number, string>>({});
 
   const handleUpdateField = (field: string, value: any) => {
     updateField(field, value);
@@ -110,11 +114,27 @@ const VendorRegisterPage: React.FC = () => {
         return next;
       });
     }
+    if (field === 'phone_number' && tukangPhoneErrors[index]) {
+      setTukangPhoneErrors((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    }
   };
 
   const handleRemoveTukang = (index: number) => {
     removeTukang(index);
     setTukangKtpErrors((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([key, val]) => {
+        const i = Number(key);
+        if (i < index) next[i] = val;
+        else if (i > index) next[i - 1] = val;
+      });
+      return next;
+    });
+    setTukangPhoneErrors((prev) => {
       const next: Record<number, string> = {};
       Object.entries(prev).forEach(([key, val]) => {
         const i = Number(key);
@@ -185,11 +205,75 @@ const VendorRegisterPage: React.FC = () => {
     }
   };
 
+  const handleCompanyNameBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.company_name;
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('company_name', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          company_name: data.message || 'Nama Perusahaan sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.company_name;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check Nama Perusahaan uniqueness', err);
+    }
+  };
+
+  const handleCompanyPhoneBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.phone_number;
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('phone_company', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          phone_number: data.message || 'No Telepon Perusahaan sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.phone_number;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check Telepon Perusahaan uniqueness', err);
+    }
+  };
+
   const handleCompanyBlur = (field: string, value: string) => {
     if (field === 'npwp_number') {
       handleNpwpBlur(field, value);
     } else if (field === 'email_address') {
       handleEmailAddressBlur(field, value);
+    } else if (field === 'company_name') {
+      handleCompanyNameBlur(field, value);
+    } else if (field === 'phone_number') {
+      handleCompanyPhoneBlur(field, value);
     }
   };
 
@@ -252,11 +336,43 @@ const VendorRegisterPage: React.FC = () => {
     }
   };
 
+  const handlePicPhoneBlur = async (_field: string, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.pic_phone;
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await publicVendorService.checkUnique('phone_pic', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          pic_phone: data.message || 'Nomor HP / WA PIC sudah terdaftar',
+        }));
+      } else {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.pic_phone;
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check PIC Phone uniqueness', err);
+    }
+  };
+
   const handlePicBlur = (field: string, value: string) => {
     if (field === 'ktp_number') {
       handlePicKtpBlur(field, value);
     } else if (field === 'pic_email') {
       handlePicEmailBlur(field, value);
+    } else if (field === 'pic_phone') {
+      handlePicPhoneBlur(field, value);
     }
   };
 
@@ -307,6 +423,59 @@ const VendorRegisterPage: React.FC = () => {
     }
   };
 
+  const handleTukangPhoneBlur = async (idx: number, value: string) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setTukangPhoneErrors((prev) => {
+        const next = { ...prev };
+        delete next[idx];
+        return next;
+      });
+      return;
+    }
+
+    const digits = val.replace(/\D/g, '');
+    const isInternalDuplicate = tukangList.some((t, i) => {
+      if (i === idx) return false;
+      const otherVal = (t.phone_number || '').trim();
+      const otherDigits = otherVal.replace(/\D/g, '');
+      return (
+        (otherVal && otherVal === val) ||
+        (digits &&
+          otherDigits &&
+          (digits === otherDigits ||
+            (digits.length >= 9 && otherDigits.length >= 9 && digits.slice(-9) === otherDigits.slice(-9))))
+      );
+    });
+
+    if (isInternalDuplicate) {
+      setTukangPhoneErrors((prev) => ({
+        ...prev,
+        [idx]: 'No HP Tukang duplikat dengan tukang lain',
+      }));
+      return;
+    }
+
+    try {
+      const res = await publicVendorService.checkUnique('phone_tukang', val);
+      const data = res.data?.data ?? res.data;
+      if (data?.is_registered) {
+        setTukangPhoneErrors((prev) => ({
+          ...prev,
+          [idx]: data.message || 'No HP sudah terdaftar',
+        }));
+      } else {
+        setTukangPhoneErrors((prev) => {
+          const next = { ...prev };
+          delete next[idx];
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check Tukang Phone uniqueness', err);
+    }
+  };
+
   const validateForm = async () => {
     if (!formData.company_name) {
       Swal.fire({ title: 'Warning', text: 'Nama Perusahaan wajib diisi', icon: 'warning' })
@@ -325,6 +494,14 @@ const VendorRegisterPage: React.FC = () => {
       return false
     }
 
+    if (fieldErrors.company_name) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.company_name, icon: 'warning' })
+      return false
+    }
+    if (fieldErrors.phone_number) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.phone_number, icon: 'warning' })
+      return false
+    }
     if (fieldErrors.npwp_number) {
       Swal.fire({ title: 'Warning', text: fieldErrors.npwp_number, icon: 'warning' })
       return false
@@ -341,6 +518,10 @@ const VendorRegisterPage: React.FC = () => {
       Swal.fire({ title: 'Warning', text: fieldErrors.pic_email, icon: 'warning' })
       return false
     }
+    if (fieldErrors.pic_phone) {
+      Swal.fire({ title: 'Warning', text: fieldErrors.pic_phone, icon: 'warning' })
+      return false
+    }
     const hasTukangKtpError = Object.values(tukangKtpErrors).some(Boolean)
     if (hasTukangKtpError) {
       Swal.fire({
@@ -350,9 +531,38 @@ const VendorRegisterPage: React.FC = () => {
       })
       return false
     }
+    const hasTukangPhoneError = Object.values(tukangPhoneErrors).some(Boolean)
+    if (hasTukangPhoneError) {
+      Swal.fire({
+        title: 'Warning',
+        text: 'Terdapat Nomor HP Tukang yang sudah terdaftar atau duplikat.',
+        icon: 'warning',
+      })
+      return false
+    }
 
     // Pre-flight uniqueness check before submit
     try {
+      if (formData.company_name && formData.company_name.trim()) {
+        const compRes = await publicVendorService.checkUnique('company_name', formData.company_name.trim())
+        const compData = compRes.data?.data ?? compRes.data
+        if (compData?.is_registered) {
+          setFieldErrors((prev) => ({ ...prev, company_name: compData.message || 'Nama Perusahaan sudah terdaftar' }))
+          Swal.fire({ title: 'Warning', text: compData.message || 'Nama Perusahaan sudah terdaftar', icon: 'warning' })
+          return false
+        }
+      }
+
+      if (formData.phone_number && formData.phone_number.trim()) {
+        const phoneRes = await publicVendorService.checkUnique('phone_company', formData.phone_number.trim())
+        const phoneData = phoneRes.data?.data ?? phoneRes.data
+        if (phoneData?.is_registered) {
+          setFieldErrors((prev) => ({ ...prev, phone_number: phoneData.message || 'No Telepon Perusahaan sudah terdaftar' }))
+          Swal.fire({ title: 'Warning', text: phoneData.message || 'No Telepon Perusahaan sudah terdaftar', icon: 'warning' })
+          return false
+        }
+      }
+
       if (formData.npwp_number && formData.npwp_number.trim()) {
         const npwpRes = await publicVendorService.checkUnique('npwp', formData.npwp_number.trim())
         const npwpData = npwpRes.data?.data ?? npwpRes.data
@@ -391,6 +601,16 @@ const VendorRegisterPage: React.FC = () => {
         }
       }
 
+      if (formData.pic_phone && formData.pic_phone.trim()) {
+        const picPhoneRes = await publicVendorService.checkUnique('phone_pic', formData.pic_phone.trim())
+        const picPhoneData = picPhoneRes.data?.data ?? picPhoneRes.data
+        if (picPhoneData?.is_registered) {
+          setFieldErrors((prev) => ({ ...prev, pic_phone: picPhoneData.message || 'Nomor HP / WA PIC sudah terdaftar' }))
+          Swal.fire({ title: 'Warning', text: picPhoneData.message || 'Nomor HP / WA PIC sudah terdaftar', icon: 'warning' })
+          return false
+        }
+      }
+
       for (let idx = 0; idx < tukangList.length; idx++) {
         const t = tukangList[idx]
         const ktp = (t.ktp_number || '').trim()
@@ -400,6 +620,16 @@ const VendorRegisterPage: React.FC = () => {
           if (tData?.is_registered) {
             setTukangKtpErrors((prev) => ({ ...prev, [idx]: tData.message || 'No KTP sudah terdaftar' }))
             Swal.fire({ title: 'Warning', text: `No KTP tukang (${ktp}) sudah terdaftar`, icon: 'warning' })
+            return false
+          }
+        }
+        const phone = (t.phone_number || '').trim()
+        if (phone) {
+          const tPhoneRes = await publicVendorService.checkUnique('phone_tukang', phone)
+          const tPhoneData = tPhoneRes.data?.data ?? tPhoneRes.data
+          if (tPhoneData?.is_registered) {
+            setTukangPhoneErrors((prev) => ({ ...prev, [idx]: tPhoneData.message || 'No HP sudah terdaftar' }))
+            Swal.fire({ title: 'Warning', text: `No HP tukang (${phone}) sudah terdaftar`, icon: 'warning' })
             return false
           }
         }
@@ -574,6 +804,8 @@ const VendorRegisterPage: React.FC = () => {
               onUpdate={handleUpdateTukang}
               ktpErrors={tukangKtpErrors}
               onKtpBlur={handleTukangKtpBlur}
+              phoneErrors={tukangPhoneErrors}
+              onPhoneBlur={handleTukangPhoneBlur}
             />
             <DocumentUploadForm images={images} onChange={updateImage} />
 

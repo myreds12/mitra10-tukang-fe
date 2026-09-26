@@ -49,8 +49,15 @@ export const CompanyInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlu
             type="text"
             value={data.company_name}
             onChange={(e) => onChange('company_name', e.target.value)}
+            onBlur={(e) => onBlur && onBlur('company_name', e.target.value)}
             placeholder="Nama perusahaan/usaha"
+            isInvalid={Boolean(errors?.company_name)}
           />
+          {errors?.company_name && (
+            <div className="text-danger mt-1 fs-7 fw-semibold">
+              {errors.company_name}
+            </div>
+          )}
         </Form.Group>
       </Row>
 
@@ -80,8 +87,15 @@ export const CompanyInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlu
             type="text"
             value={data.phone_number}
             onChange={(e) => onChange('phone_number', e.target.value)}
+            onBlur={(e) => onBlur && onBlur('phone_number', e.target.value)}
             placeholder="08xxxxxxxxxx"
+            isInvalid={Boolean(errors?.phone_number)}
           />
+          {errors?.phone_number && (
+            <div className="text-danger mt-1 fs-7 fw-semibold">
+              {errors.phone_number}
+            </div>
+          )}
         </Form.Group>
       </Row>
 

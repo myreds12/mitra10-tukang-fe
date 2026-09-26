@@ -21,6 +21,8 @@ interface TukangInfoFormProps {
   onUpdate: (index: number, field: keyof TukangItem, value: any) => void
   ktpErrors?: Record<number, string>
   onKtpBlur?: (index: number, value: string) => void
+  phoneErrors?: Record<number, string>
+  onPhoneBlur?: (index: number, value: string) => void
 }
 
 export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
@@ -30,6 +32,8 @@ export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
   onUpdate,
   ktpErrors,
   onKtpBlur,
+  phoneErrors,
+  onPhoneBlur,
 }) => {
   const apiUrl = process.env.REACT_APP_API_URL
   const animatedComponents = makeAnimated()
@@ -162,7 +166,14 @@ export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
                       placeholder='08xxxxxxxxxx'
                       value={tukang.phone_number}
                       onChange={(e) => onUpdate(idx, 'phone_number', e.target.value)}
+                      onBlur={(e) => onPhoneBlur && onPhoneBlur(idx, e.target.value)}
+                      isInvalid={Boolean(phoneErrors?.[idx])}
                     />
+                    {phoneErrors?.[idx] && (
+                      <div className='text-danger mt-1 fs-7 fw-semibold'>
+                        {phoneErrors[idx]}
+                      </div>
+                    )}
                   </Form.Group>
                 </Col>
 
