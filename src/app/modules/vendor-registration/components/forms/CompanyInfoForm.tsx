@@ -3,6 +3,7 @@ import { Form, Row, Col } from 'react-bootstrap';
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
 import axios from 'axios';
+import { handleNumericKeyDown, sanitizeNumeric } from '../../utils/numericInput';
 
 interface Props {
   data: any;
@@ -85,8 +86,11 @@ export const CompanyInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlu
           <Form.Label style={{ fontWeight: 500 }}>Telepon Perusahaan</Form.Label>
           <Form.Control
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={data.phone_number}
-            onChange={(e) => onChange('phone_number', e.target.value)}
+            onChange={(e) => onChange('phone_number', sanitizeNumeric(e.target.value))}
+            onKeyDown={handleNumericKeyDown}
             onBlur={(e) => onBlur && onBlur('phone_number', e.target.value)}
             placeholder="08xxxxxxxxxx"
             isInvalid={Boolean(errors?.phone_number)}
@@ -104,8 +108,12 @@ export const CompanyInfoForm: React.FC<Props> = ({ data, onChange, errors, onBlu
           <Form.Label style={{ fontWeight: 500 }}>NPWP Perusahaan</Form.Label>
           <Form.Control
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={16}
             value={data.npwp_number || ''}
-            onChange={(e) => onChange('npwp_number', e.target.value)}
+            onChange={(e) => onChange('npwp_number', sanitizeNumeric(e.target.value, 16))}
+            onKeyDown={handleNumericKeyDown}
             onBlur={(e) => onBlur && onBlur('npwp_number', e.target.value)}
             placeholder="Nomor NPWP Perusahaan"
             isInvalid={Boolean(errors?.npwp_number)}

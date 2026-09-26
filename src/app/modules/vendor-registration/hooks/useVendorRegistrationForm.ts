@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sanitizeNumeric } from '../utils/numericInput';
 
 export interface TukangItem {
   full_name: string;
@@ -39,7 +40,15 @@ export const useVendorRegistrationForm = () => {
   ]);
 
   const updateField = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    let sanitized = value;
+    if (typeof value === 'string') {
+      if (['phone_number', 'pic_phone'].includes(field)) {
+        sanitized = sanitizeNumeric(value);
+      } else if (['ktp_number', 'npwp_number'].includes(field)) {
+        sanitized = sanitizeNumeric(value, 16);
+      }
+    }
+    setFormData((prev) => ({ ...prev, [field]: sanitized }));
   };
 
   const updateImage = (field: string, file: any) => {
@@ -58,9 +67,17 @@ export const useVendorRegistrationForm = () => {
   };
 
   const updateTukang = (index: number, field: keyof TukangItem, value: any) => {
+    let sanitized = value;
+    if (typeof value === 'string') {
+      if (field === 'phone_number') {
+        sanitized = sanitizeNumeric(value);
+      } else if (field === 'ktp_number') {
+        sanitized = sanitizeNumeric(value, 16);
+      }
+    }
     setTukangList((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      updated[index] = { ...updated[index], [field]: sanitized };
       return updated;
     });
   };

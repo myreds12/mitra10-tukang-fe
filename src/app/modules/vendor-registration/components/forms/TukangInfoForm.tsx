@@ -13,6 +13,7 @@ import Select from 'react-select'
 import makeAnimated from 'react-select/animated'
 import axios from 'axios'
 import type {TukangItem} from '../../hooks/useVendorRegistrationForm'
+import {handleNumericKeyDown, sanitizeNumeric} from '../../utils/numericInput'
 
 interface TukangInfoFormProps {
   tukangList: TukangItem[]
@@ -162,10 +163,13 @@ export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
                     </Form.Label>
                     <Form.Control
                       type='text'
+                      inputMode='numeric'
+                      pattern='[0-9]*'
                       className='form-control form-control-solid'
                       placeholder='08xxxxxxxxxx'
                       value={tukang.phone_number}
-                      onChange={(e) => onUpdate(idx, 'phone_number', e.target.value)}
+                      onChange={(e) => onUpdate(idx, 'phone_number', sanitizeNumeric(e.target.value))}
+                      onKeyDown={handleNumericKeyDown}
                       onBlur={(e) => onPhoneBlur && onPhoneBlur(idx, e.target.value)}
                       isInvalid={Boolean(phoneErrors?.[idx])}
                     />
@@ -186,10 +190,14 @@ export const TukangInfoForm: React.FC<TukangInfoFormProps> = ({
                     </Form.Label>
                     <Form.Control
                       type='text'
+                      inputMode='numeric'
+                      pattern='[0-9]*'
+                      maxLength={16}
                       className='form-control form-control-solid'
                       placeholder='Nomor KTP'
                       value={tukang.ktp_number}
-                      onChange={(e) => onUpdate(idx, 'ktp_number', e.target.value)}
+                      onChange={(e) => onUpdate(idx, 'ktp_number', sanitizeNumeric(e.target.value, 16))}
+                      onKeyDown={handleNumericKeyDown}
                       onBlur={(e) => onKtpBlur && onKtpBlur(idx, e.target.value)}
                       isInvalid={Boolean(ktpErrors?.[idx])}
                     />
