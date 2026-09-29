@@ -170,13 +170,20 @@ const NewOrderStoreCS: FC = () => {
 
   // Fetch API Data
   const getItem = async () => {
+    const validStoreId =
+      staffStoreId &&
+      staffStoreId !== 'undefined' &&
+      staffStoreId !== 'null' &&
+      Number(staffStoreId) > 0
+        ? `&store_id=${staffStoreId}`
+        : ''
     const itemFree =
       paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1&store_id=${staffStoreId}`
+        ? `&item_type=1&is_promotion=1${validStoreId}`
         : ''
     const itemTanpaSurvey =
       paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1&store_id=${staffStoreId}`
+        ? `&item_type=2&is_promotion=1${validStoreId}`
         : ''
     const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
     const search = searchItem ? `&search=${searchItem}` : ''
@@ -196,10 +203,13 @@ const NewOrderStoreCS: FC = () => {
 
       if (Array.isArray(response.data.data)) {
         const item = response.data.data
-          .filter((x: any) => x.is_active === true)
+          .filter((x: any) => Boolean(x.is_active))
           .map((item: any) => ({
             value: item.id,
-            label: paymentTypeValue[1] === 'survey' ? item.item_code : item.service_name,
+            label:
+              paymentTypeValue[1] === 'survey'
+                ? item.item_code || item.service_name || item.item_name
+                : item.service_name || item.item_name || item.item_code,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
             service_name: item?.service_name ?? '',

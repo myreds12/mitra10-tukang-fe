@@ -3,7 +3,7 @@ import React, {useEffect, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import { vendorRegistrationService } from '../../../services/vendorRegistrationService'
 import Swal from 'sweetalert2'
-import {Table, Spin, Pagination, PaginationProps} from 'antd'
+import {Table, Spin, Pagination} from 'antd'
 import {Form, OverlayTrigger, Tooltip, Button} from 'react-bootstrap'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {LoadingOutlined} from '@ant-design/icons'
@@ -15,6 +15,7 @@ import {
   faHistory,
   faPaperPlane,
   faExclamationTriangle,
+  faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import './ViewVendorRegistration.css'
 
@@ -64,8 +65,11 @@ const ViewVendorRegistration: React.FC = () => {
   }
 
   const statusTabs = [
+    {value: 0, label: 'Semua', countKey: 'total'},
     {value: 1, label: 'Menunggu Approve', countKey: 'menunggu_approve'},
     {value: 2, label: 'Proses Pitching', countKey: 'proses_pitching'},
+    {value: 3, label: 'Disetujui', countKey: 'disetujui'},
+    {value: 4, label: 'Ditolak', countKey: 'ditolak'},
   ]
 
   // Loading state
@@ -84,7 +88,7 @@ const ViewVendorRegistration: React.FC = () => {
   const [companyNameFilter, setCompanyNameFilter] = useState<string>('')
   const [dateFromFilter, setDateFromFilter] = useState<string>('')
   const [dateToFilter, setDateToFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<number | undefined>(1)
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(0)
 
   const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value)
@@ -135,21 +139,48 @@ const ViewVendorRegistration: React.FC = () => {
     }
   }
 
-  // Pagination
-  const itemRender: PaginationProps['itemRender'] = (_, type, originalElement) => {
-    if (type === 'prev') {
-      return <a>Prev</a>
+  const handleDelete = async (record: VendorRegistration) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pendaftar Vendor?',
+      text: `Apakah Anda yakin ingin menghapus pendaftaran "${record.company_name}" secara permanen? Akun pendaftar dan data registrasi akan dihapus.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      await vendorRegistrationService.delete(record.id)
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Pendaftaran vendor berhasil dihapus permanen.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      })
+      fetchData(currentPage, pageSize)
+      fetchStats()
+    } catch (err: any) {
+      console.error('Failed to delete vendor registration', err)
+      Swal.fire({
+        title: 'Gagal',
+        text: err?.response?.data?.message || 'Gagal menghapus pendaftaran vendor.',
+        icon: 'error',
+      })
     }
-    if (type === 'next') {
-      return <a>Next</a>
-    }
-    return originalElement
   }
 
+  // Pagination
   const handlePageChange = (page: number, size?: number) => {
-    setCurrentPage(page)
-    if (size) {
+    if (size && size !== pageSize) {
       setPageSize(size)
+      setCurrentPage(1)
+    } else {
+      setCurrentPage(page)
     }
   }
 
@@ -284,7 +315,7 @@ const ViewVendorRegistration: React.FC = () => {
       key: 'action',
       fixed: 'right',
       align: 'center',
-      width: 200,
+      width: 240,
       render: (record) => {
         const id = record.id
         const isResending = resendingId === record.id
@@ -388,6 +419,20 @@ const ViewVendorRegistration: React.FC = () => {
                 </OverlayTrigger>
               </>
             )}
+
+            <OverlayTrigger
+              placement='bottom'
+              delay={{show: 250, hide: 400}}
+              overlay={<Tooltip id={`tooltip-delete-${id}`}>Hapus Pendaftar</Tooltip>}
+            >
+              <button
+                type='button'
+                className='btn btn-icon btn-sm btn-light-danger rounded action-button shadow-none'
+                onClick={() => handleDelete(record)}
+              >
+                <FontAwesomeIcon icon={faTrash} fontSize={'12px'} />
+              </button>
+            </OverlayTrigger>
           </div>
         )
       },
@@ -395,16 +440,17 @@ const ViewVendorRegistration: React.FC = () => {
   ]
 
   // Fetch data
-  const fetchData = async (page: number, pageSize: number) => {
+  const fetchData = async (page: number, currentTake: number) => {
     setLoadData(true)
     try {
       const params: any = {
         page: page,
-        take: pageSize,
+        take: currentTake,
       }
 
-      if (debouncedCompanyName) {
-        params.company_name = debouncedCompanyName
+      if (debouncedCompanyName && debouncedCompanyName.trim()) {
+        params.search = debouncedCompanyName.trim()
+        params.company_name = debouncedCompanyName.trim()
       }
       if (dateFromFilter) {
         params.date_from = dateFromFilter
@@ -412,16 +458,22 @@ const ViewVendorRegistration: React.FC = () => {
       if (dateToFilter) {
         params.date_to = dateToFilter
       }
-      if (statusFilter !== undefined) {
+      if (statusFilter !== undefined && statusFilter !== null) {
         params.status = statusFilter
-      } else {
-        params.status = 1
       }
 
       const response = await vendorRegistrationService.getAll(params)
 
-      setVendorData(response.data?.data || [])
-      setTotalData(response.data?.meta?.total ?? response.data?.total ?? 0)
+      const resultData = response.data?.data || []
+      const total = response.data?.meta?.total ?? response.data?.total ?? 0
+
+      setVendorData(resultData)
+      setTotalData(total)
+
+      const maxPage = Math.max(1, Math.ceil(total / currentTake))
+      if (page > maxPage && total > 0) {
+        setCurrentPage(maxPage)
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
       Swal.fire({
@@ -586,8 +638,12 @@ const ViewVendorRegistration: React.FC = () => {
 
           <div className='pagination-container mt-5'>
             <span className='total-text'>
-              Showing {(currentPage - 1) * pageSize + 1} -{' '}
-              {Math.min(currentPage * pageSize, totalData)} of {totalData} Pendaftaran
+              {totalData === 0
+                ? 'Menampilkan 0 dari 0 pendaftaran'
+                : `Menampilkan ${(currentPage - 1) * pageSize + 1} - ${Math.min(
+                    currentPage * pageSize,
+                    totalData
+                  )} dari ${totalData} pendaftaran`}
             </span>
 
             <Pagination
@@ -596,10 +652,14 @@ const ViewVendorRegistration: React.FC = () => {
               current={currentPage}
               total={totalData}
               showSizeChanger
+              showQuickJumper
               pageSizeOptions={[5, 10, 20, 50, 100]}
-              itemRender={itemRender}
-              onChange={(page, pageSize) => {
-                handlePageChange(page, pageSize)
+              onShowSizeChange={(_, size) => {
+                setPageSize(size)
+                setCurrentPage(1)
+              }}
+              onChange={(page, newSize) => {
+                handlePageChange(page, newSize)
               }}
             />
           </div>

@@ -12,6 +12,8 @@ export const vendorRegistrationService = {
   reject: (id: string | number, data: any) => apiClient.put(`/vendor-registration/${id}/reject`, data),
   resendEmail: (id: string | number) => apiClient.post(`/vendor-registration/${id}/resend-email`),
   getEmailStatus: (id: string | number) => apiClient.get(`/vendor-registration/${id}/email-status`),
+  delete: (id: string | number) => apiClient.delete(`/vendor-registration/${id}`),
+  deleteByEmail: (email: string) => apiClient.delete('/vendor-registration/by-email', { params: { email } }),
 };
 
 // Public endpoints (no auth)

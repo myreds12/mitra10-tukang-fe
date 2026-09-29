@@ -353,21 +353,94 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 0.5rem;
 }
 
 #view-vendor-registration .total-text {
-  color: #666;
-  font-size: 14px;
+  color: var(--bs-gray-600, #7e8299);
+  font-size: 13px;
+  font-weight: 500;
 }
 
-#view-vendor-registration .pagination .ant-pagination-item-active {
-  background-color: #183383;
+#view-vendor-registration .pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+#view-vendor-registration .pagination .ant-pagination-item {
+  border-radius: var(--bs-border-radius, 0.475rem);
+  border-color: var(--bs-gray-300, #dee2e6);
+  min-width: 34px;
+  height: 34px;
+  line-height: 32px;
+}
+
+#view-vendor-registration .pagination .ant-pagination-item a {
+  color: var(--bs-gray-700, #5e6278);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+#view-vendor-registration .pagination .ant-pagination-item:hover {
   border-color: #183383;
 }
 
-#view-vendor-registration .pagination .ant-pagination-item-active a {
-  color: white;
+#view-vendor-registration .pagination .ant-pagination-item:hover a {
+  color: #183383;
+}
+
+#view-vendor-registration .pagination .ant-pagination-item-active {
+  background-color: #183383 !important;
+  border-color: #183383 !important;
+}
+
+#view-vendor-registration .pagination .ant-pagination-item-active a,
+#view-vendor-registration .pagination .ant-pagination-item-active span {
+  color: #ffffff !important;
+}
+
+#view-vendor-registration .pagination .ant-pagination-prev,
+#view-vendor-registration .pagination .ant-pagination-next,
+#view-vendor-registration .pagination .ant-pagination-jump-prev,
+#view-vendor-registration .pagination .ant-pagination-jump-next {
+  min-width: 34px;
+  height: 34px;
+  line-height: 32px;
+  border-radius: var(--bs-border-radius, 0.475rem);
+}
+
+#view-vendor-registration .pagination .ant-pagination-prev .ant-pagination-item-link,
+#view-vendor-registration .pagination .ant-pagination-next .ant-pagination-item-link {
+  border-radius: var(--bs-border-radius, 0.475rem);
+  border-color: var(--bs-gray-300, #dee2e6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#view-vendor-registration .pagination .ant-pagination-prev:hover:not(.ant-pagination-disabled) .ant-pagination-item-link,
+#view-vendor-registration .pagination .ant-pagination-next:hover:not(.ant-pagination-disabled) .ant-pagination-item-link {
+  border-color: #183383;
+  color: #183383;
+}
+
+#view-vendor-registration .pagination .ant-pagination-options-size-changer .ant-select-selector {
+  border-radius: var(--bs-border-radius, 0.475rem);
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+#view-vendor-registration .pagination .ant-pagination-options-quick-jumper input {
+  border-radius: var(--bs-border-radius, 0.475rem);
+  height: 34px;
+  padding: 0 8px;
 }
 
 /* Responsive Media Queries */
