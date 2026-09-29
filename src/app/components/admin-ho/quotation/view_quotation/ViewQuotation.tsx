@@ -94,7 +94,9 @@ const ViewQuotationHO: React.FC<Props> = ({className}) => {
 
   const [quotationData, setQuotationData] = useState<DataType[]>([])
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(50)
   const [totalData, setTotalData] = useState<number>(0)
+  const [activeQueryParams, setActiveQueryParams] = useState<string>('')
 
   const [dateFrom, setDateFrom] = useState<any>(
     new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]
@@ -372,13 +374,16 @@ const ViewQuotationHO: React.FC<Props> = ({className}) => {
         },
       })
 
-      setCurrentPage(response.data.page)
-      setTotalData(response?.data?.total ?? 0)
+      const resPage = Number(response?.data?.page ?? response?.data?.meta?.page ?? page)
+      const resTotal = Number(response?.data?.total ?? response?.data?.meta?.total ?? 0)
+      setCurrentPage(resPage)
+      setTotalData(resTotal)
       setLoadData(false)
 
       return response.data.data
     } catch (error) {
       console.error('Error fetching data:', error)
+      setLoadData(false)
     }
   }
 
@@ -581,6 +586,7 @@ const ViewQuotationHO: React.FC<Props> = ({className}) => {
 
   const handleSubmitFilter = async () => {
     setLoadingButton(true)
+    setLoadData(true)
     let queryparams = ``
 
     const valueCheck = (key: any, value: any) => {
@@ -592,7 +598,10 @@ const ViewQuotationHO: React.FC<Props> = ({className}) => {
     valueCheck(`&search=`, searchFilter)
     valueCheck(`&vendor_id=`, selectedVendor?.value)
 
-    const data = await ViewQuotation(1, 50, queryparams)
+    setActiveQueryParams(queryparams)
+    setCurrentPage(1)
+
+    const data = await ViewQuotation(1, pageSize, queryparams)
     setQuotationData(data)
 
     setLoadingButton(false)
@@ -889,17 +898,20 @@ const ViewQuotationHO: React.FC<Props> = ({className}) => {
             className='mt-5'
             style={{textAlign: 'right', position: 'relative'}}
             current={currentPage}
+            pageSize={pageSize}
             total={totalData}
             showSizeChanger
-            defaultPageSize={50}
             pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
             itemRender={itemRender}
-            onChange={(page, pageSize) => {
-              fetchData(page, pageSize, '')
+            onChange={(page, newPageSize) => {
+              setPageSize(newPageSize)
+              setCurrentPage(page)
+              setLoadData(true)
+              fetchData(page, newPageSize, activeQueryParams)
             }}
             showTotal={(total, range) => (
               <span style={{left: 0, position: 'absolute'}}>
-                Showing {range[0]} - {range[1]} of {total} Total Quotation
+                Showing {total === 0 ? 0 : range[0]} - {total === 0 ? 0 : range[1]} of {total} Total Quotation
               </span>
             )}
           />

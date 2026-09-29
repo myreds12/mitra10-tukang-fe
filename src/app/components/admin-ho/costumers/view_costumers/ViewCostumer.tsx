@@ -49,7 +49,9 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
 
   const [memberData, setMemberData] = useState<DataType[]>([])
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
   const [totalData, setTotalData] = useState<number>(0)
+  const [activeQueryParams, setActiveQueryParams] = useState<string>('')
 
   const [dateFrom, setDateFrom] = useState<any>('')
   const [dateTo, setDateTo] = useState<any>('')
@@ -245,13 +247,16 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
         },
       })
 
-      setCurrentPage(response?.data?.page ?? 1)
-      setTotalData(response?.data?.total ?? 0)
+      const resPage = Number(response?.data?.page ?? response?.data?.meta?.page ?? page)
+      const resTotal = Number(response?.data?.total ?? response?.data?.meta?.total ?? 0)
+      setCurrentPage(resPage)
+      setTotalData(resTotal)
       setLoadData(false)
 
       return response.data.data
     } catch (error) {
       console.error('Error fetching data:', error)
+      setLoadData(false)
     }
   }
 
@@ -270,7 +275,7 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
         const joinDate = formatDateWithTime(item?.created_at)
 
         data = {
-          number: index + 1,
+          number: (page - 1) * pageSize + index + 1,
           store_name: item?.join_location_store?.store_name ?? '-',
           costumer_id: item.id,
           member_number: item.member_number,
@@ -321,6 +326,7 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
 
   const handleSubmitFilter = async () => {
     setLoadingButton(true)
+    setLoadData(true)
     let queryparams = ``
 
     const valueCheck = (key: any, value: any) => {
@@ -333,7 +339,10 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
     valueCheck(`&date_to=`, dateTo)
     valueCheck(`&search=`, searchFilter)
 
-    const data = await ViewMember(1, 10, queryparams)
+    setActiveQueryParams(queryparams)
+    setCurrentPage(1)
+
+    const data = await ViewMember(1, pageSize, queryparams)
     setMemberData(data)
 
     setLoadingButton(false)
@@ -349,7 +358,7 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
     setLoadingExport(true)
 
     axios
-      .get(`${apiUrl}/member/export-excel?${storeId}`, {
+      .get(`${apiUrl}/member/export-excel?${storeId}${activeQueryParams}`, {
         method: 'GET',
         responseType: 'blob',
         headers: {
@@ -464,16 +473,20 @@ const ViewCostumerHO: React.FC<Props> = ({className}) => {
             className='mt-5'
             style={{textAlign: 'right', position: 'relative'}}
             current={currentPage}
+            pageSize={pageSize}
             total={totalData}
             showSizeChanger
             pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
             itemRender={itemRender}
-            onChange={(page, pageSize) => {
-              fetchData(page, pageSize, '')
+            onChange={(page, newPageSize) => {
+              setPageSize(newPageSize)
+              setCurrentPage(page)
+              setLoadData(true)
+              fetchData(page, newPageSize, activeQueryParams)
             }}
             showTotal={(total, range) => (
               <span style={{left: 0, position: 'absolute'}}>
-                Showing {range[0]} - {range[1]} of {total} Total Customers
+                Showing {total === 0 ? 0 : range[0]} - {total === 0 ? 0 : range[1]} of {total} Total Customers
               </span>
             )}
           />
