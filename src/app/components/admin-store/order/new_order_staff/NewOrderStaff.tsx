@@ -206,7 +206,7 @@ const NewOrderStoreStaff: FC = () => {
             category_id: item.category_id,
             default_price: item.default_price,
             type: item?.type,
-            prices: item.prices.map((priceItem: any) => ({
+            prices: (item.prices || []).map((priceItem: any) => ({
               id: priceItem.id,
               is_active: priceItem.is_active,
               item_id: priceItem.item_id,
@@ -1581,7 +1581,6 @@ kami pada jam operasional.
                           <Form.Control
                             id={`item-code-${index}`}
                             as='textarea'
-                            type='number'
                             plaintext
                             readOnly={
                               paymentTypeValue[1] === 'pemasangan_tanpa_survey' ? true : false
