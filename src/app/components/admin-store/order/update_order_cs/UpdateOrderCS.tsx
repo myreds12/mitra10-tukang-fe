@@ -1316,17 +1316,6 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
                               })
                               calcEachDetails()
                             }}
-                            onKeyDown={(e) => {
-                              if (
-                                !/[0-9]/.test(e.key) &&
-                                e.key !== 'Backspace' &&
-                                e.key !== 'ArrowLeft' &&
-                                e.key !== 'ArrowRight' &&
-                                e.key !== 'Tab'
-                              ) {
-                                e.preventDefault()
-                              }
-                            }}
                           />
                         ) : (
                           <Form.Control

@@ -198,8 +198,8 @@ const NewOrderStoreStaff: FC = () => {
             value: item.id,
             label:
               paymentTypeValue[1] === 'survey'
-                ? item.item_code || item.service_name || item.item_name
-                : item.service_name || item.item_name || item.item_code,
+                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
+                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
             service_name: item?.service_name ?? '',
@@ -1541,7 +1541,22 @@ kami pada jam operasional.
                               }),
                             }}
                             value={orderForm.order_details[index]?.item ?? null}
-                            onInputChange={(newValue) => setSearchItem(newValue)}
+                            filterOption={(candidate: any, input: string) => {
+                              if (!input) return true
+                              const query = input.toLowerCase().trim()
+                              const d = candidate.data
+                              return (
+                                (d.label || '').toLowerCase().includes(query) ||
+                                (d.item_code || '').toLowerCase().includes(query) ||
+                                (d.item_name || '').toLowerCase().includes(query) ||
+                                (d.service_name || '').toLowerCase().includes(query)
+                              )
+                            }}
+                            onInputChange={(newValue, actionMeta) => {
+                              if (actionMeta.action === 'input-change') {
+                                setSearchItem(newValue)
+                              }
+                            }}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}
@@ -1553,24 +1568,13 @@ kami pada jam operasional.
                                     ? ((newValue?.value ?? '') as string)
                                     : ((newValue?.item_code ?? '') as string),
                                   item_name: newValue?.item_name ?? '',
-                                  item_notes: newValue?.item_name ?? '',
+                                  item_notes: newValue?.service_name ?? newValue?.item_name ?? '',
                                   service_name: newValue?.service_name ?? '',
                                   item: newValue,
                                 }
                                 return cache
                               })
                               calcEachDetails()
-                            }}
-                            onKeyDown={(e) => {
-                              if (
-                                !/[0-9]/.test(e.key) &&
-                                e.key !== 'Backspace' &&
-                                e.key !== 'ArrowLeft' &&
-                                e.key !== 'ArrowRight' &&
-                                e.key !== 'Tab'
-                              ) {
-                                e.preventDefault()
-                              }
                             }}
                           />
                         ) : (
@@ -1668,7 +1672,22 @@ kami pada jam operasional.
                             options={item}
                             name={`item_id`}
                             value={orderForm.order_details[index]?.item ?? null}
-                            onInputChange={(newValue) => setSearchItem(newValue)}
+                            filterOption={(candidate: any, input: string) => {
+                              if (!input) return true
+                              const query = input.toLowerCase().trim()
+                              const d = candidate.data
+                              return (
+                                (d.label || '').toLowerCase().includes(query) ||
+                                (d.item_code || '').toLowerCase().includes(query) ||
+                                (d.item_name || '').toLowerCase().includes(query) ||
+                                (d.service_name || '').toLowerCase().includes(query)
+                              )
+                            }}
+                            onInputChange={(newValue, actionMeta) => {
+                              if (actionMeta.action === 'input-change') {
+                                setSearchItem(newValue)
+                              }
+                            }}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}
@@ -1677,6 +1696,8 @@ kami pada jam operasional.
                                   item_id: newValue?.value ?? null,
                                   item_code: newValue?.item_code ?? '',
                                   item_name: newValue?.item_name ?? '',
+                                  service_name: newValue?.service_name ?? '',
+                                  item_notes: newValue?.service_name ?? '',
                                   item: newValue,
                                 }
                                 return cache
