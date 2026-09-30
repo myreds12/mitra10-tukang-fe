@@ -84,7 +84,7 @@ export function Login() {
         }
       )
       .then((res) => {
-        if (res.data.status === 200) {
+        if (res?.data?.status === 200 && res?.data?.data?.user) {
           const user = res.data.data.user
 
           const isSales = user.roles.name === 'Sales'
@@ -167,6 +167,7 @@ export function Login() {
           navigate('/login')
           Swal.fire({
             title: 'Login Failed',
+            text: res?.data?.message || 'Login gagal, periksa kembali username dan password',
             icon: 'error',
           })
 
@@ -175,9 +176,13 @@ export function Login() {
       })
       .catch((err) => {
         setIsLoading(false)
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Terjadi kesalahan koneksi ke server'
         Swal.fire({
           title: 'Login Failed',
-          text: err.response.data.message,
+          text: errorMessage,
           icon: 'error',
         })
         console.error(err)

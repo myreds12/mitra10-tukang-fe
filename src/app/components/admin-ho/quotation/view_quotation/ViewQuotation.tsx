@@ -894,27 +894,28 @@ const ViewQuotationHO: React.FC<Props> = ({className}) => {
             </div>
           </Spin>
 
-          <Pagination
-            className='mt-5'
-            style={{textAlign: 'right', position: 'relative'}}
-            current={currentPage}
-            pageSize={pageSize}
-            total={totalData}
-            showSizeChanger
-            pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
-            itemRender={itemRender}
-            onChange={(page, newPageSize) => {
-              setPageSize(newPageSize)
-              setCurrentPage(page)
-              setLoadData(true)
-              fetchData(page, newPageSize, activeQueryParams)
-            }}
-            showTotal={(total, range) => (
-              <span style={{left: 0, position: 'absolute'}}>
-                Showing {total === 0 ? 0 : range[0]} - {total === 0 ? 0 : range[1]} of {total} Total Quotation
-              </span>
-            )}
-          />
+          <div className='pagination-container mt-5'>
+            <span className='total-text'>
+              Showing {totalData === 0 ? 0 : (currentPage - 1) * pageSize + 1} -{' '}
+              {Math.min(currentPage * pageSize, totalData)} of {totalData} Total Quotation
+            </span>
+
+            <Pagination
+              className='pagination'
+              current={currentPage}
+              pageSize={pageSize}
+              total={totalData}
+              showSizeChanger
+              pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
+              itemRender={itemRender}
+              onChange={(page, newPageSize) => {
+                setPageSize(newPageSize)
+                setCurrentPage(page)
+                setLoadData(true)
+                fetchData(page, newPageSize, activeQueryParams)
+              }}
+            />
+          </div>
         </div>
       </div>
 

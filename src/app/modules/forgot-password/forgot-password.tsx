@@ -79,7 +79,7 @@ export function ForgotPassword() {
 
         Swal.fire({
           title: 'Forgot Password Failed',
-          text: err.response.data.message,
+          text: err?.response?.data?.message || err?.message || 'Terjadi kesalahan saat memproses permintaan',
           icon: 'error',
         })
       })

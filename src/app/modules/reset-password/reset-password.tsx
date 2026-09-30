@@ -36,7 +36,7 @@ export function ResetPassword() {
           }
         })
     } catch (error: any) {
-      if (error.response.data.status === 400 || error.response.data.statusCode === 404) {
+      if (error?.response?.data?.status === 400 || error?.response?.data?.statusCode === 404) {
         navigate('/error')
       }
     }
@@ -156,7 +156,7 @@ export function ResetPassword() {
 
         Swal.fire({
           title: 'Reset Password Failed',
-          text: err.response.data.message,
+          text: err?.response?.data?.message || err?.message || 'Terjadi kesalahan saat mereset password',
           icon: 'error',
         })
       })

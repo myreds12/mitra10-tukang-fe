@@ -421,24 +421,27 @@ const ListDataMasterHO: React.FC = () => {
             </div>
           </Spin>
 
-          <Pagination
-            className='mt-5'
-            style={{textAlign: 'right', position: 'relative'}}
-            current={currentPage}
-            total={totalData}
-            showSizeChanger
-            pageSizeOptions={[5, 10, 20, 50, 100]}
-            itemRender={itemRender}
-            onShowSizeChange={(current, size) => setPageSize(size)}
-            onChange={(page, pageSize) => {
-              fetchData(page, pageSize, '')
-            }}
-            // showTotal={(total, range) => (
-            //   <span style={{left: 0, position: 'absolute'}}>
-            //     Showing {range[0]} - {range[1]} of {total} Bank
-            //   </span>
-            // )}
-          />
+          <div className='pagination-container mt-5'>
+            <span className='total-text'>
+              Showing {totalData === 0 ? 0 : (currentPage - 1) * pageSize + 1} -{' '}
+              {Math.min(currentPage * pageSize, totalData)} of {totalData} Data Master
+            </span>
+
+            <Pagination
+              className='pagination'
+              current={currentPage}
+              pageSize={pageSize}
+              total={totalData}
+              showSizeChanger
+              pageSizeOptions={[5, 10, 20, 50, 100]}
+              itemRender={itemRender}
+              onChange={(page, newPageSize) => {
+                setPageSize(newPageSize)
+                setCurrentPage(page)
+                fetchData(page, newPageSize, '')
+              }}
+            />
+          </div>
         </div>
 
         {/* Modal */}
