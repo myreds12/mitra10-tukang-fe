@@ -28,9 +28,9 @@ jobs:
 
   deploy:
     needs: test
-    runs-on: [self-hosted, windows, nemesis]
+    runs-on: [self-hosted, windows]
     env:
-      APP_DIR: "C:\\apps\\tukangfe"
+      APP_DIR: "D:\\Applications\\tukang"
       # Isi PM_NAME HANYA jika FE dijalankan via pm2 (misal next start).
       # Kalau FE statis di-serve IIS/nginx, kosongkan "".
       PM_NAME: ""
