@@ -1,0 +1,93 @@
+# =========================================================
+# .github/workflows/deploy.yml  (taruh di repo tukang-fe)
+# Jalan di self-hosted runner yang terpasang di server NEMESIS
+# =========================================================
+
+name: Deploy Frontend Production
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-fe-prod
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: [self-hosted, windows, nemesis]
+    env:
+      APP_DIR: "C:\\apps\\tukangfe"
+      # Isi PM_NAME HANYA jika FE dijalankan via pm2 (misal next start).
+      # Kalau FE statis di-serve IIS/nginx, kosongkan "".
+      PM_NAME: ""
+
+    steps:
+      - name: Checkout kode terbaru ke folder sementara
+        uses: actions/checkout@v4
+        with:
+          path: checkout-temp
+
+      - name: Deteksi perubahan dependencies
+        id: changes
+        shell: powershell
+        run: |
+          $before = "${{ github.event.before }}"
+          $after  = "${{ github.sha }}"
+
+          Set-Location checkout-temp
+
+          if ($before -eq "0000000000000000000000000000000000000000" -or [string]::IsNullOrEmpty($before)) {
+            $depsChanged = "true"
+          } else {
+            $changed = git diff --name-only $before $after
+            $depsChanged = if ($changed -match "package-lock\.json" -or $changed -match "^package\.json$") { "true" } else { "false" }
+          }
+
+          Write-Host "Dependencies changed: $depsChanged"
+          echo "deps_changed=$depsChanged" >> $env:GITHUB_OUTPUT
+
+      - name: Pull kode terbaru ke folder aplikasi
+        shell: powershell
+        run: |
+          Set-Location $env:APP_DIR
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Install dependencies (jika ada perubahan)
+        if: steps.changes.outputs.deps_changed == 'true'
+        shell: powershell
+        run: |
+          Set-Location $env:APP_DIR
+          npm ci
+
+      - name: Build
+        shell: powershell
+        run: |
+          Set-Location $env:APP_DIR
+          npm run build
+
+      - name: Restart pm2 (jika FE pakai pm2)
+        if: env.PM_NAME != ''
+        shell: powershell
+        run: |
+          pm2 restart $env:PM_NAME --update-env
+
+      - name: Bersihkan folder checkout sementara
+        if: always()
+        shell: powershell
+        run: |
+          Remove-Item -Recurse -Force checkout-temp -ErrorAction SilentlyContinue
