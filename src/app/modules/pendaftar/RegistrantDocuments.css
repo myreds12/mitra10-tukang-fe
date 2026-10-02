@@ -1,0 +1,247 @@
+/* RegistrantDocuments.css - Styling Halaman Kelengkapan Dokumen Vendor */
+
+.reg-doc-container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1F2937;
+}
+
+.reg-doc-header {
+  margin-bottom: 24px;
+}
+
+.reg-doc-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #1E2A78;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+  transition: opacity 0.2s;
+}
+
+.reg-doc-back-btn:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.reg-doc-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E2A78;
+  margin: 0 0 6px 0;
+}
+
+.reg-doc-subtitle {
+  font-size: 14px;
+  color: #4B5563;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Completion Card Banner */
+.reg-doc-summary-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(30, 42, 120, 0.05);
+  margin-bottom: 24px;
+}
+
+.reg-doc-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reg-doc-summary-pct {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1E2A78;
+}
+
+.reg-doc-summary-count {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.reg-doc-progress-bar {
+  height: 10px;
+  background: #E5E7EB;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.reg-doc-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1E2A78 0%, #00A651 100%);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.reg-doc-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reg-doc-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #E5E7EB;
+  background: #F9FAFB;
+  color: #6B7280;
+}
+
+.reg-doc-badge-item.completed {
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+  color: #059669;
+}
+
+/* Sections */
+.reg-doc-section-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+
+.reg-doc-section-card:hover {
+  border-color: #C7D2FE;
+}
+
+.reg-doc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F3F4F6;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reg-doc-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reg-doc-section-icon {
+  font-size: 20px;
+}
+
+.reg-doc-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1E2A78;
+  margin: 0;
+}
+
+.reg-doc-section-status-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.reg-doc-section-status-tag.complete {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.reg-doc-section-status-tag.incomplete {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* Upload Box */
+.reg-doc-upload-box {
+  background: #F9FAFB;
+  border: 1px dashed #D1D5DB;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.reg-doc-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reg-doc-upload-thumb {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+  background: #FFFFFF;
+}
+
+.reg-doc-upload-info {
+  font-size: 12px;
+}
+
+.reg-doc-upload-label {
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.reg-doc-upload-status {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 500;
+}
+
+.reg-doc-upload-empty {
+  font-size: 12px;
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+/* Footer Actions */
+.reg-doc-footer-sticky {
+  position: sticky;
+  bottom: 16px;
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 12px;
+  padding: 16px 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 12px;
+}

@@ -161,13 +161,20 @@ const NewOrderStoreStaff: FC = () => {
 
   // Fetch API Data
   const getItem = async () => {
+    const validStoreId =
+      staffStoreId &&
+      staffStoreId !== 'undefined' &&
+      staffStoreId !== 'null' &&
+      Number(staffStoreId) > 0
+        ? `&store_id=${staffStoreId}`
+        : ''
     const itemFree =
       paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1&store_id=${staffStoreId}`
+        ? `&item_type=1&is_promotion=1${validStoreId}`
         : ''
     const itemTanpaSurvey =
       paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1&store_id=${staffStoreId}`
+        ? `&item_type=2&is_promotion=1${validStoreId}`
         : ''
     const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
     const activeSearch = searchItem || searchPemasangan
@@ -188,17 +195,20 @@ const NewOrderStoreStaff: FC = () => {
 
       if (Array.isArray(response.data.data)) {
         const item = response.data.data
-          .filter((x: any) => x.is_active === true)
+          .filter((x: any) => Boolean(x.is_active))
           .map((item: any) => ({
             value: item.id,
-            label: item.item_code,
+            label:
+              paymentTypeValue[1] === 'survey'
+                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
+                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
             service_name: item?.service_name ?? '',
             category_id: item.category_id,
             default_price: item.default_price,
             type: item?.type,
-            prices: item.prices.map((priceItem: any) => ({
+            prices: (item.prices || []).map((priceItem: any) => ({
               id: priceItem.id,
               is_active: priceItem.is_active,
               item_id: priceItem.item_id,
@@ -1533,7 +1543,22 @@ kami pada jam operasional.
                               }),
                             }}
                             value={orderForm.order_details[index]?.item ?? null}
-                            onInputChange={(newValue) => setSearchItem(newValue)}
+                            filterOption={(candidate: any, input: string) => {
+                              if (!input) return true
+                              const query = input.toLowerCase().trim()
+                              const d = candidate.data
+                              return (
+                                (d.label || '').toLowerCase().includes(query) ||
+                                (d.item_code || '').toLowerCase().includes(query) ||
+                                (d.item_name || '').toLowerCase().includes(query) ||
+                                (d.service_name || '').toLowerCase().includes(query)
+                              )
+                            }}
+                            onInputChange={(newValue, actionMeta) => {
+                              if (actionMeta.action === 'input-change') {
+                                setSearchItem(newValue)
+                              }
+                            }}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}
@@ -1545,7 +1570,7 @@ kami pada jam operasional.
                                     ? ((newValue?.value ?? '') as string)
                                     : ((newValue?.item_code ?? '') as string),
                                   item_name: newValue?.item_name ?? '',
-                                  item_notes: newValue?.item_name ?? '',
+                                  item_notes: newValue?.service_name ?? newValue?.item_name ?? '',
                                   service_name: newValue?.service_name ?? '',
                                   item: newValue,
                                 }
@@ -1553,23 +1578,11 @@ kami pada jam operasional.
                               })
                               calcEachDetails()
                             }}
-                            onKeyDown={(e) => {
-                              if (
-                                !/[0-9]/.test(e.key) &&
-                                e.key !== 'Backspace' &&
-                                e.key !== 'ArrowLeft' &&
-                                e.key !== 'ArrowRight' &&
-                                e.key !== 'Tab'
-                              ) {
-                                e.preventDefault()
-                              }
-                            }}
                           />
                         ) : (
                           <Form.Control
                             id={`item-code-${index}`}
                             as='textarea'
-                            type='number'
                             plaintext
                             readOnly={
                               paymentTypeValue[1] === 'pemasangan_tanpa_survey' ? true : false
@@ -1663,6 +1676,22 @@ kami pada jam operasional.
                             getOptionValue={(option) => String(option?.value ?? '')}
                             onInputChange={(newValue) => setSearchPemasangan(newValue)}
                             value={orderForm.order_details[index]?.item ?? null}
+                            filterOption={(candidate: any, input: string) => {
+                              if (!input) return true
+                              const query = input.toLowerCase().trim()
+                              const d = candidate.data
+                              return (
+                                (d.label || '').toLowerCase().includes(query) ||
+                                (d.item_code || '').toLowerCase().includes(query) ||
+                                (d.item_name || '').toLowerCase().includes(query) ||
+                                (d.service_name || '').toLowerCase().includes(query)
+                              )
+                            }}
+                            onInputChange={(newValue, actionMeta) => {
+                              if (actionMeta.action === 'input-change') {
+                                setSearchPemasangan(newValue)
+                              }
+                            }}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}
@@ -1671,6 +1700,8 @@ kami pada jam operasional.
                                   item_id: newValue?.value ?? null,
                                   item_code: newValue?.item_code ?? '',
                                   item_name: newValue?.item_name ?? '',
+                                  service_name: newValue?.service_name ?? '',
+                                  item_notes: newValue?.service_name ?? '',
                                   item: newValue,
                                 }
                                 return cache

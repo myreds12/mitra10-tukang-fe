@@ -3,3 +3,47 @@
   height: 150px;
   border-radius: 50%;
 }
+
+/* Custom Metronic-style utility classes for DetailVendor */
+#detail-vendor .bg-light-success {
+  background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+#detail-vendor .badge-light-success {
+  background-color: rgba(25, 135, 84, 0.15);
+  color: #198754;
+}
+
+#detail-vendor .text-gray-500 {
+  color: #5e6278 !important;
+}
+
+#detail-vendor .text-gray-600 {
+  color: #7c2d12 !important;
+}
+
+#detail-vendor .text-gray-700 {
+  color: #5e6278 !important;
+}
+
+#detail-vendor .text-gray-800 {
+  color: #183383 !important;
+}
+
+#detail-vendor .fw-boldest {
+  font-weight: 800 !important;
+}
+
+#detail-vendor .border-bottom-0 {
+  border-bottom: none !important;
+}
+
+#detail-vendor .table-row-dashed tbody tr {
+  border: none;
+  border-bottom: 1px dashed #e4e4e4;
+}
+
+#detail-vendor .table-row-dashed thead th {
+  border: none;
+  border-bottom: 2px dashed #e4e4e4;
+}

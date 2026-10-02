@@ -6,6 +6,7 @@ import {DashboardWrapper} from '../pages/dashboard/DashboardWrapper'
 import {getCSSVariableValue} from '../../_metronic/assets/ts/_utils'
 import {WithChildren} from '../../_metronic/helpers'
 import {PageLink, PageTitle} from '../../../src/_metronic/layout/core'
+import VendorRegistrationPage from '../modules/vendor-registration/VendorRegistrationPage'
 const chatBreadCrumbs: Array<PageLink> = [
   {
     title: 'Chat',
@@ -15,8 +16,10 @@ const chatBreadCrumbs: Array<PageLink> = [
   },
 ]
 const PrivateRoutes = () => {
+  const isVendorSpEnabled = process.env.REACT_APP_ENABLE_VENDOR_SP === 'true'
   const ProfilePage = lazy(() => import('../modules/profile/ProfilePage'))
   const ChatPage = lazy(() => import('../modules/chat/ChatPage'))
+const HomeContentSettingsPage = lazy(() => import('../components/admin-ho/home-content/HomeContentSettings'))
   const CalendarPage = lazy(() => import('../modules/calendar/CalendarPage'))
   const OrderPage = lazy(() => import('../modules/order/OrderPage'))
   const ComplaintPage = lazy(() => import('../modules/complaint/ComplaintPage'))
@@ -51,14 +54,31 @@ const PrivateRoutes = () => {
 
   const DataRolePage = lazy(() => import('../modules/data-role/DataMasterPage'))
   const NotifSettingPage = lazy(() => import('../modules/notif-setting/NotifSettingPage'))
+  const VendorSPPage = lazy(() => import('../modules/vendor-sp/VendorSPPage'))
+  const RegistrantPage = lazy(() => import('../modules/pendaftar/RegistrantPage'))
+  const isRegistrant = localStorage.getItem('userRole') === 'Pendaftar Vendor'
 
   return (
     <Routes>
       <Route element={<MasterLayout />}>
         {/* Redirect to Home after success Login */}
         {/* <Route path='login' element={<Navigate to='/home' />} /> */}
-
         {/* Pages */}
+        {/* Dashboard Pendaftar Vendor (Home & Status saja) */}
+        <Route
+          path='pendaftar/*'
+          element={
+            <SuspensedView>
+              <RegistrantPage />
+            </SuspensedView>
+          }
+        />
+
+        {/* Route guard: user "Pendaftar Vendor" hanya boleh ke dashboard pendaftar.
+            Semua route lain (home, order, work order, vendor, dll - fitur vendor
+            aktif & internal) di-redirect ke /pendaftar/home. */}
+        {isRegistrant && <Route path='*' element={<Navigate to='/pendaftar/home' replace />} />}
+
         <Route path='home' element={<DashboardWrapper />} />
 
         {/* Lazy Modules */}
@@ -207,6 +227,15 @@ const PrivateRoutes = () => {
         />
 
         <Route
+          path='home-content-settings/*'
+          element={
+            <SuspensedView>
+              <HomeContentSettingsPage />
+            </SuspensedView>
+          }
+        />
+
+        <Route
           path='user/*'
           element={
             <SuspensedView>
@@ -220,6 +249,26 @@ const PrivateRoutes = () => {
           element={
             <SuspensedView>
               <VendorPage />
+            </SuspensedView>
+          }
+        />
+
+        {isVendorSpEnabled && (
+          <Route
+            path='vendor-sp/*'
+            element={
+              <SuspensedView>
+                <VendorSPPage />
+              </SuspensedView>
+            }
+          />
+        )}
+
+        <Route
+          path='vendor-registration/*'
+          element={
+            <SuspensedView>
+              <VendorRegistrationPage />
             </SuspensedView>
           }
         />

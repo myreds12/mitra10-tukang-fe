@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Detail Pendaftaran Vendor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F2A5C;
+    --navy-dark:#0A1E42;
+    --brand-blue:#13328E;
+    --red:#DC2626;
+    --green:#15803D;
+    --green-bg:#ECFDF3;
+    --amber:#B45309;
+    --amber-bg:#FFFBEB;
+    --bg:#F3F4F8;
+    --card:#FFFFFF;
+    --line:#E6E8F0;
+    --ink:#141B33;
+    --ink-soft:#5B6178;
+    --ink-faint:#9297AA;
+    --sb-w:250px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none;}
+
+  /* ---------- App sidebar ---------- */
+  .app-sidebar{
+    position:fixed;
+    top:0;left:0;bottom:0;
+    width:var(--sb-w);
+    background:#fff;
+    border-right:1px solid var(--line);
+    overflow-y:auto;
+    z-index:40;
+    padding-bottom:24px;
+  }
+  .sb-logo{
+    padding:20px 22px 14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .sb-logo svg{width:26px;height:26px;flex:none;}
+  .sb-logo .lg-main{font-size:19px;font-weight:800;color:var(--brand-blue);letter-spacing:.2px;}
+  .sb-logo .lg-sub{font-size:7.5px;color:var(--ink-faint);font-weight:600;letter-spacing:.3px;display:block;margin-top:-2px;}
+
+  .sb-user{
+    padding:6px 22px 18px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+    margin-bottom:8px;
+  }
+  .sb-user img{
+    width:56px;height:56px;border-radius:50%;
+    object-fit:cover;margin-bottom:8px;
+    background:#E7EAF5;
+  }
+  .sb-user .u-name{font-size:13.5px;font-weight:700;line-height:1.3;}
+  .sb-user .u-role{font-size:11.5px;color:var(--ink-faint);font-weight:600;}
+
+  .sb-nav{padding:4px 12px;}
+  .sb-item{
+    display:flex;align-items:center;gap:11px;
+    padding:10px 12px;
+    border-radius:9px;
+    font-size:13px;font-weight:600;
+    color:#454B60;
+    cursor:pointer;
+    margin-bottom:2px;
+  }
+  .sb-item svg{width:17px;height:17px;flex:none;color:#8A90A6;}
+  .sb-item:hover{background:#F4F5FA;}
+  .sb-item .chev{width:13px;height:13px;margin-left:auto;color:#B3B8C9;transition:transform .15s;}
+  .sb-item.open .chev{transform:rotate(180deg);}
+
+  .sb-item.active-group{color:var(--brand-blue);background:#EEF2FE;}
+  .sb-item.active-group svg{color:var(--brand-blue);}
+
+  .sb-submenu{
+    padding-left:20px;
+    margin:2px 0 8px;
+    display:flex;flex-direction:column;gap:1px;
+  }
+  .sb-sub-item{
+    padding:8px 12px;
+    font-size:12.5px;font-weight:600;
+    color:#6B7188;
+    border-left:2px solid var(--line);
+    padding-left:16px;
+    cursor:pointer;
+  }
+  .sb-sub-item:hover{color:var(--brand-blue);}
+  .sb-sub-item.current{
+    color:var(--brand-blue);
+    border-left-color:var(--brand-blue);
+    font-weight:700;
+  }
+
+  .app-main{margin-left:var(--sb-w);}
+
+  .sb-toggle{
+    display:none;
+    position:fixed;top:14px;left:14px;z-index:50;
+    width:38px;height:38px;border-radius:9px;
+    background:#fff;border:1px solid var(--line);
+    align-items:center;justify-content:center;
+  }
+  .sb-toggle svg{width:18px;height:18px;color:var(--navy);}
+  .sb-overlay{display:none;}
+
+  @media (max-width:1000px){
+    .app-sidebar{transform:translateX(-100%);transition:transform .2s ease;box-shadow:0 0 0 2000px rgba(0,0,0,0);}
+    .app-sidebar.shown{transform:translateX(0);box-shadow:0 0 30px rgba(0,0,0,.18);}
+    .app-main{margin-left:0;}
+    .sb-toggle{display:flex;}
+    .sb-overlay.shown{
+      display:block;position:fixed;inset:0;background:rgba(10,20,50,.35);z-index:39;
+    }
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    background:linear-gradient(180deg,var(--navy) 0%,var(--navy-dark) 100%);
+    color:#fff;
+    padding:18px 28px 18px 64px;
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+    display:flex;
+    align-items:center;
+    gap:14px;
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  @media (min-width:1001px){ .topbar{padding-left:28px;} }
+  .notif-bell{
+    flex:none;position:relative;
+    width:36px;height:36px;border-radius:10px;
+    background:rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .notif-bell svg{width:17px;height:17px;}
+  .notif-bell .badge{
+    position:absolute;top:-4px;right:-4px;
+    background:var(--red);color:#fff;
+    font-size:9.5px;font-weight:800;
+    min-width:16px;height:16px;border-radius:999px;
+    display:flex;align-items:center;justify-content:center;
+    padding:0 3px;
+  }
+  .back-btn{
+    width:36px;height:36px;border-radius:10px;
+    background:rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+    transition:background .15s;
+  }
+  .back-btn:hover{background:rgba(255,255,255,.22);}
+  .back-btn svg{width:18px;height:18px;}
+  .topbar-titles{flex:1;min-width:0;}
+  .eyebrow{
+    font-size:12px;
+    color:#AEBBDD;
+    margin:0 0 2px;
+  }
+  .topbar h1{
+    font-size:19px;
+    font-weight:700;
+    margin:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .histori-btn{
+    flex:none;
+    display:flex;align-items:center;gap:7px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.24);
+    padding:9px 16px;
+    border-radius:9px;
+    font-size:13.5px;
+    font-weight:600;
+    color:#fff;
+    cursor:pointer;
+  }
+  .histori-btn:hover{background:rgba(255,255,255,.18);}
+  .histori-btn svg{width:15px;height:15px;}
+
+  /* ---------- Layout ---------- */
+  .page{
+    max-width:1240px;
+    margin:0 auto;
+    padding:24px 28px 110px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width:880px){
+    .page{grid-template-columns:1fr;padding:16px 16px 120px;}
+    .topbar{padding:14px 16px;padding-top: calc(14px + env(safe-area-inset-top, 0px));}
+    .profile-col{position:static !important;}
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .card + .card{margin-top:18px;}
+
+  /* ---------- Profile card (left) ---------- */
+  .profile-col{position:sticky; top:88px;}
+  .profile-card{padding:26px 22px 22px;text-align:center;}
+  .avatar-wrap{
+    width:96px;height:96px;border-radius:50%;
+    margin:0 auto 14px;
+    overflow:hidden;
+    border:3px solid #EEF1FB;
+    background:#DCE3F7;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .avatar-wrap img{width:100%;height:100%;object-fit:cover;}
+  .profile-name{font-size:18px;font-weight:800;margin:0 0 3px;}
+  .profile-id{font-size:12.5px;color:var(--ink-faint);margin:0 0 14px;font-variant-numeric:tabular-nums;}
+
+  .status-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 14px;border-radius:999px;
+    font-size:12.5px;font-weight:700;
+    background:var(--amber-bg);color:var(--amber);
+    margin-bottom:18px;
+  }
+  .status-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  .contact-list{
+    text-align:left;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    display:flex;flex-direction:column;gap:13px;
+  }
+  .contact-row{display:flex;gap:11px;align-items:flex-start;}
+  .contact-row svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--ink-faint);}
+  .contact-row .ct-label{font-size:11px;color:var(--ink-faint);margin:0 0 1px;}
+  .contact-row .ct-value{font-size:13.5px;font-weight:600;color:var(--ink);word-break:break-word;}
+
+  .service-tags{
+    display:flex;flex-wrap:wrap;gap:6px;
+    padding:16px 22px 22px;
+    border-top:1px solid var(--line);
+  }
+  .service-tags .tag-title{width:100%;font-size:11px;color:var(--ink-faint);margin:0 0 8px;}
+  .tag{
+    font-size:12px;font-weight:600;
+    padding:6px 10px;border-radius:7px;
+    background:#EEF1FB;color:var(--navy);
+  }
+
+  /* ---------- Section headers ---------- */
+  .section-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .section-head h2{
+    font-size:14.5px;font-weight:700;margin:0;
+    display:flex;align-items:center;gap:9px;
+  }
+  .section-head h2 svg{width:17px;height:17px;color:var(--navy);}
+  .count-badge{
+    font-size:12px;font-weight:700;color:var(--ink-faint);
+    background:#F1F2F8;padding:2px 9px;border-radius:999px;
+  }
+
+  /* ---------- Info grid ---------- */
+  .info-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:18px 24px;
+    padding:20px;
+  }
+  @media (max-width:560px){.info-grid{grid-template-columns:1fr;}}
+  .info-item .i-label{font-size:12px;color:var(--ink-faint);margin:0 0 4px;}
+  .info-item .i-value{font-size:14.5px;font-weight:600;color:var(--ink);}
+  .info-item.full{grid-column:1 / -1;}
+
+  .subgroup-title{
+    padding:14px 20px 4px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--navy);
+    letter-spacing:.2px;
+  }
+
+  /* ---------- Tukang cards ---------- */
+  .tukang-list{padding:16px 20px 20px;display:flex;flex-direction:column;gap:12px;}
+  .tukang-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .tukang-head{
+    background:#F7F8FC;
+    padding:10px 16px;
+    display:flex;align-items:center;gap:10px;
+    font-size:13.5px;font-weight:700;
+    border-bottom:1px solid var(--line);
+  }
+  .tukang-num{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--navy);color:#fff;
+    font-size:11.5px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .tukang-body{
+    display:grid;grid-template-columns:repeat(2,1fr);
+    gap:14px 20px;
+    padding:14px 16px;
+  }
+  @media (max-width:520px){.tukang-body{grid-template-columns:1fr;}}
+  .tukang-body .i-label{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-faint);margin:0 0 4px;}
+  .tukang-body .i-label svg{width:13px;height:13px;}
+  .tukang-body .i-value{font-size:13.5px;font-weight:600;}
+
+  /* ---------- Documents grid ---------- */
+  .doc-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+    padding:20px;
+  }
+  @media (max-width:760px){.doc-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:480px){.doc-grid{grid-template-columns:1fr;}}
+
+  .doc-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .doc-card-head{
+    padding:10px 12px;
+    font-size:12.5px;font-weight:700;
+    display:flex;align-items:center;gap:8px;
+    color:#fff;
+  }
+  .doc-card-head.ok{background:var(--navy);}
+  .doc-card-head.missing{background:#8A8FA3;}
+  .doc-card-head svg{width:14px;height:14px;flex:none;}
+
+  .doc-thumb{
+    aspect-ratio:4/3;
+    background:#F5F6FA;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .doc-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .doc-thumb.empty{
+    flex-direction:column;gap:8px;
+    color:var(--ink-faint);
+  }
+  .doc-thumb.empty svg{width:30px;height:30px;opacity:.55;}
+  .doc-thumb.empty span{font-size:12px;font-weight:600;}
+
+  .doc-footer{
+    padding:8px 12px;
+    font-size:11.5px;
+    color:var(--ink-faint);
+    border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .doc-footer .view-link{
+    color:var(--navy);font-weight:700;
+    display:flex;align-items:center;gap:4px;
+  }
+  .doc-footer .view-link svg{width:12px;height:12px;}
+
+  /* ---------- Sticky action bar ---------- */
+  .action-bar{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    background:#fff;
+    border-top:1px solid var(--line);
+    box-shadow:0 -6px 24px rgba(15,42,92,.08);
+    padding:14px 28px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    display:flex;
+    align-items:center;
+    gap:14px;
+    z-index:30;
+  }
+  .action-note{
+    flex:1;
+    font-size:13px;
+    color:var(--ink-soft);
+    display:flex;align-items:center;gap:8px;
+    min-width:0;
+  }
+  .action-note svg{width:16px;height:16px;color:var(--amber);flex:none;}
+  .action-note span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .btn{
+    flex:none;
+    display:flex;align-items:center;gap:8px;
+    padding:11px 20px;
+    border-radius:10px;
+    font-size:13.5px;font-weight:700;
+    cursor:pointer;
+    border:1px solid transparent;
+  }
+  .btn svg{width:15px;height:15px;}
+  .btn-approve{background:var(--green);color:#fff;}
+  .btn-approve:hover{background:#12692F;}
+  .btn-reject{background:#fff;color:var(--red);border-color:#F3C7C7;}
+  .btn-reject:hover{background:#FEF2F2;}
+
+  @media (max-width:640px){
+    .action-bar{flex-wrap:wrap;padding:12px 16px;padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));}
+    .action-note{order:3;width:100%;font-size:12px;}
+    .btn{flex:1;justify-content:center;}
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12141C;
+      --card:#191C27;
+      --line:#2A2E3D;
+      --ink:#EDEEF3;
+      --ink-soft:#A7ACC0;
+      --ink-faint:#767C93;
+      --tag-bg:#232739;
+    }
+    :root:not([data-theme="light"]) .tag{background:#232739;color:#B9C4F5;}
+    :root:not([data-theme="light"]) .doc-thumb{background:#20232F;}
+    :root:not([data-theme="light"]) .tukang-head{background:#1D2130;}
+    :root:not([data-theme="light"]) .count-badge{background:#232739;}
+    :root:not([data-theme="light"]) .action-bar{background:#191C27;}
+    :root:not([data-theme="light"]) .btn-reject{background:#191C27;}
+    :root:not([data-theme="light"]) .back-btn{background:rgba(255,255,255,.08);}
+  }
+  :root[data-theme="dark"]{
+    --bg:#12141C; --card:#191C27; --line:#2A2E3D;
+    --ink:#EDEEF3; --ink-soft:#A7ACC0; --ink-faint:#767C93;
+  }
+  :root[data-theme="dark"] .tag{background:#232739;color:#B9C4F5;}
+  :root[data-theme="dark"] .doc-thumb{background:#20232F;}
+  :root[data-theme="dark"] .tukang-head{background:#1D2130;}
+  :root[data-theme="dark"] .count-badge{background:#232739;}
+  :root[data-theme="dark"] .action-bar{background:#191C27;}
+  :root[data-theme="dark"] .btn-reject{background:#191C27;}
+
+  :focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  @media (prefers-reduced-motion: no-preference){
+    .card{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="sb-toggle" id="sbToggle" role="button" tabindex="0" aria-label="Buka menu">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</div>
+<div class="sb-overlay" id="sbOverlay"></div>
+
+<aside class="app-sidebar" id="appSidebar">
+  <div class="sb-logo">
+    <svg viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#13328E"/><path d="M6 17V7l6 5 6-5v10" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><span class="lg-main">Mitra10</span><span class="lg-sub">BUILDING MATERIALS &amp; HOME IMPROVEMENT</span></div>
+  </div>
+
+  <div class="sb-user">
+    <img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=120&h=120&fit=crop" alt="Foto profil Rendi">
+    <p class="u-name">Rendi</p>
+    <p class="u-role">(Super User)</p>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      Home ( Dashboard )
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7m16 0-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      Order <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Quotation <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M4 10l4-6h8l4 6M4 10h16M9 20v-6h6v6"/></svg>
+      Pengaduan <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+
+    <div class="sb-item active-group open">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="7" height="10" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/><rect x="3" y="3" width="7" height="4" rx="1"/></svg>
+      Vendor <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-submenu">
+      <div class="sb-sub-item">Vendor Summary</div>
+      <div class="sb-sub-item">List Vendor</div>
+      <div class="sb-sub-item">Register Vendor (Manual)</div>
+      <div class="sb-sub-item current">Pendaftaran Vendor</div>
+    </div>
+
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h5m0-10h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9m0-10V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+      Vendor SP <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Customers <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+      CSI <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 12 22l-1.5-3.5L7 22l1.5-8.5"/></svg>
+      Insentif Sales <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 12 22l-1.5-3.5L7 22l1.5-8.5"/></svg>
+      Insentif Store Manager <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" opacity="0"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+      Invoice <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+      Report <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 20 9-9-3-3-9 9v3z"/><path d="m14.5 5.5 4 4"/></svg>
+      Setting <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      Manual Book
+    </div>
+    <div class="sb-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </div>
+  </nav>
+</aside>
+
+<div class="app-main">
+
+<div class="topbar">
+  <div class="back-btn" role="button" tabindex="0" aria-label="Kembali">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+  </div>
+  <div class="topbar-titles">
+    <p class="eyebrow">Vendor / Pendaftaran Vendor</p>
+    <h1>Detail Pendaftaran &mdash; Test saja</h1>
+  </div>
+  <div class="histori-btn" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+    Histori
+  </div>
+  <div class="notif-bell">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="badge">448</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- LEFT: profile summary -->
+  <div class="profile-col">
+    <div class="card profile-card">
+      <div class="avatar-wrap">
+        <img src="https://images.unsplash.com/photo-1520695537972-a5bb04f8ca90?w=200&h=200&fit=crop" alt="Foto vendor">
+      </div>
+      <p class="profile-name">Test saja</p>
+      <p class="profile-id">ID Vendor #8 &middot; Daftar 08/09/2026</p>
+
+      <div class="status-pill">
+        <span class="dot"></span>
+        Proses Pitching
+      </div>
+
+      <div class="contact-list">
+        <div class="contact-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <div>
+            <p class="ct-label">Telepon</p>
+            <p class="ct-value">08123123123</p>
+          </div>
+        </div>
+        <div class="contact-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6 12 13 2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+          <div>
+            <p class="ct-label">Email</p>
+            <p class="ct-value">test@email.com</p>
+          </div>
+        </div>
+        <div class="contact-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div>
+            <p class="ct-label">Alamat</p>
+            <p class="ct-value">Test</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-tags">
+        <p class="tag-title">Jenis Layanan</p>
+        <span class="tag">Electrical (service by unit)</span>
+        <span class="tag">Civil (service by unit)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: detail sections -->
+  <div class="detail-col">
+
+    <!-- Data PIC & Bank -->
+    <div class="card">
+      <div class="section-head">
+        <h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Informasi PIC &amp; Rekening
+        </h2>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><p class="i-label">Nama PIC</p><p class="i-value">test</p></div>
+        <div class="info-item"><p class="i-label">Phone PIC</p><p class="i-value">081231231231231</p></div>
+        <div class="info-item"><p class="i-label">Email PIC</p><p class="i-value">test@email.com</p></div>
+        <div class="info-item"><p class="i-label">Bank</p><p class="i-value">BJB</p></div>
+        <div class="info-item"><p class="i-label">No. KTP</p><p class="i-value">123123</p></div>
+        <div class="info-item"><p class="i-label">No. NPWP</p><p class="i-value">123123</p></div>
+      </div>
+    </div>
+
+    <!-- Daftar Tukang -->
+    <div class="card">
+      <div class="section-head">
+        <h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Daftar Tukang
+        </h2>
+        <span class="count-badge">1 orang</span>
+      </div>
+      <div class="tukang-list">
+        <div class="tukang-card">
+          <div class="tukang-head">
+            <span class="tukang-num">1</span>
+            Tukang 1
+          </div>
+          <div class="tukang-body">
+            <div>
+              <p class="i-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nama Lengkap</p>
+              <p class="i-value">test</p>
+            </div>
+            <div>
+              <p class="i-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>No. HP</p>
+              <p class="i-value">0812312323</p>
+            </div>
+            <div>
+              <p class="i-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>No. KTP</p>
+              <p class="i-value">123213123</p>
+            </div>
+            <div>
+              <p class="i-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Skill</p>
+              <p class="i-value">Electrical (service by unit)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dokumen & Foto -->
+    <div class="card">
+      <div class="section-head">
+        <h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          Dokumen &amp; Foto
+        </h2>
+        <span class="count-badge">4 / 6 lengkap</span>
+      </div>
+      <div class="doc-grid">
+
+        <div class="doc-card">
+          <div class="doc-card-head ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Foto Vendor
+          </div>
+          <div class="doc-thumb"><img src="https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400&h=300&fit=crop" alt="Foto Vendor"></div>
+          <div class="doc-footer"><span>JPG &middot; 214 KB</span><span class="view-link">Lihat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-head ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Foto KTP
+          </div>
+          <div class="doc-thumb"><img src="https://images.unsplash.com/photo-1622037022824-0c71d511ae4c?w=400&h=300&fit=crop" alt="Foto KTP"></div>
+          <div class="doc-footer"><span>JPG &middot; 188 KB</span><span class="view-link">Lihat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-head ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Foto NPWP
+          </div>
+          <div class="doc-thumb"><img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop" alt="Foto NPWP"></div>
+          <div class="doc-footer"><span>JPG &middot; 201 KB</span><span class="view-link">Lihat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-head ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Foto COMPRO
+          </div>
+          <div class="doc-thumb"><img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop" alt="Foto COMPRO"></div>
+          <div class="doc-footer"><span>JPG &middot; 176 KB</span><span class="view-link">Lihat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-head ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Foto SIUP
+          </div>
+          <div class="doc-thumb"><img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=300&fit=crop" alt="Foto SIUP"></div>
+          <div class="doc-footer"><span>JPG &middot; 192 KB</span><span class="view-link">Lihat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M7 7h10v10"/></svg></span></div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-head missing">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Surat Permohonan
+          </div>
+          <div class="doc-thumb empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span>Belum diunggah</span>
+          </div>
+          <div class="doc-footer"><span>Menunggu vendor</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="action-bar">
+  <div class="action-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <span>Pendaftaran sedang dalam proses pitching &middot; 1 dokumen belum lengkap (Surat Permohonan)</span>
+  </div>
+  <div class="btn btn-reject" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    Tolak Pendaftaran
+  </div>
+  <div class="btn btn-approve" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Setujui Final
+  </div>
+</div>
+
+</div><!-- /.app-main -->
+
+<script>
+  var sbToggle = document.getElementById('sbToggle');
+  var sidebar = document.getElementById('appSidebar');
+  var overlay = document.getElementById('sbOverlay');
+  function openSb(){ sidebar.classList.add('shown'); overlay.classList.add('shown'); }
+  function closeSb(){ sidebar.classList.remove('shown'); overlay.classList.remove('shown'); }
+  if(sbToggle){
+    sbToggle.addEventListener('click', function(){
+      sidebar.classList.contains('shown') ? closeSb() : openSb();
+    });
+  }
+  if(overlay){ overlay.addEventListener('click', closeSb); }
+</script>
+
+</body>
+</html>

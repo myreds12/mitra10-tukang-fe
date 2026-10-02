@@ -21,3 +21,18 @@
 #new-vendor .address-form {
   min-height: 80px;
 }
+
+/* Tukang Section - Dynamic Form Table */
+/* Tukang Section - Card Based Layout */
+#new-vendor .tukang-section .tukang-card {
+  transition: all 0.2s ease;
+}
+
+#new-vendor .tukang-section .tukang-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+#new-vendor .tukang-section .tukang-card:hover .tukang-card-header {
+  background: linear-gradient(135deg, #152a66 0%, #183383 100%) !important;
+}

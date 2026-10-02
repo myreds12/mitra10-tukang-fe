@@ -769,7 +769,7 @@ const ViewOrders: FC = () => {
         },
         params: {
           search: searchFilter || null,
-          page: currentPage,
+          page: page || currentPage,
           take: pageSize,
           date_from: dateFrom || null,
           date_to: dateTo || null,
@@ -779,8 +779,10 @@ const ViewOrders: FC = () => {
         },
       })
 
-      setCurrentPage(response?.data?.page ?? 1)
-      setTotalData(response.data?.total ?? 0)
+      const resPage = Number(response?.data?.page ?? response?.data?.meta?.page ?? page)
+      const resTotal = Number(response?.data?.total ?? response?.data?.meta?.total ?? 0)
+      dispatch(setCurrentPage(resPage))
+      setTotalData(resTotal)
 
       return response.data.data
     } catch (error: any) {
@@ -3762,7 +3764,7 @@ const ViewOrders: FC = () => {
 
           <div className='pagination-container mt-5'>
             <span className='total-text'>
-              Showing {(currentPage - 1) * pageSize + 1} -{' '}
+              Showing {totalData === 0 ? 0 : (currentPage - 1) * pageSize + 1} -{' '}
               {Math.min(currentPage * pageSize, totalData)} of {totalData} Orders
             </span>
 

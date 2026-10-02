@@ -1,0 +1,78 @@
+/* Dashboard Pendaftar Vendor - halaman Status */
+
+.registrant-status-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #183383;
+  margin-bottom: 0.5rem;
+}
+
+.registrant-status-subtitle {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.registrant-status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Badge kuning: Menunggu Approve (pendaftaran baru masuk) */
+.registrant-status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+/* Badge biru: Verifikasi / Review Admin (pitching) */
+.registrant-status-review {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+/* Badge hijau: Diterima sebagai Vendor */
+.registrant-status-approved {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+/* Badge merah: Ditolak */
+.registrant-status-rejected {
+  background-color: #f8d7da;
+  color: #842029;
+}
+
+.registrant-status-unknown {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.registrant-status-cell {
+  text-align: center;
+}
+
+.registrant-status-reason {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: #842029;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registrant-status-error {
+  padding: 2rem;
+  text-align: center;
+  color: #842029;
+}
+
+.registrant-status-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6c757d;
+}

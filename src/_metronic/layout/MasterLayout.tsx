@@ -1,17 +1,43 @@
 import {useEffect} from 'react'
-import {Outlet} from 'react-router-dom'
+import {Outlet, useLocation} from 'react-router-dom'
 import {AsideDefault} from './components/aside/AsideDefault'
 import {HeaderWrapper} from './components/header/HeaderWrapper'
 import {ScrollTop} from './components/ScrollTop'
 import {Content} from './components/Content'
 import {PageDataProvider} from './core'
-import {useLocation} from 'react-router-dom'
 import {ThemeModeProvider} from '../partials'
 import {MenuComponent} from '../assets/ts/components'
 import LiveChatPopup from '../../app/modules/livechat/LiveChatPopup'
+import {useRegistrantIdleLogout} from '../../app/hooks/useRegistrantIdleLogout'
+import {initYellowChat} from '../../app/utils/yellowMessenger'
 
 const MasterLayout = () => {
   const location = useLocation()
+
+  // Inactivity timeout 1 jam khusus role Pendaftar Vendor
+  useRegistrantIdleLogout()
+
+  const isPendaftar =
+    location.pathname.startsWith('/pendaftar') ||
+    localStorage.getItem('userRole') === 'Pendaftar Vendor'
+
+  // Pastikan Yellow.ai aktif di dashboard
+  useEffect(() => {
+    initYellowChat()
+  }, [])
+
+  useEffect(() => {
+    if (isPendaftar) {
+      document.body.classList.remove('aside-enabled', 'aside-fixed', 'header-fixed')
+      document.body.classList.add('no-aside', 'no-header')
+    } else {
+      document.body.classList.add('aside-enabled', 'aside-fixed', 'header-fixed')
+      document.body.classList.remove('no-aside', 'no-header')
+    }
+    return () => {
+      document.body.classList.remove('no-aside', 'no-header')
+    }
+  }, [isPendaftar])
 
   useEffect(() => {
     setTimeout(() => {
@@ -28,15 +54,19 @@ const MasterLayout = () => {
   return (
     <PageDataProvider>
       <ThemeModeProvider>
-        <div className='page d-flex flex-row flex-column-fluid'>
-          <AsideDefault />
-          <div className='wrapper d-flex flex-column flex-row-fluid' id='kt_wrapper'>
-            <HeaderWrapper className='bg-primary' />
+        <div className={`page d-flex flex-row flex-column-fluid ${isPendaftar ? 'pendaftar-layout' : ''}`}>
+          {!isPendaftar && <AsideDefault />}
+          <div
+            className='wrapper d-flex flex-column flex-row-fluid'
+            id='kt_wrapper'
+            style={isPendaftar ? {paddingLeft: 0, paddingTop: 0} : undefined}
+          >
+            {!isPendaftar && <HeaderWrapper className='bg-primary' />}
 
             <div
               id='kt_content'
               className='content d-flex flex-column flex-column-fluid'
-              style={{marginTop: '-3.5rem'}}
+              style={isPendaftar ? {marginTop: 0, paddingTop: '16px'} : {marginTop: '-3.5rem'}}
             >
               <Content>
                 <Outlet />

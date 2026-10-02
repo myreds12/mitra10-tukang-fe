@@ -1,10 +1,16 @@
-import {Suspense} from 'react'
+import {Suspense, useEffect} from 'react'
 import {Outlet} from 'react-router-dom'
 import {I18nProvider} from '../_metronic/i18n/i18nProvider'
 import {LayoutProvider, LayoutSplashScreen} from '../_metronic/layout/core'
 import {MasterInit} from '../_metronic/layout/MasterInit'
+import {initYellowChat} from './utils/yellowMessenger'
 
 const App = () => {
+  useEffect(() => {
+    // Aktifkan customer service Yellow.ai di seluruh halaman aplikasi (termasuk login page)
+    initYellowChat()
+  }, [])
+
   return (
     <Suspense fallback={<LayoutSplashScreen />}>
       <I18nProvider>

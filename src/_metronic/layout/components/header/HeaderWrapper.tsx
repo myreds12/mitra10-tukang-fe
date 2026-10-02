@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import clsx from 'clsx'
 import React from 'react'
-import {Link} from 'react-router-dom'
+import {Link, useLocation} from 'react-router-dom'
 import {KTSVG, toAbsoluteUrl} from '../../../helpers'
 import {useLayout} from '../../core'
 import {Header} from './Header'
@@ -12,14 +11,19 @@ interface HeaderWrapperProps {
   style?: React.CSSProperties
 }
 
-export function HeaderWrapper({className}: HeaderWrapperProps) {
+export function HeaderWrapper({className, style}: HeaderWrapperProps) {
   const {config, classes, attributes} = useLayout()
   const {header, aside} = config
+  const location = useLocation()
+  const isPendaftar =
+    location.pathname.startsWith('/pendaftar') ||
+    localStorage.getItem('userRole') === 'Pendaftar Vendor'
 
   return (
     <div
       id='kt_header'
       className={clsx('header', classes.header.join(' '), 'align-items-stretch', className)}
+      style={isPendaftar ? { left: 0, ...style } : style}
       {...attributes.headerMenu}
     >
       <div
@@ -29,7 +33,7 @@ export function HeaderWrapper({className}: HeaderWrapperProps) {
         )}
       >
         {/* begin::Aside mobile toggle */}
-        {aside.display && (
+        {aside.display && !isPendaftar && (
           <div className='d-flex align-items-center d-lg-none ms-n3 me-1' title='Show aside menu'>
             <div
               className='btn btn-icon btn-active-light-primary w-30px h-30px w-md-40px h-md-40px'
@@ -40,19 +44,27 @@ export function HeaderWrapper({className}: HeaderWrapperProps) {
           </div>
         )}
         {/* end::Aside mobile toggle */}
-        {/* begin::Logo */}
-        {!aside.display && (
-          <div className='d-flex align-items-center flex-grow-1 flex-lg-grow-0'>
-            <Link to='/dashboard' className='d-lg-none'>
-              <img
-                alt='Logo'
-                src={toAbsoluteUrl('/media/logos/default-small.svg')}
-                className='h-30px'
-              />
-            </Link>
+        {/* begin::Logo / Title */}
+        {isPendaftar ? (
+          <div className='d-flex align-items-center'>
+            <span className='fs-2 fw-bold text-white' style={{ letterSpacing: '0.3px' }}>
+              Register Vendor
+            </span>
           </div>
+        ) : (
+          !aside.display && (
+            <div className='d-flex align-items-center flex-grow-1 flex-lg-grow-0'>
+              <Link to='/dashboard' className='d-lg-none'>
+                <img
+                  alt='Logo'
+                  src={toAbsoluteUrl('/media/logos/default-small.svg')}
+                  className='h-30px'
+                />
+              </Link>
+            </div>
+          )
         )}
-        {/* end::Logo */}
+        {/* end::Logo / Title */}
 
         {/* {aside.display && (
           <div className='d-flex align-items-center flex-grow-1 flex-lg-grow-0'>
@@ -65,7 +77,7 @@ export function HeaderWrapper({className}: HeaderWrapperProps) {
         {/* begin::Wrapper */}
         <div className='d-flex align-items-stretch justify-content-between flex-lg-grow-1'>
           {/* begin::Navbar */}
-          {header.left === 'menu' && (
+          {header.left === 'menu' && !isPendaftar && (
             <div className='d-flex align-items-stretch' id='kt_header_nav'>
               <Header />
             </div>
@@ -78,7 +90,7 @@ export function HeaderWrapper({className}: HeaderWrapperProps) {
           )} */}
 
           <div className='d-flex align-items-stretch flex-shrink-0 align-items-center'>
-            {aside.display && (
+            {aside.display && !isPendaftar && (
               <button
                 className='btn btn-icon btn-active-light-primary me-3 d-none d-lg-inline-flex'
                 title='Toggle sidebar'

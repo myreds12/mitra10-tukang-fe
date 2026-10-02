@@ -75,10 +75,10 @@ const ReportCostumerHO: FC = () => {
         }
       )
       if (Array.isArray(response.data.data)) {
-        setSingleOrder(response.data.totalOrderOne)
-        setMultiOrder(response.data.totalOrderMany)
+        setSingleOrder(response.data?.totalOrderOne ?? response.data?.meta?.totalOrderOne ?? 0)
+        setMultiOrder(response.data?.totalOrderMany ?? response.data?.meta?.totalOrderMany ?? 0)
         setMember(response.data.data)
-        setTotalMember(response.data.total)
+        setTotalMember(response.data?.total ?? response.data?.meta?.total ?? 0)
       } else {
         console.error('API response data is not an array:', response.data)
       }

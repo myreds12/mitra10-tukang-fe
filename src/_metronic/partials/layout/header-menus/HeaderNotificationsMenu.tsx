@@ -168,30 +168,29 @@ const HeaderNotificationsMenu: React.FC<Props> = ({
   const handleSubmitOneData = async (notifId: number, is_read: boolean) => {
     setIsLoadingSubmit(true)
 
-    await axios
-      .post(
+    try {
+      const response = await axios.post(
         `${apiUrl}/notifications`,
-        {id: notifId, is_read: is_read},
+        [{id: notifId, is_read}],
         {
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            // 'Access-Control-Allow-Origin': '*',
-           // 'ngrok-skip-browser-warning':  'true',
           },
         }
       )
-      .then((response) => {
-        if (response.data.status === 200 || response.data.status === 201) {
-          setIsLoadingSubmit(false)
-          getNotifications(currentPage, pageSize)
-        } else {
-          setIsLoadingSubmit(false)
-        }
-      })
-      .catch((error) => {
-        setIsLoadingSubmit(false)
-      })
+
+      if (response.data.status === 200 || response.data.status === 201) {
+        await getNotifications(currentPage, pageSize)
+        return true
+      }
+
+      return false
+    } catch (error) {
+      return false
+    } finally {
+      setIsLoadingSubmit(false)
+    }
   }
 
   // Handle Multiple Notification
@@ -203,8 +202,6 @@ const HeaderNotificationsMenu: React.FC<Props> = ({
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
         },
       })
       .then((response) => {
@@ -234,8 +231,6 @@ const HeaderNotificationsMenu: React.FC<Props> = ({
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
         },
       })
       .then((response) => {
@@ -326,9 +321,7 @@ const HeaderNotificationsMenu: React.FC<Props> = ({
                       {moduleTypeMap[item.module_type]?.disabled(role) ?? null ? (
                         <a
                           className='fs-7 text-dark fw-bold'
-                          onClick={() =>
-                            handleSubmitOneData(item.id, item.is_read === false ? true : false)
-                          }
+                          onClick={() => handleSubmitOneData(item.id, true)}
                         >
                           {actionMap[item.action]?.(module.name) || item.action} oleh{' '}
                           {item?.created_by?.username}
@@ -338,9 +331,13 @@ const HeaderNotificationsMenu: React.FC<Props> = ({
                           className='fs-7 text-dark fw-bold'
                           href={moduleUrl}
                           style={{maxWidth: '190px'}}
-                          onClick={() =>
-                            handleSubmitOneData(item.id, item.is_read === false ? true : false)
-                          }
+                          onClick={async (event) => {
+                            event.preventDefault()
+                            const marked = await handleSubmitOneData(item.id, true)
+                            if (marked) {
+                              window.location.assign(moduleUrl)
+                            }
+                          }}
                         >
                           {actionMap[item.action]?.(module.name) || item.action} oleh{' '}
                           {item?.created_by?.username}
@@ -382,11 +379,14 @@ const HeaderNotificationsMenu: React.FC<Props> = ({
           defaultPageSize={pageSize}
           showSizeChanger
           pageSizeOptions={[5, 10, 20, 50, 100, 500]}
-          onShowSizeChange={(current, size) => {
-            setPageSize(size)
-          }}
-          onChange={(page, pageSize) => {
-            getNotifications(page, pageSize)
+          onChange={(page, size) => {
+            if (size !== pageSize) {
+              setPageSize(size)
+              getNotifications(1, size)
+              return
+            }
+
+            getNotifications(page, size)
           }}
         />
       </div>

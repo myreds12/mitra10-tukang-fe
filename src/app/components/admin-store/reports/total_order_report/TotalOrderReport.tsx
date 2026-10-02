@@ -81,6 +81,7 @@ const TotalOrderReportStore: React.FC<Props> = ({
 
   const [reportData, setReportData] = useState<DataType[]>([])
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
   const [totalOrder, setTotalOrder] = useState<number>(0)
 
   const [dateFrom, setDateFrom] = useState<any>('')
@@ -553,23 +554,27 @@ const TotalOrderReportStore: React.FC<Props> = ({
             </div>
           </Spin>
 
-          <Pagination
-            className='mt-5'
-            style={{textAlign: 'right', position: 'relative'}}
-            current={currentPage}
-            total={totalOrder}
-            showSizeChanger
-            pageSizeOptions={[5, 10, 20, 50, 100]}
-            itemRender={itemRender}
-            onChange={(page, pageSize) => {
-              fetchData(page, pageSize, '')
-            }}
-            showTotal={(total, range) => (
-              <span style={{left: 0, position: 'absolute'}}>
-                Showing {range[0]} - {range[1]} of {total} Order
-              </span>
-            )}
-          />
+          <div className='pagination-container mt-5'>
+            <span className='total-text'>
+              Showing {totalOrder === 0 ? 0 : (currentPage - 1) * pageSize + 1} -{' '}
+              {Math.min(currentPage * pageSize, totalOrder)} of {totalOrder} Order
+            </span>
+
+            <Pagination
+              className='pagination'
+              current={currentPage}
+              pageSize={pageSize}
+              total={totalOrder}
+              showSizeChanger
+              pageSizeOptions={[5, 10, 20, 50, 100]}
+              itemRender={itemRender}
+              onChange={(page, newPageSize) => {
+                setPageSize(newPageSize)
+                setCurrentPage(page)
+                fetchData(page, newPageSize, '')
+              }}
+            />
+          </div>
         </div>
       </div>
     </section>

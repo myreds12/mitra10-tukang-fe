@@ -126,6 +126,18 @@ const AsideDefault: FC = () => {
               roles: role,
             })
             break
+          case 'Pendaftar Vendor':
+            setUser({
+              user_id: data.id,
+              username: data?.username ?? '',
+              full_name:
+                data?.vendor_registrant?.company_name ||
+                data?.company_name ||
+                data?.username ||
+                'Pendaftar Vendor',
+              roles: role || 'Pendaftar Vendor',
+            })
+            break
           default:
             console.log('user not found!:')
         }
@@ -211,19 +223,30 @@ const AsideDefault: FC = () => {
             src={toAbsoluteUrl('/media/avatars/blank.png')}
           />
 
-          <h6 className='text-center text-secondary-emphasis'>
-            {[
-              'Super User',
-              'Admin HO',
-              'Store CS',
-              'Admin WA',
-              'Admin WA2',
-              'Manager Store',
-            ].includes(user.roles)
-              ? user.username
-              : user.full_name}
-            <br />({user.roles}){' '}
-          </h6>
+          {(() => {
+            const roleName = user.roles || localStorage.getItem('userRole') || ''
+            const displayName =
+              [
+                'Super User',
+                'Admin HO',
+                'Store CS',
+                'Admin WA',
+                'Admin WA2',
+                'Manager Store',
+              ].includes(roleName)
+                ? user.username || localStorage.getItem('username') || ''
+                : user.full_name || user.username || localStorage.getItem('username') || ''
+            return (
+              <h6 className='text-center text-secondary-emphasis'>
+                {displayName}
+                {roleName ? (
+                  <>
+                    <br />({roleName}){' '}
+                  </>
+                ) : null}
+              </h6>
+            )
+          })()}
         </div>
         {/* end::Logo */}
 

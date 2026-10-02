@@ -185,17 +185,20 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
 
       if (Array.isArray(response.data.data)) {
         const item = response.data.data
-          .filter((x: any) => x.is_active === true)
+          .filter((x: any) => Boolean(x.is_active))
           .map((item: any) => ({
             value: item.id,
-            label: item.item_code,
+            label:
+              paymentTypeValue[1] === 'survey'
+                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
+                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
             service_name: item?.service_name ?? '',
             category_id: item.category_id,
             default_price: item.default_price,
             type: item?.type,
-            prices: item.prices.map((priceItem: any) => ({
+            prices: (item.prices || []).map((priceItem: any) => ({
               id: priceItem.id,
               item_id: priceItem.item_id,
               store_id: priceItem.store_id,
@@ -1169,17 +1172,6 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
                                 return cache
                               })
                               calcEachDetails()
-                            }}
-                            onKeyDown={(e) => {
-                              if (
-                                !/[0-9]/.test(e.key) &&
-                                e.key !== 'Backspace' &&
-                                e.key !== 'ArrowLeft' &&
-                                e.key !== 'ArrowRight' &&
-                                e.key !== 'Tab'
-                              ) {
-                                e.preventDefault()
-                              }
                             }}
                           />
                         ) : (

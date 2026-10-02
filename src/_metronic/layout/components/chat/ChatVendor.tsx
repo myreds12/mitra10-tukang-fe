@@ -11,7 +11,7 @@ interface ChatVendorProps {
   loadingVendors: boolean
   startChat: (chatType: string, vendor: Vendor) => void
   chatType: string
-  vendorListRef: React.RefObject<HTMLDivElement>
+  vendorListRef: any
   setSearchQuery: any
   searchQuery: any
   StoreList: Vendor[]

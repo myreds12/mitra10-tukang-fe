@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react'
 import './Login.css'
 
 import {Link, useNavigate} from 'react-router-dom'
-import {Form, Button} from 'react-bootstrap'
+import {Form, Button, Modal} from 'react-bootstrap'
 import Swal from 'sweetalert2'
 import axios from 'axios'
 import {toAbsoluteUrl} from '../../../_metronic/helpers'
@@ -10,6 +10,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faEye, faEyeSlash} from '@fortawesome/free-solid-svg-icons'
 
 import ModalNotification from './ModalNotification'
+import TermsAndConditionsViewer from './TermsAndConditionsViewer'
 
 interface Status {
   value: number
@@ -25,7 +26,7 @@ export function Login() {
   const [status, setStatus] = useState<Status[]>([])
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-
+  const [showTerms, setShowTerms] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [handleTogglePassword, setHandleTogglePassword] = useState(false)
@@ -83,7 +84,7 @@ export function Login() {
         }
       )
       .then((res) => {
-        if (res.data.status === 200) {
+        if (res?.data?.status === 200 && res?.data?.data?.user) {
           const user = res.data.data.user
 
           const isSales = user.roles.name === 'Sales'
@@ -94,8 +95,15 @@ export function Login() {
           const isTukang = user.roles.name === 'Tukang'
           const isFinance = user.roles.name === 'Finance'
           const isPayroll = user.roles.name === 'Payroll'
+          const isRegistrant = user.roles.name === 'Pendaftar Vendor'
           const isEmployee =
-            user.employee !== null && !isStore && !isSales && !isVendor && !isTukang && !isAdminHO
+            user.employee !== null &&
+            !isStore &&
+            !isSales &&
+            !isVendor &&
+            !isTukang &&
+            !isAdminHO &&
+            !isRegistrant
 
           localStorage.setItem('user_id', user.id)
           localStorage.setItem('username', user.username)
@@ -136,13 +144,13 @@ export function Login() {
             localStorage.setItem('vendorName', user?.pic_vendor[0]?.vendor?.company_name)
           } else if (isTukang) {
             localStorage.setItem('tukang_id', user?.tukang[0]?.id)
-            localStorage.setItem('tukangName', user?.tukang[0]?.full_name)
-          } else if (isFinance) {
-            localStorage.setItem('finance_id', user?.id)
-            localStorage.setItem('financeName', user?.username)
           } else if (isPayroll) {
             localStorage.setItem('payrollid', user?.id)
             localStorage.setItem('financeName', user?.username)
+          } else if (isRegistrant) {
+            // Pendaftar vendor: tidak perlu localStorage tambahan (vendor_id dsb
+            // belum ada - pendaftaran belum disetujui). Redirect ditangani
+            // AppRoutes navigateUrl() -> /pendaftar/home.
           } else if (!isSales && !isAdminHO && !isEmployee && !isVendor) {
             window.location.reload()
           }
@@ -159,6 +167,7 @@ export function Login() {
           navigate('/login')
           Swal.fire({
             title: 'Login Failed',
+            text: res?.data?.message || 'Login gagal, periksa kembali username dan password',
             icon: 'error',
           })
 
@@ -167,9 +176,13 @@ export function Login() {
       })
       .catch((err) => {
         setIsLoading(false)
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Terjadi kesalahan koneksi ke server'
         Swal.fire({
           title: 'Login Failed',
-          text: err.response.data.message,
+          text: errorMessage,
           icon: 'error',
         })
         console.error(err)
@@ -266,12 +279,45 @@ export function Login() {
                   {isLoading ? 'Logging In...' : 'Login'}
                 </Button>
               </div>
+              <div className='text-center mt-5 pt-5 border-top'>
+                <p className='text-muted mb-2'>Belum punya akun vendor?</p>
+                <Link
+                  to='/vendor-register'
+                  className='btn btn-outline-primary w-100'
+                >
+                  Daftar sebagai Vendor
+                </Link>
+
+                {/* Tautan Syarat & Ketentuan - viewer read-only (HTML, tanpa download) */}
+                <div className='mt-4 pt-1'>
+                  <button
+                    type='button'
+                    className='btn-link border-0 bg-transparent text-muted'
+                    style={{
+                      fontSize: '12px',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: '#6c757d',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#183383')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#6c757d')}
+                    onClick={() => setShowTerms(true)}
+                  >
+                    Syarat &amp; Ketentuan Pendaftaran
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
         </div>
       </div>
 
       {showModal && <ModalNotification onClose={() => setShowModal(false)} />}
+
+      {/* Viewer T&C read-only (HTML dari DB, tanpa download) */}
+      <TermsAndConditionsViewer show={showTerms} onClose={() => setShowTerms(false)} />
     </section>
   )
 }

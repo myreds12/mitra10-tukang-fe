@@ -10,6 +10,11 @@ import {HeaderNotificationsMenu} from '../../../partials'
 import {useLayout} from '../../core'
 import {formatTotalNumber} from '../../../helpers/NumberHelpers'
 
+const NOTIFICATION_SYNC_EVENT = 'notifications:sync'
+let notificationPollingInterval: ReturnType<typeof setInterval> | null = null
+let notificationPollingSubscribers = 0
+let notificationPollingFetch: (() => void) | null = null
+
 const toolbarButtonMarginClass = 'ms-1 ms-lg-3',
   toolbarButtonHeightClass = 'w-30px h-30px w-md-40px h-md-40px',
   toolbarButtonIconSizeClass = 'svg-icon-1'
@@ -21,6 +26,7 @@ interface StatusStorage {
 
 const Topbar: FC = () => {
   const apiUrl = process.env.REACT_APP_API_URL
+  const liveChatApiUrl = process.env.REACT_APP_LIVECHAT_API_URL || 'http://localhost:3002'
   const {config} = useLayout()
 
   // Notification State
@@ -37,9 +43,40 @@ const Topbar: FC = () => {
   const [status, setStatus] = useState<StatusStorage[]>([])
   const [selectedStatus, setSelectedStatus] = useState<StatusStorage[]>([])
   const statuses = selectedStatus.length > 0 ? `&status=${selectedStatus.map((x) => x.value)}` : ''
+  const liveChatAllowedRoles = ['Store CS', 'Admin HO', 'Super User', 'Admin Vendor', 'Owner Vendor']
+
+  const getChatUnreadCount = async () => {
+    const token = localStorage.getItem('accessToken')
+    const userRole = localStorage.getItem('userRole') || ''
+
+    if (!token || !liveChatAllowedRoles.includes(userRole)) return
+
+    try {
+      const response = await axios.get(`${liveChatApiUrl}/rooms`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const rooms = response.data?.data || []
+      const totalUnread = Array.isArray(rooms)
+        ? rooms.reduce((sum: number, room: any) => sum + (room.unreadCount || 0), 0)
+        : 0
+
+      window.dispatchEvent(
+        new CustomEvent('livechat:unread-count', {detail: {totalUnread}})
+      )
+    } catch (error) {
+      console.error('Error fetching live chat unread count:', error)
+    }
+  }
 
   // Fetching Data
   const getNotifications = async (page: number, pageSize: number) => {
+    notificationPollingFetch = () => {
+      void getNotifications(page, pageSize)
+    }
+
     try {
       const response = await axios.get(
         `${apiUrl}/notifications?take=${pageSize}&page=${page}${statuses}`,
@@ -47,25 +84,34 @@ const Topbar: FC = () => {
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            // 'Access-Control-Allow-Origin': '*',
-           // 'ngrok-skip-browser-warning':  'true',
           },
         }
       )
 
       const notificationsData = response.data.data.map((item: any) => {
         let parsedData = {}
-        parsedData = JSON.parse(item.data)
+        try {
+          parsedData = item.data ? JSON.parse(item.data) : {}
+        } catch {
+          parsedData = {}
+        }
+
         return {
           ...item,
           parsedData,
         }
       })
 
-      setNotifications(notificationsData)
-      setCurrentPage(response.data.page)
-      setTotalData(response?.data?.total ?? 0)
-      setTotalUnread(response?.data?.unread ?? 0)
+      const notificationState = {
+        notifications: notificationsData,
+        currentPage: response.data.page,
+        totalData: response?.data?.total ?? 0,
+        totalUnread: response?.data?.unread ?? 0,
+      }
+
+      window.dispatchEvent(
+        new CustomEvent(NOTIFICATION_SYNC_EVENT, {detail: notificationState})
+      )
 
       return notificationsData
     } catch (error) {
@@ -78,8 +124,6 @@ const Topbar: FC = () => {
       const response = await axios.get(`${apiUrl}/status?take=0`, {
         headers: {
           Accept: 'application/json',
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
         },
       })
 
@@ -98,19 +142,62 @@ const Topbar: FC = () => {
     }
   }
 
+  const userRole = localStorage.getItem('userRole') || ''
+  const isPendaftar =
+    window.location.pathname.startsWith('/pendaftar') ||
+    userRole === 'Pendaftar Vendor'
+
   useEffect(() => {
-    getNotifications(currentPage, pageSize)
+    if (isPendaftar) return
+
+    const syncNotifications = (event: Event) => {
+      const {notifications, currentPage, totalData, totalUnread} = (
+        event as CustomEvent
+      ).detail
+
+      setNotifications(notifications)
+      setCurrentPage(currentPage)
+      setTotalData(totalData)
+      setTotalUnread(totalUnread)
+    }
+
+    window.addEventListener(NOTIFICATION_SYNC_EVENT, syncNotifications)
+    notificationPollingSubscribers += 1
+
+    if (!notificationPollingInterval) {
+      getNotifications(1, pageSize)
+      notificationPollingInterval = setInterval(() => {
+        notificationPollingFetch?.()
+      }, 30000)
+    }
+
+    return () => {
+      window.removeEventListener(NOTIFICATION_SYNC_EVENT, syncNotifications)
+      notificationPollingSubscribers -= 1
+
+      if (notificationPollingSubscribers === 0 && notificationPollingInterval) {
+        clearInterval(notificationPollingInterval)
+        notificationPollingInterval = null
+        notificationPollingFetch = null
+      }
+    }
+    // eslint-disable-next-line
+  }, [isPendaftar])
+
+  useEffect(() => {
+    getChatUnreadCount()
 
     const intervalId = setInterval(() => {
-      getNotifications(currentPage, pageSize)
+      getChatUnreadCount()
     }, 30000)
 
     return () => clearInterval(intervalId)
     // eslint-disable-next-line
-  }, [currentPage, pageSize])
+  }, [])
 
   useEffect(() => {
     getStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSearch = async () => {
@@ -118,6 +205,10 @@ const Topbar: FC = () => {
     const data = await getNotifications(currentPage, pageSize)
     setNotifications(data)
     setLoadingSearch(false)
+  }
+
+  if (isPendaftar) {
+    return null
   }
 
   return (

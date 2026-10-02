@@ -10,6 +10,7 @@ export function AsideMenuMain() {
   const userRole = localStorage.getItem('userRole') as string
   const userVendor = localStorage.getItem('vendor_id')
   const userTukang = localStorage.getItem('tukang_id')
+  const isVendorSpEnabled = process.env.REACT_APP_ENABLE_VENDOR_SP === 'true'
 
   const manualBookHandle = () => {
     document.location.href = '/manual-book'
@@ -298,10 +299,55 @@ export function AsideMenuMain() {
         />
         <AsideMenuItem
           to='/vendor/new-vendor'
-          title='Register Vendor'
+          title='Register Vendor (Manual)'
           role={['Admin HO', 'Super User']}
           hasBullet={true}
         />
+        <AsideMenuItem
+          to='/vendor-registration/view'
+          title='Pendaftaran Vendor'
+          role={['Admin HO', 'Super User']}
+          hasBullet={true}
+        />
+        {isVendorSpEnabled && (
+          <AsideMenuItemWithSub
+            to='/vendor-sp'
+            title='Vendor SP'
+            role={['Admin HO', 'Super User']}
+            hasBullet={true}
+          >
+<AsideMenuItem
+              to='/vendor-sp/view'
+              title='Daftar SP Vendor'
+              role={['Admin HO', 'Super User']}
+              hasBullet={true}
+            />
+            <AsideMenuItem
+              to='/vendor-sp/violation-type'
+              title='Jenis Pelanggaran'
+              role={['Admin HO', 'Super User']}
+              hasBullet={true}
+            />
+            <AsideMenuItem
+              to='/vendor-sp/violation-log'
+              title='Log Pelanggaran'
+              role={['Admin HO', 'Super User']}
+              hasBullet={true}
+            />
+            <AsideMenuItem
+              to='/vendor-sp/revision-request'
+              title='Approval Revisi Poin'
+              role={['Super User']}
+              hasBullet={true}
+            />
+            <AsideMenuItem
+              to='/vendor-sp/reactivation'
+              title='Reaktivasi Vendor SP3'
+              role={['Admin HO', 'Super User']}
+              hasBullet={true}
+            />
+          </AsideMenuItemWithSub>
+        )}
       </AsideMenuItemWithSub>
 
       {/* Halaman Customers */}
@@ -617,6 +663,37 @@ export function AsideMenuMain() {
             hasBullet={true}
           />
         </AsideMenuItemWithSub>
+
+        {/* Setting: Syarat & Ketentuan pendaftaran vendor (Rekrut Vendor) */}
+        <AsideMenuItemWithSub
+          to='/vendor-registration/terms-setting'
+          title='Syarat & Ketentuan'
+          hasBullet={true}
+          role={['Admin HO', 'Super User']}
+        >
+          <AsideMenuItem
+            to='/vendor-registration/terms-setting/view'
+            title='Daftar Versi T&C'
+            role={['Admin HO', 'Super User']}
+            hasBullet={true}
+          />
+
+          <AsideMenuItem
+            to='/vendor-registration/terms-setting/edit/new'
+            title='Formulir Create T&C'
+            role={['Admin HO', 'Super User']}
+            hasBullet={true}
+          />
+        </AsideMenuItemWithSub>
+
+        {/* Setting: Konten Home dashboard pendaftar vendor (Rekrut Vendor) */}
+        <AsideMenuItem
+          to='/home-content-settings'
+          title='Kelola Konten Home Vendor'
+          role={['Admin HO', 'Super User']}
+          hasBullet={true}
+        />
+
 
         <AsideMenuItemWithSub
           to='/incentive-sales'

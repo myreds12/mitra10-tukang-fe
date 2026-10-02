@@ -131,6 +131,7 @@ const NewInvoiceVendor: FC = () => {
   )
   const [dateTo, setDateTo] = useState<any>(new Date().toISOString().split('T')[0])
   const [searchFilter, setSearchFilter] = useState<string>('')
+  const [activeQueryParams, setActiveQueryParams] = useState<string>('')
 
   const handleChangeSearchFilter = (event: React.ChangeEvent<HTMLInputElement>) => {
     const updatedSearchFilter = event.target.value
@@ -171,6 +172,7 @@ const NewInvoiceVendor: FC = () => {
 
   // Calculation
   const totalSelectedGrandTotal = useMemo(() => {
+    if (!selectedRows.length) return 0
     return selectedRows.reduce((total, row) => total + Number(row.grand_total || 0), 0)
   }, [selectedRows])
 
@@ -399,19 +401,21 @@ const NewInvoiceVendor: FC = () => {
       }
 
       const canCreateInvoice = (order: any, invoiceType: number) => {
-        const noInvoice = order.invoice_details.length === 0
+        const invoiceDetails = Array.isArray(order.invoice_details) ? order.invoice_details : []
+        const noInvoice = invoiceDetails.length === 0
 
-        const sortedInvoices = order.invoice_details.slice().sort((a: any, b: any) => {
-          if (a.type !== b.type) return a.type - b.type
-          return b.invoices.id - a.invoices.id
+        const sortedInvoices = invoiceDetails.slice().sort((a: any, b: any) => {
+          if (Number(a.type) !== Number(b.type)) return Number(a.type) - Number(b.type)
+          return Number(b.invoices?.id ?? 0) - Number(a.invoices?.id ?? 0)
         })
 
-        const relevantInvoice = sortedInvoices.find((inv: any) => inv.type === invoiceType)
+        const relevantInvoice = sortedInvoices.find((inv: any) => Number(inv.type) === invoiceType)
 
         if (!relevantInvoice) return true
 
-        const hasInvoiceSent = [1, 2, 4, 5, 6, 7].includes(relevantInvoice.invoices.status)
-        const hasInvoiceRejected = relevantInvoice.invoices.status === 3
+        const invoiceStatus = Number(relevantInvoice.invoices?.status)
+        const hasInvoiceSent = [1, 2, 4, 5, 6, 7].includes(invoiceStatus)
+        const hasInvoiceRejected = invoiceStatus === 3
 
         return noInvoice || hasInvoiceRejected || !hasInvoiceSent
       }
@@ -691,6 +695,7 @@ const NewInvoiceVendor: FC = () => {
 
     const page = 1
     const pageSize = 10
+    setActiveQueryParams(queryparams)
     await fetchData(page, pageSize, queryparams)
 
     setLoadingButton(false)
@@ -812,9 +817,10 @@ const NewInvoiceVendor: FC = () => {
               itemRender={itemRender}
               onShowSizeChange={(current, size) => {
                 setPageSize(size)
+                fetchData(1, size, activeQueryParams)
               }}
               onChange={(page, pageSize) => {
-                fetchData(page, pageSize, '')
+                fetchData(page, pageSize, activeQueryParams)
               }}
             />
           </div>

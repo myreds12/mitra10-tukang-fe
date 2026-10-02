@@ -108,12 +108,11 @@ export default function ChatPage(): JSX.Element {
     }
   }, [messages, isOpen])
 
-  // Function to fetch vendor data based on the current page
   const fetchVendors = async (page: number) => {
     setLoadingVendors(true)
     try {
       const ttype = chatType === 'vendor' ? 'vendor' : 'stores'
-      let apiUrlWithParams = `${apiUrl}/${ttype}?order_by=desc&page=${page}&take=10` // Update query parameters as needed
+      let apiUrlWithParams = `${apiUrl}/${ttype}?order_by=desc&page=${page}&take=50` // Increased take to 50
 
       if (userRole === 'Store CS') {
         apiUrlWithParams += `&store_id=${storeId}`
@@ -133,23 +132,27 @@ export default function ChatPage(): JSX.Element {
 
       if (res.data && res.data.data) {
         if (chatType === 'vendor') {
-          setVendorList((prevList) => [...prevList, ...res.data.data]) // Append new vendors to the list
+          setVendorList((prevList) => [...prevList, ...res.data.data])
         } else {
           setStoreList((prevList) => [...prevList, ...res.data.data])
         }
       }
     } catch (err) {
       console.error('Error fetching vendors:', err)
-      alert('Gagal memuat daftar vendor.')
+      alert('Gagal memuat daftar.')
     } finally {
       setLoadingVendors(false)
     }
   }
 
   const GetVendor = async () => {
-    let apiUrlWithParams = `${apiUrl}/vendor?order_by=desc&page=${page}&take=10` // Update query parameters as needed
+    let apiUrlWithParams = `${apiUrl}/vendor?order_by=desc&page=1&take=50` // Increased take to 50
     if (userRole === 'Store CS') {
       apiUrlWithParams += `&store_id=${storeId}`
+    }
+
+    if (userRole === 'Owner Vendor') {
+      apiUrlWithParams += `&vendor_id=${vendorId}`
     }
 
     if (searchQuery) {
@@ -166,7 +169,7 @@ export default function ChatPage(): JSX.Element {
     setVendorList(res.data.data)
   }
   const getStore = async () => {
-    let apiUrlWithParams = `${apiUrl}/stores?order_by=desc&page=${page}&take=10` // Update query parameters as needed
+    let apiUrlWithParams = `${apiUrl}/stores?order_by=desc&page=1&take=50` // Increased take to 50
     if (userRole === 'Owner Vendor') {
       apiUrlWithParams += `&vendor_id=${vendorId}`
     }
@@ -326,7 +329,7 @@ export default function ChatPage(): JSX.Element {
           }
         }
 
-        const res = await axios.post(`${apiChat}/chat/createGroup`, payload, {
+        const res = await axios.post(`${apiChat}/chat/group/create-group`, payload, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
@@ -402,7 +405,7 @@ export default function ChatPage(): JSX.Element {
             }
           }
         }
-        const res = await axios.post(`${apiChat}/chat/createGroup`, payload, {
+        const res = await axios.post(`${apiChat}/chat/group/create-group`, payload, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
@@ -481,7 +484,7 @@ export default function ChatPage(): JSX.Element {
             }
           }
         }
-        const res = await axios.post(`${apiChat}/chat/createGroup`, payload, {
+        const res = await axios.post(`${apiChat}/chat/group/create-group`, payload, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },

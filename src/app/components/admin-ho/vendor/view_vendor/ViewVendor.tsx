@@ -56,10 +56,14 @@ interface DataType {
   serving_area: string
   vendor_type: string
   vendor_status: string
+  sp_level: number | null
+  total_point: number
 }
 
 const ViewVendorHO: React.FC<Props> = ({className}) => {
   const apiUrl = process.env.REACT_APP_API_URL
+  const userRole = localStorage.getItem('userRole')
+  const isAuthorizedToDelete = userRole === 'Super User' || userRole === 'Admin HO'
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -198,6 +202,25 @@ const ViewVendorHO: React.FC<Props> = ({className}) => {
       width: 110,
     },
     {
+      title: 'Status SP',
+      dataIndex: 'sp_level',
+      key: 'sp_level',
+      align: 'center',
+      width: 100,
+      render: (level: number | null, record: DataType) => {
+        if (!level || level === 0) {
+          return <span className='badge badge-light-success fw-semibold'>NORMAL</span>
+        }
+        const badgeClass = level === 1 ? 'badge-light-warning text-warning' : level === 2 ? 'badge-light-danger text-danger' : 'badge-light-dark'
+        return (
+          <div className='d-flex flex-column align-items-center'>
+            <span className={`badge ${badgeClass} fw-bold`}>SP{level}</span>
+            <small className='text-muted' style={{fontSize: '10px'}}>{record.total_point} pts</small>
+          </div>
+        )
+      }
+    },
+    {
       title: 'Action',
       key: 'action',
       fixed: 'right',
@@ -215,6 +238,14 @@ const ViewVendorHO: React.FC<Props> = ({className}) => {
         }
 
         const handleDeleteId = () => {
+          if (!isAuthorizedToDelete) {
+            Swal.fire({
+              title: 'Access Denied',
+              text: 'Anda tidak memiliki akses untuk menghapus data vendor.',
+              icon: 'error',
+            })
+            return
+          }
           const id = record.vendor_id
 
           Swal.fire({
@@ -303,15 +334,17 @@ const ViewVendorHO: React.FC<Props> = ({className}) => {
               </a>
             </OverlayTrigger>
 
-            <OverlayTrigger
-              placement='bottom'
-              delay={{show: 250, hide: 400}}
-              overlay={renderTooltip('Hapus Vendor')}
-            >
-              <Button className='button-delete' variant='danger' onClick={handleDeleteId}>
-                <FontAwesomeIcon className='text-white' icon={faTrash} fontSize={'13px'} />
-              </Button>
-            </OverlayTrigger>
+            {isAuthorizedToDelete && (
+              <OverlayTrigger
+                placement='bottom'
+                delay={{show: 250, hide: 400}}
+                overlay={renderTooltip('Hapus Vendor')}
+              >
+                <Button className='button-delete' variant='danger' onClick={handleDeleteId}>
+                  <FontAwesomeIcon className='text-white' icon={faTrash} fontSize={'13px'} />
+                </Button>
+              </OverlayTrigger>
+            )}
           </div>
         )
       },
@@ -411,6 +444,8 @@ const ViewVendorHO: React.FC<Props> = ({className}) => {
           serving_area: uniqueArea,
           vendor_type: item.type === 1 ? 'VENDOR PKP' : 'VENDOR NON PKP',
           vendor_status: item.is_active ? 'ACTIVE' : 'NON ACTIVE',
+          sp_level: item.sp_level || 0,
+          total_point: item.total_point || 0,
         }
 
         return data
