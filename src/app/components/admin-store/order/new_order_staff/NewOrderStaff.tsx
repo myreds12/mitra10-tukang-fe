@@ -156,6 +156,7 @@ const NewOrderStoreStaff: FC = () => {
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [searchPemasangan, setSearchPemasangan] = useState('')
   const [grandTotal, setGrandTotal] = useState<number>(0)
 
   // Fetch API Data
@@ -169,7 +170,8 @@ const NewOrderStoreStaff: FC = () => {
         ? `&item_type=2&is_promotion=1&store_id=${staffStoreId}`
         : ''
     const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const search = searchItem ? `&search=${searchItem}` : ''
+    const activeSearch = searchItem || searchPemasangan
+    const search = activeSearch ? `&search=${activeSearch}` : ''
 
     try {
       const response = await axios.get(
@@ -189,7 +191,7 @@ const NewOrderStoreStaff: FC = () => {
           .filter((x: any) => x.is_active === true)
           .map((item: any) => ({
             value: item.id,
-            label: paymentTypeValue[1] === 'survey' ? item.item_code : item.service_name,
+            label: item.item_code,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
             service_name: item?.service_name ?? '',
@@ -250,7 +252,7 @@ const NewOrderStoreStaff: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line
     getItem()
-  }, [paymentTypeValue, searchItem])
+  }, [paymentTypeValue, searchItem, searchPemasangan])
 
   useEffect(() => {
     const getMember = async () => {
@@ -1657,8 +1659,10 @@ kami pada jam operasional.
                             }}
                             options={item}
                             name={`item_id`}
+                            getOptionLabel={(option) => option?.service_name || option?.label || ''}
+                            getOptionValue={(option) => String(option?.value ?? '')}
+                            onInputChange={(newValue) => setSearchPemasangan(newValue)}
                             value={orderForm.order_details[index]?.item ?? null}
-                            onInputChange={(newValue) => setSearchItem(newValue)}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}

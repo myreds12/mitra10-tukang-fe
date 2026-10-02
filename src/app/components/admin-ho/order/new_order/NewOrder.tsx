@@ -197,6 +197,7 @@ const NewOrderHO: FC = () => {
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [searchPemasangan, setSearchPemasangan] = useState('')
   const [grandTotal, setGrandTotal] = useState<number>(0)
 
   // Fetch API Data
@@ -211,7 +212,8 @@ const NewOrderHO: FC = () => {
         ? `&item_type=2&is_promotion=1${storeId}`
         : ''
     const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const search = searchItem ? `&search=${searchItem}` : ''
+    const activeSearch = searchItem || searchPemasangan
+    const search = activeSearch ? `&search=${activeSearch}` : ''
 
     try {
       const response = await axios.get(
@@ -231,7 +233,7 @@ const NewOrderHO: FC = () => {
           .filter((x: any) => x.is_active === true)
           .map((item: any) => ({
             value: item.id,
-            label: paymentTypeValue[1] === 'survey' ? item.item_code : item.service_name,
+            label: item.item_code,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
             service_name: item?.service_name ?? '',
@@ -292,7 +294,7 @@ const NewOrderHO: FC = () => {
 
   useEffect(() => {
     getItem()
-  }, [paymentTypeValue, searchItem, selectedStore])
+  }, [paymentTypeValue, searchItem, searchPemasangan, selectedStore])
 
   useEffect(() => {
     const getMember = async () => {
@@ -1737,6 +1739,8 @@ const NewOrderHO: FC = () => {
                             placeholder='Pilih/Ketik Nama Pemasangan'
                             isSearchable={true}
                             isClearable={true}
+                            getOptionLabel={(option) => option?.service_name || option?.label || ''}
+                            getOptionValue={(option) => String(option?.value ?? '')}
                             styles={{
                               singleValue: (base) => ({
                                 ...base,
@@ -1748,7 +1752,7 @@ const NewOrderHO: FC = () => {
                             options={item}
                             name={`item_id`}
                             value={orderForm.order_details[index]?.item ?? null}
-                            onInputChange={(newValue) => setSearchItem(newValue)}
+                            onInputChange={(newValue) => setSearchPemasangan(newValue)}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}

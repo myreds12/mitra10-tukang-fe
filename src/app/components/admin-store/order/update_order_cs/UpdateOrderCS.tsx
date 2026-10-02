@@ -36,6 +36,7 @@ interface ItemSelect {
   label: string
   item_code: string
   item_name: string
+  service_name: string
   category_id: number | null
   default_price: number
   type: number | null
@@ -164,6 +165,7 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [searchPemasangan, setSearchPemasangan] = useState('')
   const [grandTotal, setGrandTotal] = useState<number>(0)
 
   // Fetch API Data
@@ -177,7 +179,8 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
         ? `&item_type=2&is_promotion=1&store_id=${staffStoreId}`
         : ''
     const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const search = searchItem ? `&search=${searchItem}` : ''
+    const activeSearch = searchItem || searchPemasangan
+    const search = activeSearch ? `&search=${activeSearch}` : ''
 
     try {
       const response = await axios.get(
@@ -197,9 +200,10 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
           .filter((x: any) => x.is_active === true)
           .map((item: any) => ({
             value: item.id,
-            label: paymentTypeValue[1] === 'survey' ? item.item_code : item.service_name,
+            label: item.item_code,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
+            service_name: item?.service_name ?? '',
             category_id: item.category_id,
             default_price: item.default_price,
             type: item?.type,
@@ -227,7 +231,7 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
   useEffect(() => {
     // eslint-disable-next-line
     getItem()
-  }, [paymentTypeValue, searchItem])
+  }, [paymentTypeValue, searchItem, searchPemasangan])
 
   const fetchOrderData = async () => {
     try {
@@ -314,6 +318,7 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
                     data.payment_type === 'survey' ? item?.item_code : item?.item?.service_name,
                   item_code: item?.item_code ?? '',
                   item_name: item?.item_name ?? '',
+                  service_name: item?.item?.service_name ?? '',
                   category_id: item?.item?.category.id,
                   default_price: item?.item?.default_price,
                   type: item?.type,
@@ -1420,11 +1425,15 @@ const UpdateOrderStoreCS: FC<{updatePageTitle: (order: Orders) => void}> = ({upd
                             }}
                             options={item}
                             name={`item_id`}
+                            getOptionLabel={(option) => option?.service_name || option?.label || ''}
+                            getOptionValue={(option) => String(option?.value ?? '')}
+                            onInputChange={(newValue) => setSearchPemasangan(newValue)}
                             value={{
                               value: orderForm.order_details[index]?.item_id ?? null,
                               label: orderForm.order_details[index]?.item?.label ?? '',
                               item_code: orderForm.order_details[index]?.item_code ?? '',
                               item_name: orderForm.order_details[index]?.item_name ?? '',
+                              service_name: orderForm.order_details[index]?.item?.service_name ?? '',
                               category_id:
                                 orderForm.order_details[index]?.item?.category_id ?? null,
                               default_price:

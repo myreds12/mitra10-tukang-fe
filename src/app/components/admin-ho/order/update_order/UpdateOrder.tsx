@@ -49,6 +49,7 @@ interface ItemSelect {
   label: string
   item_code: string
   item_name: string
+  service_name: string
   category_id: number | null
   default_price: number
   type: number | null
@@ -194,10 +195,12 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [searchPemasangan, setSearchPemasangan] = useState('')
   const [grandTotal, setGrandTotal] = useState<number>(0)
 
   // Fetch API Data
   const getItem = async () => {
+    const activeSearch = searchItem || searchPemasangan
     const storeId = selectedStore && selectedStore.value ? `&store_id=${selectedStore.value}` : ``
     const itemFree =
       paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
@@ -208,7 +211,7 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
         ? `&item_type=2&is_promotion=1${storeId}`
         : ''
     const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const search = searchItem ? `&search=${searchItem}` : ''
+    const search = activeSearch ? `&search=${activeSearch}` : ''
 
     try {
       const response = await axios.get(
@@ -228,9 +231,10 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
           .filter((x: any) => x.is_active === true)
           .map((item: any) => ({
             value: item.id,
-            label: paymentTypeValue[1] === 'survey' ? item.item_code : item.service_name,
+            label: item.item_code,
             item_code: item?.item_code ?? '',
             item_name: item?.item_name ?? '',
+            service_name: item?.service_name ?? '',
             category_id: item.category_id,
             default_price: item.default_price,
             type: item?.type,
@@ -258,7 +262,7 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
   useEffect(() => {
     // eslint-disable-next-line
     getItem()
-  }, [paymentTypeValue])
+  }, [paymentTypeValue, searchPemasangan])
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -426,6 +430,7 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
                     category_id: item?.item?.category.id,
                     item_code: item?.item_code ?? '',
                     item_name: item?.item_name ?? '',
+                    service_name: item?.item?.service_name ?? '',
                     default_price: item?.item?.default_price,
                     type: item?.type,
                     prices:
@@ -2469,6 +2474,9 @@ Terima kasih telah memilih Mitra10.
                                     isClearable={true}
                                     options={item}
                                     name={`item_id`}
+                                    getOptionLabel={(option) => option?.service_name || option?.label || ''}
+                                    getOptionValue={(option) => String(option?.value ?? '')}
+                                    onInputChange={(newValue) => setSearchPemasangan(newValue)}
                                     styles={{
                                       singleValue: (base) => ({
                                         ...base,
@@ -2482,6 +2490,7 @@ Terima kasih telah memilih Mitra10.
                                       label: orderForm.order_details[index]?.item?.label ?? '',
                                       item_code: orderForm.order_details[index]?.item_code ?? '',
                                       item_name: orderForm.order_details[index]?.item_name ?? '',
+                                      service_name: orderForm.order_details[index]?.item?.service_name ?? '',
                                       category_id:
                                         orderForm.order_details[index]?.item?.category_id ?? null,
                                       default_price:
