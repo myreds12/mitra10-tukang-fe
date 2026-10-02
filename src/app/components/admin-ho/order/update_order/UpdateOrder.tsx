@@ -2412,7 +2412,6 @@ Terima kasih telah memilih Mitra10.
                                             : ((newValue?.item_code ?? '') as string),
                                           item_name: newValue?.item_name ?? '',
                                           item_notes: newValue?.service_name ?? newValue?.item_name ?? '',
-                                          service_name: newValue?.service_name ?? '',
                                           item: newValue,
                                         }
                                         return cache
