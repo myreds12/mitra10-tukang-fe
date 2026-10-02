@@ -202,20 +202,25 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
   const getItem = async () => {
     const activeSearch = searchItem || searchPemasangan
     const storeId = selectedStore && selectedStore.value ? `&store_id=${selectedStore.value}` : ``
-    const itemFree =
-      paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1${storeId}`
-        : ''
-    const itemTanpaSurvey =
-      paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1${storeId}`
-        : ''
-    const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const search = activeSearch ? `&search=${activeSearch}` : ''
+
+    const isGratis = paymentTypeValue[0] === 'gratis'
+    const isTanpaSurvey = paymentTypeValue[1] === 'pemasangan_tanpa_survey'
+    const isSurvey = paymentTypeValue[1] === 'survey'
+
+    let itemTypeParam = ''
+    if (isGratis) {
+      itemTypeParam = `&item_type=1&is_promotion=1${storeId}`
+    } else if (isTanpaSurvey) {
+      itemTypeParam = `&item_type=2&is_promotion=1${storeId}`
+    } else if (isSurvey) {
+      itemTypeParam = `&item_type=3${storeId ? storeId : '&all_store=1'}`
+    }
+
+    const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
 
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemFree}${itemTanpaSurvey}${itemSurvey}`,
+        `${apiUrl}/items?take=0${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -227,12 +232,13 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
       )
 
       if (Array.isArray(response.data.data)) {
+        const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const item = response.data.data
-          .filter((x: any) => Boolean(x.is_active))
+          .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
           .map((item: any) => ({
             value: item.id,
             label:
-              paymentTypeValue[1] === 'survey'
+              isSurvey
                 ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
                 : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
             item_code: item?.item_code ?? '',

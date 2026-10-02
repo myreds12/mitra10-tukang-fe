@@ -158,21 +158,33 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
 
   // Fetch API Data
   const getItem = async () => {
-    const itemFree =
-      paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1&store_id=${staffStoreId}`
+    const validStoreId =
+      staffStoreId &&
+      staffStoreId !== 'undefined' &&
+      staffStoreId !== 'null' &&
+      Number(staffStoreId) > 0
+        ? `&store_id=${staffStoreId}`
         : ''
-    const itemTanpaSurvey =
-      paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1&store_id=${staffStoreId}`
-        : ''
-    const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
+
+    const isGratis = paymentTypeValue[0] === 'gratis'
+    const isTanpaSurvey = paymentTypeValue[1] === 'pemasangan_tanpa_survey'
+    const isSurvey = paymentTypeValue[1] === 'survey'
+
+    let itemTypeParam = ''
+    if (isGratis) {
+      itemTypeParam = `&item_type=1&is_promotion=1${validStoreId}`
+    } else if (isTanpaSurvey) {
+      itemTypeParam = `&item_type=2&is_promotion=1${validStoreId}`
+    } else if (isSurvey) {
+      itemTypeParam = `&item_type=3${validStoreId ? validStoreId : '&all_store=1'}`
+    }
+
     const activeSearch = searchItem || searchPemasangan
-    const search = activeSearch ? `&search=${activeSearch}` : ''
+    const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
 
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemFree}${itemTanpaSurvey}${itemSurvey}`,
+        `${apiUrl}/items?take=0${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -184,12 +196,13 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
       )
 
       if (Array.isArray(response.data.data)) {
+        const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const item = response.data.data
-          .filter((x: any) => Boolean(x.is_active))
+          .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
           .map((item: any) => ({
             value: item.id,
             label:
-              paymentTypeValue[1] === 'survey'
+              isSurvey
                 ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
                 : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
             item_code: item?.item_code ?? '',

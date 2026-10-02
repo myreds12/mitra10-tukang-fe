@@ -168,21 +168,26 @@ const NewOrderStoreStaff: FC = () => {
       Number(staffStoreId) > 0
         ? `&store_id=${staffStoreId}`
         : ''
-    const itemFree =
-      paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1${validStoreId}`
-        : ''
-    const itemTanpaSurvey =
-      paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1${validStoreId}`
-        : ''
-    const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
+
+    const isGratis = paymentTypeValue[0] === 'gratis'
+    const isTanpaSurvey = paymentTypeValue[1] === 'pemasangan_tanpa_survey'
+    const isSurvey = paymentTypeValue[1] === 'survey'
+
+    let itemTypeParam = ''
+    if (isGratis) {
+      itemTypeParam = `&item_type=1&is_promotion=1${validStoreId}`
+    } else if (isTanpaSurvey) {
+      itemTypeParam = `&item_type=2&is_promotion=1${validStoreId}`
+    } else if (isSurvey) {
+      itemTypeParam = `&item_type=3${validStoreId ? validStoreId : '&all_store=1'}`
+    }
+
     const activeSearch = searchItem || searchPemasangan
-    const search = activeSearch ? `&search=${activeSearch}` : ''
+    const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
 
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemFree}${itemTanpaSurvey}${itemSurvey}`,
+        `${apiUrl}/items?take=0${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -194,12 +199,13 @@ const NewOrderStoreStaff: FC = () => {
       )
 
       if (Array.isArray(response.data.data)) {
+        const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const item = response.data.data
-          .filter((x: any) => Boolean(x.is_active))
+          .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
           .map((item: any) => ({
             value: item.id,
             label:
-              paymentTypeValue[1] === 'survey'
+              isSurvey
                 ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
                 : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
             item_code: item?.item_code ?? '',
@@ -449,11 +455,15 @@ const NewOrderStoreStaff: FC = () => {
 
   // Selected Payment Type && Clear Order Detail if user changed the payment type
   useEffect(() => {
-    setOrderForm({
-      ...orderForm,
+    setItem([])
+    setSearchItem('')
+    setSearchPemasangan('')
+    setOrderForm((prev) => ({
+      ...prev,
       payment_type: paymentTypeValue[0] === 'gratis' ? 'gratis' : paymentTypeValue[1],
       order_details: [
         {
+          item: null,
           item_id: null,
           item_code: null,
           item_name: null,
@@ -464,7 +474,7 @@ const NewOrderStoreStaff: FC = () => {
           item_notes: null,
         },
       ],
-    })
+    }))
   }, [paymentTypeValue])
 
   useEffect(() => {
@@ -1162,6 +1172,7 @@ kami pada jam operasional.
                               name='type'
                               type='radio'
                               value='berbayar'
+                              checked={paymentTypeValue[0] === 'berbayar'}
                               onChange={() => {
                                 setPaymentTypeValue(['berbayar', 'survey'])
                               }}
@@ -1532,7 +1543,7 @@ kami pada jam operasional.
                             placeholder='Pilih/Ketik Item Code'
                             isSearchable={true}
                             isClearable={true}
-                            options={item}
+                            options={item.filter((x: any) => Number(x?.type) === 3)}
                             name={`item_id`}
                             styles={{
                               singleValue: (base) => ({
@@ -1670,7 +1681,7 @@ kami pada jam operasional.
                                 textOverflow: '',
                               }),
                             }}
-                            options={item}
+                            options={item.filter((x: any) => Number(x?.type) === (paymentTypeValue[0] === 'gratis' ? 1 : 2))}
                             name={`item_id`}
                             getOptionLabel={(option) => option?.service_name || option?.label || ''}
                             getOptionValue={(option) => String(option?.value ?? '')}
