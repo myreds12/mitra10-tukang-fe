@@ -1674,7 +1674,6 @@ kami pada jam operasional.
                             name={`item_id`}
                             getOptionLabel={(option) => option?.service_name || option?.label || ''}
                             getOptionValue={(option) => String(option?.value ?? '')}
-                            onInputChange={(newValue) => setSearchPemasangan(newValue)}
                             value={orderForm.order_details[index]?.item ?? null}
                             filterOption={(candidate: any, input: string) => {
                               if (!input) return true
