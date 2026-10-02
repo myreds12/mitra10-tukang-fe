@@ -197,8 +197,25 @@ const NewOrderHO: FC = () => {
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [debouncedSearchItem, setDebouncedSearchItem] = useState('')
   const [searchPemasangan, setSearchPemasangan] = useState('')
+  const [debouncedSearchPemasangan, setDebouncedSearchPemasangan] = useState('')
+  const [isLoadingItem, setIsLoadingItem] = useState<boolean>(false)
   const [grandTotal, setGrandTotal] = useState<number>(0)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchItem(searchItem)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchItem])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchPemasangan(searchPemasangan)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchPemasangan])
 
   // Fetch API Data
   const getItem = async () => {
@@ -220,12 +237,14 @@ const NewOrderHO: FC = () => {
       itemTypeParam = `&item_type=3${storeId ? storeId : '&all_store=1'}`
     }
 
-    const activeSearch = searchItem || searchPemasangan
+    const activeSearch = (isSurvey ? debouncedSearchItem : debouncedSearchPemasangan)?.trim()
     const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
+    const take = isSurvey ? 50 : 0
 
+    setIsLoadingItem(true)
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemTypeParam}`,
+        `${apiUrl}/items?take=${take}${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -270,6 +289,8 @@ const NewOrderHO: FC = () => {
       }
     } catch (err) {
       console.error(err)
+    } finally {
+      setIsLoadingItem(false)
     }
   }
 
@@ -306,7 +327,7 @@ const NewOrderHO: FC = () => {
 
   useEffect(() => {
     getItem()
-  }, [paymentTypeValue, searchItem, searchPemasangan, selectedStore])
+  }, [paymentTypeValue, debouncedSearchItem, debouncedSearchPemasangan, selectedStore?.value])
 
   useEffect(() => {
     const getMember = async () => {
@@ -1651,6 +1672,7 @@ const NewOrderHO: FC = () => {
                             placeholder='Pilih/Ketik Item Code'
                             isSearchable={true}
                             isClearable={true}
+                            isLoading={isLoadingItem}
                             options={item.filter((x: any) => Number(x?.type) === 3)}
                             name={`item_id`}
                             styles={{
@@ -1736,7 +1758,6 @@ const NewOrderHO: FC = () => {
                           value={element?.item_name ?? ''}
                           onChange={(e) => {
                             orderDetailsFormHandler(e, index)
-                            setSearchItem(e.target.value)
                           }}
                           onInput={() => {
                             const textarea =
@@ -1777,6 +1798,7 @@ const NewOrderHO: FC = () => {
                             placeholder='Pilih/Ketik Nama Pemasangan'
                             isSearchable={true}
                             isClearable={true}
+                            isLoading={isLoadingItem}
                             getOptionLabel={(option) => option?.service_name || option?.label || ''}
                             getOptionValue={(option) => String(option?.value ?? '')}
                             styles={{

@@ -156,8 +156,25 @@ const NewOrderStoreStaff: FC = () => {
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [debouncedSearchItem, setDebouncedSearchItem] = useState('')
   const [searchPemasangan, setSearchPemasangan] = useState('')
+  const [debouncedSearchPemasangan, setDebouncedSearchPemasangan] = useState('')
+  const [isLoadingItem, setIsLoadingItem] = useState<boolean>(false)
   const [grandTotal, setGrandTotal] = useState<number>(0)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchItem(searchItem)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchItem])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchPemasangan(searchPemasangan)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchPemasangan])
 
   // Fetch API Data
   const getItem = async () => {
@@ -182,12 +199,14 @@ const NewOrderStoreStaff: FC = () => {
       itemTypeParam = `&item_type=3${validStoreId ? validStoreId : '&all_store=1'}`
     }
 
-    const activeSearch = searchItem || searchPemasangan
+    const activeSearch = (isSurvey ? debouncedSearchItem : debouncedSearchPemasangan)?.trim()
     const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
+    const take = isSurvey ? 50 : 0
 
+    setIsLoadingItem(true)
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemTypeParam}`,
+        `${apiUrl}/items?take=${take}${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -232,6 +251,8 @@ const NewOrderStoreStaff: FC = () => {
       }
     } catch (err) {
       console.error(err)
+    } finally {
+      setIsLoadingItem(false)
     }
   }
   // Fetch API Data
@@ -268,7 +289,26 @@ const NewOrderStoreStaff: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line
     getItem()
-  }, [paymentTypeValue, searchItem, searchPemasangan])
+  }, [paymentTypeValue, debouncedSearchItem, debouncedSearchPemasangan])
+
+  useEffect(() => {
+    setItem([])
+    setOrderForm((prev) => ({
+      ...prev,
+      order_details: [
+        {
+          item_id: null,
+          item_code: null,
+          item_name: null,
+          service_name: null,
+          quantity: 1,
+          unit_price: null,
+          total: null,
+          item_notes: null,
+        },
+      ],
+    }))
+  }, [paymentTypeValue])
 
   useEffect(() => {
     const getMember = async () => {
@@ -1543,6 +1583,7 @@ kami pada jam operasional.
                             placeholder='Pilih/Ketik Item Code'
                             isSearchable={true}
                             isClearable={true}
+                            isLoading={isLoadingItem}
                             options={item.filter((x: any) => Number(x?.type) === 3)}
                             name={`item_id`}
                             styles={{
@@ -1628,7 +1669,6 @@ kami pada jam operasional.
                           value={element?.item_name ?? ''}
                           onChange={(e) => {
                             orderDetailsFormHandler(e, index)
-                            setSearchItem(e.target.value)
                           }}
                           onInput={() => {
                             const textarea =
@@ -1673,6 +1713,7 @@ kami pada jam operasional.
                             placeholder='Pilih/Ketik Nama Pemasangan'
                             isSearchable={true}
                             isClearable={true}
+                            isLoading={isLoadingItem}
                             styles={{
                               singleValue: (base) => ({
                                 ...base,
