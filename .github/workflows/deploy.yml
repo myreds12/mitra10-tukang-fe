@@ -1,6 +1,7 @@
 # =========================================================
 # .github/workflows/deploy.yml  (taruh di repo tukang-fe)
 # Jalan di self-hosted runner yang terpasang di server NEMESIS
+# Memanggil scripts/deploy/auto-deploy-fe.ps1
 # =========================================================
 
 name: Deploy Frontend Production
@@ -31,63 +32,19 @@ jobs:
     runs-on: [self-hosted, windows]
     env:
       APP_DIR: "D:\\Applications\\tukang"
+      BRANCH: "master"
       # Isi PM_NAME HANYA jika FE dijalankan via pm2 (misal next start).
       # Kalau FE statis di-serve IIS/nginx, kosongkan "".
       PM_NAME: ""
 
     steps:
-      - name: Checkout kode terbaru ke folder sementara
+      # Checkout dipakai supaya repo (termasuk folder scripts/deploy/)
+      # ter-update di workspace runner. Script auto-deploy-fe.ps1
+      # yang dipanggil di bawah ini yang nanti urus pull ke APP_DIR.
+      - name: Checkout repo (ambil scripts/deploy terbaru)
         uses: actions/checkout@v4
-        with:
-          path: checkout-temp
 
-      - name: Deteksi perubahan dependencies
-        id: changes
+      - name: Jalankan auto-deploy-fe.ps1
         shell: powershell
         run: |
-          $before = "${{ github.event.before }}"
-          $after  = "${{ github.sha }}"
-
-          Set-Location checkout-temp
-
-          if ($before -eq "0000000000000000000000000000000000000000" -or [string]::IsNullOrEmpty($before)) {
-            $depsChanged = "true"
-          } else {
-            $changed = git diff --name-only $before $after
-            $depsChanged = if ($changed -match "package-lock\.json" -or $changed -match "^package\.json$") { "true" } else { "false" }
-          }
-
-          Write-Host "Dependencies changed: $depsChanged"
-          echo "deps_changed=$depsChanged" >> $env:GITHUB_OUTPUT
-
-      - name: Pull kode terbaru ke folder aplikasi
-        shell: powershell
-        run: |
-          Set-Location $env:APP_DIR
-          git fetch origin main
-          git reset --hard origin/main
-
-      - name: Install dependencies (jika ada perubahan)
-        if: steps.changes.outputs.deps_changed == 'true'
-        shell: powershell
-        run: |
-          Set-Location $env:APP_DIR
-          npm ci
-
-      - name: Build
-        shell: powershell
-        run: |
-          Set-Location $env:APP_DIR
-          npm run build
-
-      - name: Restart pm2 (jika FE pakai pm2)
-        if: env.PM_NAME != ''
-        shell: powershell
-        run: |
-          pm2 restart $env:PM_NAME --update-env
-
-      - name: Bersihkan folder checkout sementara
-        if: always()
-        shell: powershell
-        run: |
-          Remove-Item -Recurse -Force checkout-temp -ErrorAction SilentlyContinue
+          powershell -ExecutionPolicy Bypass -File "scripts\deploy\auto-deploy-fe.ps1"
