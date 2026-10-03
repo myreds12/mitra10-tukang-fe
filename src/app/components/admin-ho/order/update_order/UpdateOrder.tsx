@@ -254,29 +254,33 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
         const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const item = response.data.data
           .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
-          .map((item: any) => ({
-            value: item.id,
-            label:
-              isSurvey
-                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
-                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
-            item_code: item?.item_code ?? '',
-            item_name: item?.item_name ?? '',
-            service_name: item?.service_name ?? '',
-            category_id: item.category_id,
-            default_price: item.default_price,
-            type: item?.type,
-            prices: (item.prices || []).map((priceItem: any) => ({
-              id: priceItem.id,
-              is_active: priceItem.is_active,
-              item_id: priceItem.item_id,
-              store_id: priceItem.store_id,
-              periodic_start: priceItem.periodic_start,
-              periodic_end: priceItem.periodic_end,
-              min_order: priceItem.min_order,
-              price: priceItem.price,
-            })),
-          }))
+          .map((item: any) => {
+            const itemCode = item?.item_code ?? ''
+            const itemName = item?.item_name || item?.service_name || ''
+            const surveyLabel = itemCode && itemName ? `${itemCode} - ${itemName}` : itemCode || itemName
+            const pemasanganLabel = `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`
+
+            return {
+              value: item.id,
+              label: isSurvey ? surveyLabel : pemasanganLabel,
+              item_code: itemCode,
+              item_name: item?.item_name ?? '',
+              service_name: item?.service_name ?? '',
+              category_id: item.category_id,
+              default_price: item.default_price,
+              type: item?.type,
+              prices: (item.prices || []).map((priceItem: any) => ({
+                id: priceItem.id,
+                is_active: priceItem.is_active,
+                item_id: priceItem.item_id,
+                store_id: priceItem.store_id,
+                periodic_start: priceItem.periodic_start,
+                periodic_end: priceItem.periodic_end,
+                min_order: priceItem.min_order,
+                price: priceItem.price,
+              })),
+            }
+          })
 
         setItem(item)
       } else {
@@ -453,13 +457,21 @@ const UpdateOrderHO: FC<{ updatePageTitle: (order: Orders) => void }> = ({ updat
             if (data?.order_details) {
               setOrderForm((prev) => {
                 const previousDetailValues = data.order_details.map((item: any) => {
+                  const code = item?.item_code === 'null' ? '' : item?.item_code || ''
+                  const name =
+                    (item?.item_name === 'null' ? '' : item?.item_name) ||
+                    item?.item?.item_name ||
+                    item?.item?.service_name ||
+                    ''
+                  const surveyLabel = code && name ? `${code} - ${name}` : code || name
+
                   const previousItem = {
                     value: item.id,
                     label:
-                      data?.payment_type === 'survey' ? item?.item_code : item?.item?.service_name,
-                    category_id: item?.item?.category.id,
-                    item_code: item?.item_code ?? '',
-                    item_name: item?.item_name ?? '',
+                      data?.payment_type === 'survey' ? surveyLabel : item?.item?.service_name,
+                    category_id: item?.item?.category?.id,
+                    item_code: code,
+                    item_name: name,
                     service_name: item?.item?.service_name ?? '',
                     default_price: item?.item?.default_price,
                     type: item?.type,
@@ -2367,7 +2379,7 @@ Terima kasih telah memilih Mitra10.
                                     id={`item_id-${index}`}
                                     className='form-control p-0 form-item-code'
                                     classNamePrefix='select'
-                                    placeholder='Pilih/Ketik Item Code'
+                                    placeholder='Pilih/Ketik Item Code / Nama'
                                     isSearchable={true}
                                     isClearable={true}
                                     isLoading={isLoadingItem}
@@ -2382,6 +2394,20 @@ Terima kasih telah memilih Mitra10.
                                       }),
                                     }}
                                     value={orderForm.order_details[index]?.item ?? null}
+                                    getOptionLabel={(option: any) => {
+                                      if (option?.__isNew__) {
+                                        return option?.label || option?.value || ''
+                                      }
+                                      const code = option?.item_code || ''
+                                      const name = option?.item_name || option?.service_name || ''
+                                      if (code && name) {
+                                        return `${code} - ${name}`
+                                      }
+                                      return option?.label || code || name || ''
+                                    }}
+                                    getOptionValue={(option: any) =>
+                                      String(option?.value ?? option?.item_code ?? '')
+                                    }
                                     filterOption={(candidate: any, input: string) => {
                                       if (!input) return true
                                       const query = input.toLowerCase().trim()
@@ -2410,7 +2436,10 @@ Terima kasih telah memilih Mitra10.
                                           item_code: newValue?.__isNew__
                                             ? ((newValue?.value ?? '') as string)
                                             : ((newValue?.item_code ?? '') as string),
-                                          item_name: newValue?.item_name ?? '',
+                                          item_name:
+                                            newValue?.item_name ||
+                                            newValue?.service_name ||
+                                            (newValue?.__isNew__ ? '' : newValue?.label ?? ''),
                                           item_notes: newValue?.service_name ?? newValue?.item_name ?? '',
                                           item: newValue,
                                         }

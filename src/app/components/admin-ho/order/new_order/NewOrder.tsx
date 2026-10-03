@@ -259,29 +259,33 @@ const NewOrderHO: FC = () => {
         const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const items = response.data.data
           .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
-          .map((item: any) => ({
-            value: item.id,
-            label:
-              isSurvey
-                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
-                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
-            item_code: item?.item_code ?? '',
-            item_name: item?.item_name ?? '',
-            service_name: item?.service_name ?? '',
-            category_id: item.category_id,
-            default_price: item.default_price,
-            type: item?.type,
-            prices: (item.prices || []).map((priceItem: any) => ({
-              id: priceItem.id,
-              is_active: priceItem.is_active,
-              item_id: priceItem.item_id,
-              store_id: priceItem.store_id,
-              periodic_start: priceItem.periodic_start,
-              periodic_end: priceItem.periodic_end,
-              min_order: priceItem.min_order,
-              price: priceItem.price,
-            })),
-          }))
+          .map((item: any) => {
+            const itemCode = item?.item_code ?? ''
+            const itemName = item?.item_name || item?.service_name || ''
+            const surveyLabel = itemCode && itemName ? `${itemCode} - ${itemName}` : itemCode || itemName
+            const pemasanganLabel = `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`
+
+            return {
+              value: item.id,
+              label: isSurvey ? surveyLabel : pemasanganLabel,
+              item_code: itemCode,
+              item_name: item?.item_name ?? '',
+              service_name: item?.service_name ?? '',
+              category_id: item.category_id,
+              default_price: item.default_price,
+              type: item?.type,
+              prices: (item.prices || []).map((priceItem: any) => ({
+                id: priceItem.id,
+                is_active: priceItem.is_active,
+                item_id: priceItem.item_id,
+                store_id: priceItem.store_id,
+                periodic_start: priceItem.periodic_start,
+                periodic_end: priceItem.periodic_end,
+                min_order: priceItem.min_order,
+                price: priceItem.price,
+              })),
+            }
+          })
 
         setItem(items)
       } else {
@@ -1669,7 +1673,7 @@ const NewOrderHO: FC = () => {
                             id={`item_id-${index}`}
                             className='form-control p-0 form-item-code'
                             classNamePrefix='select'
-                            placeholder='Pilih/Ketik Item Code'
+                            placeholder='Pilih/Ketik Item Code / Nama'
                             isSearchable={true}
                             isClearable={true}
                             isLoading={isLoadingItem}
@@ -1684,6 +1688,20 @@ const NewOrderHO: FC = () => {
                               }),
                             }}
                             value={orderForm.order_details[index]?.item ?? null}
+                            getOptionLabel={(option: any) => {
+                              if (option?.__isNew__) {
+                                return option?.label || option?.value || ''
+                              }
+                              const code = option?.item_code || ''
+                              const name = option?.item_name || option?.service_name || ''
+                              if (code && name) {
+                                return `${code} - ${name}`
+                              }
+                              return option?.label || code || name || ''
+                            }}
+                            getOptionValue={(option: any) =>
+                              String(option?.value ?? option?.item_code ?? '')
+                            }
                             filterOption={(candidate: any, input: string) => {
                               if (!input) return true
                               const query = input.toLowerCase().trim()
@@ -1710,8 +1728,12 @@ const NewOrderHO: FC = () => {
                                   item_code: newValue?.__isNew__
                                     ? ((newValue?.value ?? '') as string)
                                     : ((newValue?.item_code ?? '') as string),
-                                  item_name: newValue?.item_name ?? '',
-                                  item_notes: newValue?.service_name ?? '',
+                                  item_name:
+                                    newValue?.item_name ||
+                                    newValue?.service_name ||
+                                    (newValue?.__isNew__ ? '' : newValue?.label ?? ''),
+                                  item_notes:
+                                    newValue?.service_name ?? newValue?.item_name ?? '',
                                   service_name: newValue?.service_name ?? '',
                                   item: newValue,
                                 }
