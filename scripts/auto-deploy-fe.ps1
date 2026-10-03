@@ -73,6 +73,7 @@ try {
         }
 
         Log "Build frontend..."
+        $env:CI = "false"
         Run "npm run build"
 
         if ($PmName -ne "") {
