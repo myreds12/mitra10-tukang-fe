@@ -2098,38 +2098,39 @@ const DetailComplaintPage: FC<{updatePageTitle: (complaint: any) => void}> = ({
                     </Row>
                   )}
 
+                  <div className='d-flex justify-content-center align-items-center gap-3 mt-5'>
+                    <Button
+                      variant='dark-danger'
+                      className='d-flex justify-content-center align-items-center'
+                      type='button'
+                      onClick={handleCancel}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      variant='dark-primary'
+                      className='d-flex justify-content-center align-items-center'
+                      type='button'
+                      disabled={isLoading}
+                      onClick={handleSubmitNewFeedback}
+                    >
+                      {isLoading ? 'Submitting...' : 'Submit Feedback'}
+                    </Button>
+                  </div>
+
                   {['REWORKEND', 'RESURVEYDONE'].includes(
                     complaintDetail?.orders?.status?.category
-                  ) ? (
-                    <div className='d-flex justify-content-center align-items-center mt-5'>
+                  ) && (
+                    <div className='d-flex justify-content-center align-items-center mt-4'>
                       <Button
                         className='d-flex justify-content-center align-items-center'
                         variant='dark-primary'
+                        disabled={isLoading}
                         onClick={() => handleApprovalComplaint(complaintStatusDone)}
                       >
                         Selesaikan Komplain
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className='d-flex justify-content-center align-items-center mt-5'>
-                      <Button
-                        variant='dark-danger'
-                        className='d-flex justify-content-center align-items-center'
-                        type='submit'
-                        onClick={handleCancel}
-                        disabled={isLoading}
-                      >
-                        Cancel
-                      </Button>
-
-                      <Button
-                        variant='dark-primary'
-                        className='d-flex justify-content-center align-items-center'
-                        type='submit'
-                        disabled={isLoading}
-                        onClick={handleSubmitNewFeedback}
-                      >
-                        {isLoading ? 'Submitting...' : 'Submit'}
                       </Button>
                     </div>
                   )}
