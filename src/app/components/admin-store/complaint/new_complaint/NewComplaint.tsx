@@ -433,8 +433,8 @@ const NewComplaintForm: FC = () => {
       formData.append('complaint_channel', String(complaintForm.complaint_channel))
       formData.append('complaint_date', today)
       formData.append('complaint_received_date', complaintForm.complaint_received_date)
-      formData.append('type', complaintForm.complaint_type.toString())
-      formData.append('crm_type', complaintForm.crm_type.toString())
+      formData.append('type', String(complaintForm.complaint_type ?? 1))
+      formData.append('crm_type', String(complaintForm.crm_type ?? 1))
 
       if (complaintEvidence?.length) {
         complaintEvidence.forEach((item) => {
