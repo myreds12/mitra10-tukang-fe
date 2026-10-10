@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, {useState, useEffect, useRef, useCallback} from 'react'
+import React, {useState, useEffect, useRef} from 'react'
+import io from 'socket.io-client'
+import axios from '../../core/axiosInterceptor'
 import Swal from 'sweetalert2'
 import ChatStart from './ChatStart'
 import ChatVendor from './ChatVendor'
@@ -7,45 +9,30 @@ import ChatOrderId from './ChatOrderId'
 import ChatActive from './ChatActive'
 import ChatPrevious from './ChatPrevious'
 import EditMessageModal from './EditMessageModal'
+import {toAbsoluteUrl} from '../../../helpers'
 import {Button, Modal} from 'react-bootstrap'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faComment} from '@fortawesome/free-solid-svg-icons'
-import {ChatMessage, VendorItem, StoreItem, ChatStep} from './types'
-import {
-  getCurrentUser,
-  fetchVendorsOrStores,
-  searchVendorApi,
-  searchStoreApi,
-  fetchOrganisasiApi,
-  uploadChatFileApi,
-  fetchPreviousChatsApi,
-  fetchMessagesForGroupApi,
-  updateChatStatusApi,
-  deleteChatApi,
-  updateOrganisasiApi,
-  fetchNewChatsWithRetryApi,
-} from './services/chatService'
-import {executeStartChat} from './services/chatStartHelper'
-import {useChatSocket} from './hooks/useChatSocket'
-import NotificationBadge from './components/NotificationBadge'
 
-export default function ChatPage(): React.ReactElement {
+const enableSockets = process.env.REACT_APP_ENABLE_CHAT_SOCKETS === 'true'
+
+export default function ChatPage(): JSX.Element {
   const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [step, setStep] = useState<ChatStep>('start')
+  const [step, setStep] = useState<string>('start')
   const [steps, setSteps] = useState<string>('')
   const [message, setMessage] = useState<any>()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<{sender: string; message: string; timestamp: any}[]>([])
   const [orderId, setOrderId] = useState<string>('')
   const [chatType, setChatType] = useState<string>('')
   const [groupId, setGroupId] = useState<string>('')
   const [reciver, setReciver] = useState<any>([])
   const [organisasiId, setOrganisasiId] = useState<string>('')
-  const [vendorList, setVendorList] = useState<VendorItem[]>([])
-  const [StoreList, setStoreList] = useState<StoreItem[]>([])
+  const [vendorList, setVendorList] = useState<{id: string; store_name: string}[]>([])
+  const [StoreList, setStoreList] = useState<{id: string; store_name: string}[]>([])
   const [loadingVendors, setLoadingVendors] = useState<boolean>(false)
   const [previousChats, setPreviousChats] = useState<any>([])
-  const [page, setPage] = useState(1)
-  const [newMessages, setNewMessages] = useState<boolean>(false)
+  const [page, setPage] = useState(1) // Pagination state
+  const [newMessages, setNewMessages] = useState<any>(false)
   const [unreadChats, setUnreadChats] = useState<any>([])
   const userRole = localStorage.getItem('userRole') as any
   const storeName = localStorage.getItem('storeName') as string
@@ -53,33 +40,61 @@ export default function ChatPage(): React.ReactElement {
   const vendorName = localStorage.getItem('vendorName') as string
   const vendorId = localStorage.getItem('vendor_id') as string
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [previewImage, setPreviewImage] = useState('')
   const [unreadCount, setUnreadCount] = useState<number>(0)
-  const vendorListRef = useRef<HTMLDivElement>(null)
+  const vendorListRef = useRef<HTMLDivElement>(null) // Reference for vendor list container
+  const poveuesiListRef = useRef<HTMLDivElement>(null) // Reference for vendor list container
+  const apiUrl = process.env.REACT_APP_API_URL
+  const apiChat = process.env.REACT_APP_WA_BACKEND_API_URL || process.env.REACT_APP_API_CHAT_URL || process.env.REACT_APP_API_URL || ''
+  const agentSocketsEnabled = process.env.REACT_APP_ENABLE_CHAT_AGENT_SOCKETS === 'true'
+  const socketsAllowed = (enableSockets && apiChat !== process.env.REACT_APP_API_CHAT_URL) || agentSocketsEnabled
 
-  const apiUrl = process.env.REACT_APP_API_URL || ''
-  const apiChat =
-    process.env.REACT_APP_WA_BACKEND_API_URL ||
-    process.env.REACT_APP_API_CHAT_URL ||
-    process.env.REACT_APP_API_URL ||
-    ''
+  // Use a ref to hold the socket instance so we can initialize it only when apiChat is configured
+  const socketRef = useRef<any>(null)
 
-  const currentUser = getCurrentUser(userRole, vendorName, storeName)
+  useEffect(() => {
+    if (!socketsAllowed) {
+      console.info('Chat sockets disabled via flag or REACT_APP_API_CHAT_URL')
+      return
+    }
+    // Determine socket base URL. If agentSocketsEnabled, prefer REACT_APP_API_URL fallback to apiChat
+    const socketBase = agentSocketsEnabled ? (process.env.REACT_APP_API_URL || apiChat) : apiChat
 
-  const handleReceiveMessage = useCallback(
-    (msg: ChatMessage) => {
-      if (msg.sender !== currentUser) {
+    if (!socketBase) {
+      console.warn('No socket base URL configured. Socket will not be initialized.')
+      return
+    }
+
+    const url = socketBase.replace(/\/$/, '')
+    socketRef.current = io(`${url}/live-chat`)
+
+    const handleReceiveMessage = (msg: {sender: string; message: string; timestamp: any}) => {
+      if (
+        msg.sender !==
+        (userRole === 'Owner Vendor'
+          ? vendorName
+          : userRole === 'Super User'
+          ? 'Admin HO'
+          : userRole === 'Store CS'
+          ? storeName
+          : userRole)
+      ) {
         setNewMessages(true)
       }
       setMessages((prev) => [...prev, msg])
-    },
-    [currentUser]
-  )
+    }
 
-  const {socketsAllowed, emitJoinGroup, emitSendMessage} = useChatSocket({
-    apiChat,
-    currentUser,
-    onReceiveMessage: handleReceiveMessage,
-  })
+    socketRef.current.on('receiveMessage', handleReceiveMessage)
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off('receiveMessage', handleReceiveMessage)
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiChat, socketsAllowed])
 
   useEffect(() => {
     if (messages.length > 0 && !isOpen) {
@@ -93,17 +108,28 @@ export default function ChatPage(): React.ReactElement {
     }
   }, [messages, isOpen])
 
-  const fetchVendors = async (pageNumber: number) => {
+  const fetchVendors = async (page: number) => {
     setLoadingVendors(true)
     try {
-      const res = await fetchVendorsOrStores(
-        apiUrl,
-        pageNumber,
-        chatType,
-        userRole,
-        storeId,
-        vendorId
-      )
+      const ttype = chatType === 'vendor' ? 'vendor' : 'stores'
+      let apiUrlWithParams = `${apiUrl}/${ttype}?order_by=desc&page=${page}&take=50` // Increased take to 50
+
+      if (userRole === 'Store CS') {
+        apiUrlWithParams += `&store_id=${storeId}`
+      }
+
+      if (userRole === 'Owner Vendor') {
+        apiUrlWithParams += `&vendor_id=${vendorId}`
+      }
+      const res = await axios.get(apiUrlWithParams, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        //  // 'Access-Control-Allow-Origin': '*',
+        // // 'ngrok-skip-browser-warning':  'true',
+        },
+      })
+
       if (res.data && res.data.data) {
         if (chatType === 'vendor') {
           setVendorList((prevList) => [...prevList, ...res.data.data])
@@ -120,50 +146,78 @@ export default function ChatPage(): React.ReactElement {
   }
 
   const GetVendor = async () => {
-    try {
-      const res = await searchVendorApi(apiUrl, userRole, storeId, vendorId, searchQuery)
-      setVendorList(res.data?.data || [])
-    } catch (err) {
-      console.error('Error search vendors:', err)
+    let apiUrlWithParams = `${apiUrl}/vendor?order_by=desc&page=1&take=50` // Increased take to 50
+    if (userRole === 'Store CS') {
+      apiUrlWithParams += `&store_id=${storeId}`
     }
-  }
 
+    if (userRole === 'Owner Vendor') {
+      apiUrlWithParams += `&vendor_id=${vendorId}`
+    }
+
+    if (searchQuery) {
+      apiUrlWithParams += `&search=${searchQuery}`
+    }
+    const res = await axios.get(apiUrlWithParams, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        // // 'Access-Control-Allow-Origin': '*',
+       // // 'ngrok-skip-browser-warning':  'true',
+      },
+    })
+    setVendorList(res.data.data)
+  }
   const getStore = async () => {
-    try {
-      const res = await searchStoreApi(apiUrl, userRole, vendorId, searchQuery)
-      setStoreList(res.data?.data || [])
-    } catch (err) {
-      console.error('Error search stores:', err)
+    let apiUrlWithParams = `${apiUrl}/stores?order_by=desc&page=1&take=50` // Increased take to 50
+    if (userRole === 'Owner Vendor') {
+      apiUrlWithParams += `&vendor_id=${vendorId}`
     }
-  }
+    if (searchQuery) {
+      apiUrlWithParams += `&search=${searchQuery}`
+    }
+    const res = await axios.get(apiUrlWithParams, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        // // 'Access-Control-Allow-Origin': '*',
+       // // 'ngrok-skip-browser-warning':  'true',
+      },
+    })
 
+    setStoreList(res.data.data)
+  }
   useEffect(() => {
     getStore()
     GetVendor()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
-
+  // Handle scrolling behavior
   const handleScroll = () => {
     const container = vendorListRef.current
     if (container) {
       const bottom = container.scrollHeight === container.scrollTop + container.clientHeight
       if (bottom && !loadingVendors) {
-        setPage((prevPage) => prevPage + 1)
+        setPage((prevPage) => prevPage + 1) // Increment page number when scrolled to the bottom
         fetchVendors(page + 1)
       }
     }
   }
 
-  const loadOrganisasiData = async () => {
+  const datasss = async () => {
     if (!apiChat) return
     try {
-      const res = await fetchOrganisasiApi(apiChat)
-      setOrganisasiId(res.data?.groups?._id)
+      const res = await axios.get(`${apiChat}/chat/organisasi/Mitra 10`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      })
+      setOrganisasiId(res.data.groups._id)
       const timestamp = new Date()
+
       setMessages([
         {
           sender: 'Mitra 10',
-          message: res.data?.groups?.description,
+          message: res.data.groups.description,
           timestamp,
         },
       ])
@@ -171,10 +225,9 @@ export default function ChatPage(): React.ReactElement {
       console.error('Failed to load organisasi data', err)
     }
   }
-
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      loadOrganisasiData()
+      datasss()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
@@ -203,6 +256,7 @@ export default function ChatPage(): React.ReactElement {
       }
     } else if (option === 'store') {
       setLoadingVendors(true)
+
       try {
         setMessages([{sender: 'Mitra 10', message: 'Silakan pilih store:', timestamp}])
         setStep('vendor')
@@ -225,50 +279,252 @@ export default function ChatPage(): React.ReactElement {
   const startChat = async (type: string, datas: any) => {
     const timestamp = new Date()
     try {
-      const result = await executeStartChat({
-        type,
-        datas,
-        orderId,
-        userRole,
-        vendorName,
-        vendorId,
-        storeName,
-        storeId,
-        apiUrl,
-        apiChat,
-      })
+      let payload: any = {}
 
-      if (result.invalidOrder) {
-        setMessages((prev) => [
-          ...prev,
-          {sender: 'Mitra 10', message: 'Order ID ini bukan Milik Anda.', timestamp},
-          {sender: 'Mitra 10', message: 'Silakan isi Order ID Anda.', timestamp},
-        ])
-        setStep('orderId')
-        return
-      }
+      // Admin HO/Super User logic
+      if (
+        (userRole === 'Admin HO' || userRole === 'Super User') &&
+        (type === 'store' || type === 'vendor' || type === 'id')
+      ) {
+        payload = {
+          role_admin: 'Admin HO',
+          role: userRole === 'Super User' ? 'Admin HO' : userRole,
+          option: type,
+        }
 
-      if (result.success && result.groupId) {
-        setReciver(result.receiver || [])
-        setGroupId(result.groupId)
-        setStep('chat')
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: 'Mitra 10',
-            message: result.message || 'Anda telah bergabung ke grup.',
-            timestamp,
+        if (type === 'vendor') {
+          payload.vendor = {
+            name: datas.company_name,
+            id: datas.id,
+          }
+        } else if (type === 'store') {
+          payload.store = {
+            name: datas.store_name,
+            id: datas.id,
+          }
+        }
+
+        if (type === 'id') {
+          // IMPORTANT: Pass orderId ke backend
+          payload.orderId = orderId
+
+          let apiUrlWithParams = `${apiUrl}/orders/${orderId}`
+          const res = await axios.get(apiUrlWithParams, {
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+              // 'Access-Control-Allow-Origin': '*',
+             // 'ngrok-skip-browser-warning':  'true',
+            },
+          })
+          if (res.status === 200) {
+            payload.store = {
+              name: res.data.data.store.store_name,
+              id: res.data.data.store_id,
+            }
+            payload.vendor = {
+              name: res.data.data.vendor.company_name,
+              id: res.data.data.vendor_id,
+            }
+          }
+        }
+
+        const res = await axios.post(`${apiChat}/chat/group/create-group`, payload, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
-        ])
-        emitJoinGroup(result.groupId)
-      } else {
-        alert('Gagal memulai chat.')
+        })
+        if (res.data.success) {
+          const dataReciver = res.data.group.members.filter(
+            (member: any) =>
+              member !==
+              (userRole === 'Owner Vendor'
+                ? vendorName
+                : userRole === 'Super User'
+                ? 'Admin HO'
+                : userRole === 'Store CS'
+                ? storeName
+                : userRole)
+          )
+          setReciver(dataReciver)
+          setGroupId(res.data.groupId)
+          setStep('chat')
+
+          setMessages((prev) => [
+            ...prev,
+            {sender: 'Mitra 10', message: `Anda telah bergabung ke grup.`, timestamp},
+          ])
+          if (socketsAllowed && socketRef.current) socketRef.current.emit('joinGroup', res.data.groupId)
+        } else {
+          alert('Gagal memulai chat.')
+        }
+      } else if (userRole === 'Store CS' && (type === 'ho' || type === 'vendor' || type === 'id')) {
+        let payload: any = {
+          role_admin: 'Admin HO',
+          role: userRole,
+          option: type,
+          store: storeName,
+        }
+
+        if (type === 'vendor') {
+          payload.vendor = {
+            name: datas.company_name,
+            id: datas.id,
+          }
+        }
+
+        if (type === 'id') {
+          // IMPORTANT: Pass orderId ke backend
+          payload.orderId = orderId
+
+          let apiUrlWithParams = `${apiUrl}/orders/${orderId}`
+          const res = await axios.get(apiUrlWithParams, {
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+              // 'Access-Control-Allow-Origin': '*',
+             // 'ngrok-skip-browser-warning':  'true',
+            },
+          })
+          if (res.status === 200) {
+            if (parseInt(storeId) === res.data.data.store_id) {
+              payload.vendor = {
+                name: res.data.data.vendor.company_name,
+                id: res.data.data.vendor_id,
+              }
+            } else {
+              setMessages((prev) => [
+                ...prev,
+                {sender: 'Mitra 10', message: 'Order ID ini bukan Milik Anda.', timestamp},
+              ])
+              setMessages((prev) => [
+                ...prev,
+                {sender: 'Mitra 10', message: 'Silakan isi Order ID Anda.', timestamp},
+              ])
+              setStep('orderId')
+            }
+          }
+        }
+        const res = await axios.post(`${apiChat}/chat/group/create-group`, payload, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        })
+        if (res.data.success) {
+          const dataReciver = res.data.group.members.filter(
+            (member: any) =>
+              member !==
+              (userRole === 'Owner Vendor'
+                ? vendorName
+                : userRole === 'Super User'
+                ? 'Admin HO'
+                : userRole === 'Store CS'
+                ? storeName
+                : userRole)
+          )
+          setReciver(dataReciver)
+          setGroupId(res.data.groupId)
+          setStep('chat')
+          setMessages((prev) => [
+            ...prev,
+            {sender: 'Mitra 10', message: `Anda telah bergabung ke grup.`, timestamp},
+          ])
+          if (socketsAllowed && socketRef.current) socketRef.current.emit('joinGroup', res.data.groupId)
+        } else {
+          alert('Gagal memulai chat.')
+        }
+      } else if (
+        userRole === 'Owner Vendor' &&
+        (type === 'ho' || type === 'store' || type === 'id')
+      ) {
+        payload = {
+          role_admin: 'Admin HO',
+          role: userRole,
+          option: type,
+          vendor: vendorName,
+        }
+
+        if (type === 'store') {
+          payload.store = {
+            name: datas.store_name,
+            id: datas.id,
+          }
+        }
+
+        if (type === 'id') {
+          // IMPORTANT: Pass orderId ke backend
+          payload.orderId = orderId
+
+          let apiUrlWithParams = `${apiUrl}/orders/${orderId}`
+          const res = await axios.get(apiUrlWithParams, {
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+              // 'Access-Control-Allow-Origin': '*',
+             // 'ngrok-skip-browser-warning':  'true',
+            },
+          })
+          if (res.status === 200) {
+            if (parseInt(vendorId) === res.data.data.vendor_id) {
+              payload.store = {
+                name: res.data.data.store.store_name,
+                id: res.data.data.store_id,
+              }
+            } else {
+              setMessages((prev) => [
+                ...prev,
+                {sender: 'Mitra 10', message: 'Order ID ini bukan Milik Anda.', timestamp},
+              ])
+              setMessages((prev) => [
+                ...prev,
+                {sender: 'Mitra 10', message: 'Silakan isi Order ID Anda.', timestamp},
+              ])
+              setStep('orderId')
+              return
+            }
+          }
+        }
+        const res = await axios.post(`${apiChat}/chat/group/create-group`, payload, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        })
+        if (res.data.success) {
+          const dataReciver = res.data.group.members.filter(
+            (member: any) =>
+              member !==
+              (userRole === 'Owner Vendor'
+                ? vendorName
+                : userRole === 'Super User'
+                ? 'Admin HO'
+                : userRole === 'Store CS'
+                ? storeName
+                : userRole)
+          )
+          setReciver(dataReciver)
+          setGroupId(res.data.groupId)
+          setStep('chat')
+          setMessages((prev) => [
+            ...prev,
+            {
+              sender: 'Mitra 10',
+              message: res.data.message || 'Anda telah bergabung ke grup baru.',
+              timestamp,
+            },
+          ])
+          if (socketsAllowed && socketRef.current) socketRef.current.emit('joinGroup', res.data.groupId)
+        } else {
+          alert('Gagal memulai chat.')
+        }
       }
     } catch (err) {
       console.error('Error in startChat:', err)
       setMessages((prev) => [
         ...prev,
         {sender: 'Mitra 10', message: 'Terjadi kesalahan, silakan coba lagi.', timestamp},
+      ])
+      setMessages((prev) => [
+        ...prev,
         {sender: 'Mitra 10', message: 'Silakan isi Order ID Anda.', timestamp},
       ])
       setStep('orderId')
@@ -285,16 +541,23 @@ export default function ChatPage(): React.ReactElement {
     setSearchQuery('')
     setGroupId('')
     setLoadingVendors(false)
-    setNewMessages(false)
-    setUnreadCount(0)
+    setNewMessages(false) // Reset new messages
+    setUnreadCount(0) // Reset counter
   }
 
   const sendMessage = () => {
     const timestamp = new Date()
-    const msg = {
+    let msg = {
       groupId,
       organisasi: 'Mitra 10',
-      sender: currentUser,
+      sender:
+        userRole === 'Owner Vendor'
+          ? vendorName
+          : userRole === 'Super User'
+          ? 'Admin HO'
+          : userRole === 'Store CS'
+          ? storeName
+          : userRole,
       timestamp,
       receiver: reciver,
       message,
@@ -302,16 +565,27 @@ export default function ChatPage(): React.ReactElement {
 
     if (typeof message === 'string') {
       msg.message = message
-      emitSendMessage(msg)
+
+      if (socketsAllowed && socketRef.current) socketRef.current.emit('sendMessage', msg)
+      // Refresh lists so UI updates immediately even when sockets are off
       fetchPreviousChats()
       if (groupId) fetchMessagesForGroup(groupId)
-    } else if (message?.type === 'file') {
-      uploadChatFileApi(apiChat, message.file)
+    } else if (message.type === 'file') {
+      const formData = new FormData()
+      formData.append('file', message.file)
+
+      axios
+        .post(`${apiChat}/chat/upload`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
         .then((res) => {
-          msg.message = res.data.fileUrl
-          if (res.data.fileUrl) {
-            emitSendMessage(msg)
+          msg.message = res.data.fileUrl // URL dari server setelah upload
+          if (res.data.fileUrl && socketsAllowed && socketRef.current) {
+            socketRef.current.emit('sendMessage', msg)
           }
+          // After upload/send, refresh UI
           fetchPreviousChats()
           if (groupId) fetchMessagesForGroup(groupId)
         })
@@ -343,7 +617,7 @@ export default function ChatPage(): React.ReactElement {
         console.warn('No access token present, skipping fetchPreviousChats')
         return
       }
-      const res = await fetchPreviousChatsApi(apiChat, role)
+      const res = await axios.get(`${apiChat}/chat/previousChats/${role}`)
       if (res.status === 200) {
         setPreviousChats(res.data.groups)
       }
@@ -353,27 +627,47 @@ export default function ChatPage(): React.ReactElement {
     }
   }
 
-  useEffect(() => {
-    if (socketsAllowed || !groupId) return
+  // Polling when sockets are disabled: refresh previous chats and current conversation periodically
+  // useEffect(() => {
+  //   if (socketsAllowed) return // if sockets enabled, server will push updates
 
+  //   // initial fetch
+  //   fetchPreviousChats()
+
+  //   const prevChatsInterval = setInterval(() => {
+  //     fetchPreviousChats()
+  //   }, 5000) // every 5s
+
+  //   return () => clearInterval(prevChatsInterval)
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [apiChat])
+
+  // Poll messages for selected group when sockets are disabled
+  useEffect(() => {
+    if (socketsAllowed) return
+    if (!groupId) return
+
+    // fetch immediately
     fetchMessagesForGroup(groupId)
+
     const messagesInterval = setInterval(() => {
       fetchMessagesForGroup(groupId)
-    }, 3000)
+    }, 3000) // every 3s
 
     return () => clearInterval(messagesInterval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, apiChat, socketsAllowed])
+  }, [groupId, apiChat])
 
-  const handlePreviousChat = async (selectedGroupId: string) => {
-    setGroupId(selectedGroupId)
+  const handlePreviousChat = async (groupId: any) => {
+    setGroupId(groupId)
     setSteps('riwayatChat')
-    emitJoinGroup(selectedGroupId)
-    await fetchMessagesForGroup(selectedGroupId)
-    setUnreadChats((prev: any) => prev.filter((id: any) => id !== selectedGroupId))
+    if (socketsAllowed && socketRef.current) socketRef.current.emit('joinGroup', groupId)
+    await fetchMessagesForGroup(groupId)
+    setUnreadChats((prev: any) => prev.filter((id: any) => id !== groupId))
   }
 
-  async function fetchMessagesForGroup(targetGroupId: string) {
+  // Fetch messages helper (separate from handlePreviousChat to allow polling without side-effects)
+  async function fetchMessagesForGroup(groupId: any) {
     if (!apiChat) {
       console.error('REACT_APP_API_CHAT_URL not configured')
       return
@@ -383,32 +677,65 @@ export default function ChatPage(): React.ReactElement {
         console.warn('No access token present, skipping fetchMessagesForGroup')
         return
       }
-      const res = await fetchMessagesForGroupApi(apiChat, targetGroupId)
+      const url = `${apiChat}/chat/messages/${groupId}`
+      const res = await axios.get(url)
       if (res.status === 200) {
         setMessages(res.data)
 
-        const readCount = res.data.filter((msgItem: any) => {
-          return msgItem.receiver?.some(
-            (receiverItem: any) => receiverItem.user === currentUser && !receiverItem.read
+        // Kurangi counter berdasarkan jumlah pesan yang dibaca dari grup ini
+        const readCount = res.data.filter((msg: any) => {
+          const currentUser =
+            userRole === 'Owner Vendor'
+              ? vendorName
+              : userRole === 'Super User'
+              ? 'Admin HO'
+              : userRole === 'Store CS'
+              ? storeName
+              : userRole
+
+          return msg.receiver?.some(
+            (receiver: any) => receiver.user === currentUser && !receiver.read
           )
         }).length
 
         setUnreadCount((prev) => Math.max(0, prev - readCount))
 
+        // IMPORTANT: Jangan ubah step jika sudah di 'previous'
+        // Biarkan ChatPrevious component handle sendiri tampilan chat di kanan
         if (step !== 'previous') {
-          setStep('chat')
+          setStep('chat') // Hanya ubah step jika dari auto-redirect
         }
 
+        // Update read status di backend
+        const currentUser =
+          userRole === 'Owner Vendor'
+            ? vendorName
+            : userRole === 'Super User'
+            ? 'Admin HO'
+            : userRole === 'Store CS'
+            ? storeName
+            : userRole
+
         try {
-          await updateChatStatusApi(apiChat, targetGroupId, currentUser)
+          await axios.put(
+            `${apiChat}/chat/status/${groupId}`,
+            {sender: currentUser},
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            }
+          )
         } catch (updateError) {
           console.error('Failed to update read status:', updateError)
         }
       } else {
+        console.warn(`Unexpected response fetching conversation (${url}):`, res.status, res.data)
         setMessages([])
       }
     } catch (err: any) {
       if (err.response) {
+        console.error(`Failed to fetch conversation detail. URL: ${apiChat}/chat/messages/${groupId} Status: ${err.response.status}`, err.response.data)
         if (err.response.status === 404) {
           Swal.fire({
             title: 'Conversation not found',
@@ -420,6 +747,8 @@ export default function ChatPage(): React.ReactElement {
           setMessages([])
         } else if (err.response.status === 401) {
           console.warn('Unauthorized when fetching conversation detail')
+        } else {
+          console.error('Error response:', err.response.data)
         }
       } else {
         console.error('Failed to fetch conversation detail', err)
@@ -438,7 +767,11 @@ export default function ChatPage(): React.ReactElement {
       confirmButtonText: 'Yes, delete it!',
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const res = await deleteChatApi(apiChat, id)
+        const res = await axios.delete(`${apiChat}/chat/delete/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        })
         if (res.status === 200) {
           Swal.fire({
             title: 'Deleted!',
@@ -450,9 +783,9 @@ export default function ChatPage(): React.ReactElement {
       }
     })
   }
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [messageToEdit, setMessageToEdit] = useState<string>('')
+  const [messageIndexToEdit, setMessageIndexToEdit] = useState<number | null>(null)
 
   const handleEditMessage = () => {
     setIsEditModalOpen(true)
@@ -460,49 +793,196 @@ export default function ChatPage(): React.ReactElement {
 
   const handleSaveEditedMessage = async (newMessage: string) => {
     if (!apiChat) return
-    await updateOrganisasiApi(apiChat, organisasiId, newMessage)
+    const res = await axios.post(
+      `${apiChat}/chat/organisasi/`,
+      {
+        id: organisasiId,
+        deskripsi: newMessage,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      }
+    )
     resetChat()
   }
 
   const fetchNewChats = async () => {
-    if (!apiChat || !localStorage.getItem('accessToken')) return
+    
+    let unreadCounter = 0
+    if (!apiChat) {
+      console.error('REACT_APP_API_CHAT_URL not configured')
+      return
+    }
+
+    if (!localStorage.getItem('accessToken')) {
+      console.warn('No access token present, skipping fetchNewChats')
+      return
+    }
+
+    // helper with retries for transient network errors
+    const fetchWithRetry = async (url: string, retries = 2, delayMs = 1000) => {
+      let attempt = 0
+      while (attempt <= retries) {
+        try {
+          // use absolute URL; axios instance will honor full URL
+          const res = await axios.get(url)
+          return res
+        } catch (err: any) {
+          attempt++
+          // If it's not a network error, rethrow
+          const isNetworkError = !err.response
+          console.warn(`fetchNewChats attempt ${attempt} failed`, err.message || err)
+          if (!isNetworkError) throw err
+          if (attempt > retries) throw err
+          // exponential backoff
+          await new Promise((r) => setTimeout(r, delayMs * attempt))
+        }
+      }
+    }
 
     try {
-      const res = await fetchNewChatsWithRetryApi(apiChat, 3, 1000)
+      const url = `${apiChat.replace(/\/$/, '')}/chat/messages`
+      const res = await fetchWithRetry(url, 3, 1000)
+
       if (res && res.data && res.data.length > 0) {
-        const hasNew = res.data.some((chat: any) => {
-          return (
-            chat.receiver &&
-            Array.isArray(chat.receiver) &&
-            chat.receiver.some(
-              (rcv: any) => rcv.user === currentUser && !rcv.read
-            )
-          )
+        const hasNewMessages = res.data.some((chat: any) => {
+          let currentUser: string
+
+          switch (userRole) {
+            case 'Owner Vendor':
+              currentUser = vendorName
+              break
+            case 'Super User':
+              currentUser = 'Admin HO'
+              break
+            case 'Store CS':
+              currentUser = storeName
+              break
+            default:
+              currentUser = userRole
+          }
+
+          return chat.receiver && Array.isArray(chat.receiver) && chat.receiver.some(
+            (receiver: any) => receiver.user === currentUser && !receiver.read
+          ).length
+
+          // Hitung jumlah pesan yang belum dibaca untuk user ini
+          const unreadForUser = chat.receiver.filter(
+            (receiver: any) => receiver.user === currentUser && !receiver.read
+          ).length
+          unreadCounter += unreadForUser
         })
-        setNewMessages(!!hasNew)
+
+        setNewMessages(!!hasNewMessages)
       } else {
         setNewMessages(false)
         setUnreadCount(0)
       }
     } catch (err: any) {
+      // Provide clearer debug info for network errors
       if (!err.response) {
-        console.error('Failed to fetch new chats: Network Error', err.message || err)
+        console.error('Failed to fetch new chats: Network Error. Endpoint:', `${apiChat}/chat/messages`, err.message || err)
       } else {
         console.error('Failed to fetch new chats', err)
       }
+      // schedule a retry later
       setTimeout(() => {
-        try {
-          fetchNewChats()
-        } catch (_) {}
+        try { fetchNewChats() } catch (_) {}
       }, 5000)
     }
   }
-
   useEffect(() => {
     fetchNewChats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  const NotificationBadge = ({count}: {count: number}) => {
+    if (count === 0) return null
 
+    return (
+      <span
+        style={{
+          position: 'absolute',
+          top: '-5px',
+          right: '-2px',
+          backgroundColor: 'red',
+          color: 'white',
+          borderRadius: '50%',
+          padding: count > 99 ? '3px 6px' : '5px',
+          minWidth: '20px',
+          height: '20px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: count > 99 ? '10px' : '12px',
+          zIndex: 999,
+          boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
+          fontWeight: 'bold',
+        }}
+      >
+        {count > 99 ? '99+' : count}
+      </span>
+    )
+  }
+
+  const debugExistingGroups = async () => {
+    try {
+      const currentUser =
+        userRole === 'Owner Vendor'
+          ? vendorName
+          : userRole === 'Super User'
+          ? 'Admin HO'
+          : userRole === 'Store CS'
+          ? storeName
+          : userRole
+
+      const res = await axios.get(`${apiChat}/chat/groups/member/${currentUser}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      })
+
+      console.log("User's existing groups:", res.data.groups)
+      return res.data.groups
+    } catch (error) {
+      console.error('Error fetching user groups:', error)
+      return []
+    }
+  }
+  const debugSearchGroups = async (members: string[]) => {
+    try {
+      const memberString = members.join(',')
+      const res = await axios.get(
+        `${apiChat}/chat/groups/search?members=${encodeURIComponent(memberString)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
+
+      console.log(`Groups with members [${memberString}]:`, res.data.groups)
+      return res.data.groups
+    } catch (error) {
+      console.error('Error searching groups:', error)
+      return []
+    }
+  }
+
+  const handleChatError = (error: any, context: string) => {
+    console.error(`Error in ${context}:`, error)
+
+    const timestamp = new Date()
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: 'Mitra 10',
+        message: `Terjadi kesalahan saat ${context}. Silakan coba lagi.`,
+        timestamp,
+      },
+    ])
+  }
   return (
     <div>
       <div
@@ -513,9 +993,11 @@ export default function ChatPage(): React.ReactElement {
           zIndex: 1000,
         }}
       >
-        {!isOpen && (
+        {isOpen === false && (
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+            {/* Ganti badge lama dengan NotificationBadge component */}
             <NotificationBadge count={unreadCount} />
+
             <Button
               onClick={() => {
                 if (isOpen) {
@@ -525,6 +1007,7 @@ export default function ChatPage(): React.ReactElement {
                     setIsOpen(true)
                     handleChatTypeSelection('previous')
                     setNewMessages(false)
+                    // Jangan reset unreadCount di sini, biarkan reset ketika chat benar-benar dibaca
                   } else {
                     setIsOpen(true)
                   }
@@ -535,7 +1018,7 @@ export default function ChatPage(): React.ReactElement {
                 backgroundColor: isOpen ? 'transparent' : '#0F4CFF',
                 color: isOpen ? 'black' : 'white',
                 borderRadius: isOpen ? '0' : '20px',
-                border: 'none',
+                border: isOpen ? 'none' : 'none',
                 cursor: 'pointer',
                 boxShadow: isOpen ? 'none' : '0 2px 5px rgba(0, 0, 0, 0.2)',
                 fontSize: '15px',
@@ -573,10 +1056,10 @@ export default function ChatPage(): React.ReactElement {
                 color: 'white',
                 textAlign: 'center',
                 fontWeight: 'bold',
-                display: 'flex',
+                display: 'flex', // Untuk membuat layout fleksibel
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'relative',
+                justifyContent: 'space-between', // Memberi ruang antara ikon dan judul
+                position: 'relative', // Dibutuhkan untuk dropdown
               }}
             >
               <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
@@ -599,7 +1082,9 @@ export default function ChatPage(): React.ReactElement {
               <div style={{display: 'flex', alignItems: 'center'}}>
                 <Button
                   variant='link'
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    setIsOpen(false)
+                  }}
                   style={{color: 'white'}}
                 >
                   Close
@@ -609,11 +1094,7 @@ export default function ChatPage(): React.ReactElement {
 
             <div style={{display: 'flex', flex: 1}}>
               {step === 'start' && (
-                <ChatStart
-                  handleChatTypeSelection={handleChatTypeSelection}
-                  userRole={userRole}
-                  handleEditMessage={handleEditMessage}
-                />
+                <ChatStart handleChatTypeSelection={handleChatTypeSelection} userRole={userRole} handleEditMessage={handleEditMessage} />
               )}
               {step === 'vendor' && (
                 <ChatVendor
