@@ -153,26 +153,58 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [debouncedSearchItem, setDebouncedSearchItem] = useState('')
   const [searchPemasangan, setSearchPemasangan] = useState('')
+  const [debouncedSearchPemasangan, setDebouncedSearchPemasangan] = useState('')
+  const [isLoadingItem, setIsLoadingItem] = useState<boolean>(false)
   const [grandTotal, setGrandTotal] = useState<number>(0)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchItem(searchItem)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchItem])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchPemasangan(searchPemasangan)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchPemasangan])
 
   // Fetch API Data
   const getItem = async () => {
-    const itemFree =
-      paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1&store_id=${staffStoreId}`
+    const validStoreId =
+      staffStoreId &&
+      staffStoreId !== 'undefined' &&
+      staffStoreId !== 'null' &&
+      Number(staffStoreId) > 0
+        ? `&store_id=${staffStoreId}`
         : ''
-    const itemTanpaSurvey =
-      paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1&store_id=${staffStoreId}`
-        : ''
-    const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const activeSearch = searchItem || searchPemasangan
-    const search = activeSearch ? `&search=${activeSearch}` : ''
 
+    const isGratis = paymentTypeValue[0] === 'gratis'
+    const isTanpaSurvey = paymentTypeValue[1] === 'pemasangan_tanpa_survey'
+    const isSurvey = paymentTypeValue[1] === 'survey'
+
+    let itemTypeParam = ''
+    if (isGratis) {
+      itemTypeParam = `&item_type=1&is_promotion=1${validStoreId}`
+    } else if (isTanpaSurvey) {
+      itemTypeParam = `&item_type=2&is_promotion=1${validStoreId}`
+    } else if (isSurvey) {
+      itemTypeParam = `&item_type=3${validStoreId ? validStoreId : '&all_store=1'}`
+    }
+
+    const activeSearch = (isSurvey ? debouncedSearchItem : debouncedSearchPemasangan)?.trim()
+    const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
+
+    const take = isSurvey ? 50 : 0
+
+    setIsLoadingItem(true)
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemFree}${itemTanpaSurvey}${itemSurvey}`,
+        `${apiUrl}/items?take=${take}${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -184,47 +216,51 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
       )
 
       if (Array.isArray(response.data.data)) {
+        const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const item = response.data.data
-          .filter((x: any) => Boolean(x.is_active))
-          .map((item: any) => ({
-            value: item.id,
-            label:
-              paymentTypeValue[1] === 'survey'
-                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
-                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
-            item_code: item?.item_code ?? '',
-            item_name: item?.item_name ?? '',
-            service_name: item?.service_name ?? '',
-            category_id: item.category_id,
-            default_price: item.default_price,
-            type: item?.type,
-            prices: (item.prices || []).map((priceItem: any) => ({
-              id: priceItem.id,
-              item_id: priceItem.item_id,
-              store_id: priceItem.store_id,
-              periodic_start: priceItem.periodic_start,
-              periodic_end: priceItem.periodic_end,
-              min_order: priceItem.min_order,
-              price: priceItem.price,
-            })),
-          }))
+          .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
+          .map((item: any) => {
+            const itemCode = item?.item_code ?? ''
+            const itemName = item?.item_name || item?.service_name || ''
+            const surveyLabel = itemCode && itemName ? `${itemCode} - ${itemName}` : itemCode || itemName
+            const pemasanganLabel = `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`
 
-        const filteredItem = item.filter((detail: any) => detail.default_price !== '0')
-        setItem(paymentTypeValue[0] === 'berbayar' ? filteredItem : item)
+            return {
+              value: item.id,
+              label: isSurvey ? surveyLabel : pemasanganLabel,
+              item_code: itemCode,
+              item_name: item?.item_name ?? '',
+              service_name: item?.service_name ?? '',
+              category_id: item.category_id,
+              default_price: item.default_price,
+              type: item?.type,
+              prices: (item.prices || []).map((priceItem: any) => ({
+                id: priceItem.id,
+                item_id: priceItem.item_id,
+                store_id: priceItem.store_id,
+                periodic_start: priceItem.periodic_start,
+                periodic_end: priceItem.periodic_end,
+                min_order: priceItem.min_order,
+                price: priceItem.price,
+              })),
+            }
+          })
 
-        // setItem(item)
+        setItem(item)
       } else {
         console.error('API response data is not an array:', response.data)
       }
     } catch (err) {
       console.error(err)
+    } finally {
+      setIsLoadingItem(false)
     }
   }
 
   useEffect(() => {
     // eslint-disable-next-line
     getItem()
-  }, [paymentTypeValue, searchPemasangan])
+  }, [paymentTypeValue, debouncedSearchItem, debouncedSearchPemasangan])
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -335,13 +371,22 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
             if (data?.order_details) {
               setOrderForm((prev) => {
                 const previousDetailValues = data.order_details.map((item: any) => {
+                  const code = item?.item_code === 'null' ? '' : item?.item_code || ''
+                  const name =
+                    (item?.item_name === 'null' ? '' : item?.item_name) ||
+                    item?.item?.item_name ||
+                    item?.item?.service_name ||
+                    ''
+                  const surveyLabel = code && name ? `${code} - ${name}` : code || name
+
                   const previousItem = {
                     value: item.id,
-                    label: item?.item_id === null ? item?.item_code : item?.item?.service_name,
-                    item_code: item?.item_code ?? '',
-                    item_name: item?.item_name ?? '',
+                    label:
+                      data.payment_type === 'survey' ? surveyLabel : item?.item?.service_name,
+                    item_code: code,
+                    item_name: name,
                     service_name: item?.item?.service_name ?? '',
-                    category_id: item?.item?.category.id,
+                    category_id: item?.item?.category?.id,
                     default_price: item?.item?.default_price,
                     type: item?.item?.type,
                     prices:
@@ -1140,10 +1185,11 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
                             id={`item_id-${index}`}
                             className='form-control p-0 form-item-code'
                             classNamePrefix='select'
-                            placeholder='Pilih/Ketik Item Code'
+                            placeholder='Pilih/Ketik Item Code / Nama'
                             isSearchable={true}
                             isClearable={true}
-                            options={item}
+                            isLoading={isLoadingItem}
+                            options={item.filter((x: any) => Number(x?.type) === 3)}
                             name={`item_id`}
                             styles={{
                               singleValue: (base) => ({
@@ -1154,7 +1200,36 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
                               }),
                             }}
                             value={orderForm.order_details[index]?.item ?? null}
-                            onInputChange={(newValue) => setSearchItem(newValue)}
+                            getOptionLabel={(option: any) => {
+                              if (option?.__isNew__) {
+                                return option?.label || option?.value || ''
+                              }
+                              const code = option?.item_code || ''
+                              const name = option?.item_name || option?.service_name || ''
+                              if (code && name) {
+                                return `${code} - ${name}`
+                              }
+                              return option?.label || code || name || ''
+                            }}
+                            getOptionValue={(option: any) =>
+                              String(option?.value ?? option?.item_code ?? '')
+                            }
+                            filterOption={(candidate: any, input: string) => {
+                              if (!input) return true
+                              const query = input.toLowerCase().trim()
+                              const d = candidate.data
+                              return (
+                                (d.label || '').toLowerCase().includes(query) ||
+                                (d.item_code || '').toLowerCase().includes(query) ||
+                                (d.item_name || '').toLowerCase().includes(query) ||
+                                (d.service_name || '').toLowerCase().includes(query)
+                              )
+                            }}
+                            onInputChange={(newValue, actionMeta) => {
+                              if (actionMeta.action === 'input-change') {
+                                setSearchItem(newValue)
+                              }
+                            }}
                             onChange={(newValue) => {
                               setOrderForm((prev) => {
                                 const cache = {...prev}
@@ -1165,8 +1240,11 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
                                   item_code: newValue?.__isNew__
                                     ? ((newValue?.value ?? '') as string)
                                     : ((newValue?.item_code ?? '') as string),
-                                  item_name: newValue?.item_name ?? '',
-                                  item_notes: newValue?.item_name ?? '',
+                                  item_name:
+                                    newValue?.item_name ||
+                                    newValue?.service_name ||
+                                    (newValue?.__isNew__ ? '' : newValue?.label ?? ''),
+                                  item_notes: newValue?.service_name ?? newValue?.item_name ?? '',
                                   item: newValue,
                                 }
                                 return cache
@@ -1224,6 +1302,7 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
                             placeholder='Pilih/Ketik Nama Pemasangan'
                             isSearchable={true}
                             isClearable={true}
+                            isLoading={isLoadingItem}
                             styles={{
                               singleValue: (base) => ({
                                 ...base,
@@ -1232,11 +1311,26 @@ const UpdateOrderStoreStaff: FC<{updatePageTitle: (order: Orders) => void}> = ({
                                 textOverflow: '',
                               }),
                             }}
-                            options={item}
+                            options={item.filter((x: any) => Number(x?.type) === (paymentTypeValue[0] === 'gratis' ? 1 : 2))}
                             name={`item_id`}
                             getOptionLabel={(option) => option?.service_name || option?.label || ''}
                             getOptionValue={(option) => String(option?.value ?? '')}
-                            onInputChange={(newValue) => setSearchPemasangan(newValue)}
+                            filterOption={(candidate: any, input: string) => {
+                              if (!input) return true
+                              const query = input.toLowerCase().trim()
+                              const d = candidate.data
+                              return (
+                                (d.label || '').toLowerCase().includes(query) ||
+                                (d.item_code || '').toLowerCase().includes(query) ||
+                                (d.item_name || '').toLowerCase().includes(query) ||
+                                (d.service_name || '').toLowerCase().includes(query)
+                              )
+                            }}
+                            onInputChange={(newValue, actionMeta) => {
+                              if (actionMeta.action === 'input-change') {
+                                setSearchPemasangan(newValue)
+                              }
+                            }}
                             value={{
                               value: orderForm.order_details[index]?.item_id ?? null,
                               label: orderForm.order_details[index]?.item?.label ?? '',

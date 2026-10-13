@@ -127,12 +127,14 @@ const UpdateComplaintHO: FC<{updatePageTitle: (complaint: any) => void}> = ({upd
             setComplaintForm({
               ...complaintForm,
               order_id: data?.orders?.id,
-              pic_name: data?.pic_name,
-              description: data?.description,
-              complaint_channel: data?.complaint_channels?.id,
-              complaint_date: new Date(data?.complaint_date).toISOString().split('T')[0],
-              complaint_type: data?.type,
-              complaint_status: data?.complaint_status,
+              pic_name: data?.pic_name ?? '',
+              description: data?.description ?? '',
+              complaint_channel: data?.complaint_channels?.id ?? null,
+              complaint_date: data?.complaint_date
+                ? new Date(data.complaint_date).toISOString().split('T')[0]
+                : '',
+              complaint_type: data?.type ?? 1,
+              complaint_status: data?.complaint_status ?? null,
             })
           }
         })
@@ -153,12 +155,12 @@ const UpdateComplaintHO: FC<{updatePageTitle: (complaint: any) => void}> = ({upd
     const desiredStatusApprove = statusData.find(
       (status: any) => status.category === 'COMPLAINTAPPROVEDBYHO'
     )
-    const statusApproveId = desiredStatusApprove.value
+    const statusApproveId = desiredStatusApprove?.value
 
     const desiredStatusCancel = statusData.find(
       (status: any) => status.category === 'COMPLAINTREJECTEDBYHO'
     )
-    const statusCancelId = desiredStatusCancel.value
+    const statusCancelId = desiredStatusCancel?.value
 
     setComplaintStatusApprove(statusApproveId)
     setComplaintStatusCancel(statusCancelId)
@@ -188,58 +190,54 @@ const UpdateComplaintHO: FC<{updatePageTitle: (complaint: any) => void}> = ({upd
   const handleApprovalComplaint = async (status: number) => {
     setIsLoading(true)
 
-    const formData = new FormData()
+    try {
+      const formData = new FormData()
 
-    formData.append('order_id', String(complaintForm?.order_id))
-    formData.append('pic_name', complaintForm.pic_name)
-    formData.append('description', complaintForm.description)
-    formData.append('complaint_status', `${status}`)
-    formData.append('complaint_channel', String(complaintForm.complaint_channel))
-    formData.append('complaint_date', complaintForm.complaint_date)
-    formData.append('type', complaintForm.complaint_type.toString())
+      formData.append('order_id', String(complaintForm?.order_id ?? ''))
+      formData.append('pic_name', complaintForm.pic_name ?? '')
+      formData.append('description', complaintForm.description ?? '')
+      formData.append('complaint_status', `${status}`)
+      formData.append('complaint_channel', String(complaintForm.complaint_channel ?? ''))
+      formData.append('complaint_date', complaintForm.complaint_date ?? '')
+      formData.append('type', String(complaintForm.complaint_type ?? 1))
+      if (reasonRejected) {
+        formData.append('complaint_histories[reason]', reasonRejected)
+      }
 
-    await axios
-      .post(`${apiUrl}/complaints/${complaintId}`, formData, {
+      const response = await axios.post(`${apiUrl}/complaints/${complaintId}`, formData, {
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
         },
       })
-      .then((response) => {
-        if (response.data.status === 200 || response.data.status === 201) {
-          Swal.fire({
-            title: 'Success',
-            text: 'Success Update Complaint',
-            icon: 'success',
-            showConfirmButton: false,
-            timer: 1500,
-          })
 
-          setIsLoading(false)
-        } else {
-          Swal.fire({
-            title: 'Error',
-            text: response.data.message,
-            icon: 'error',
-          })
-
-          setIsLoading(false)
-        }
-
-        navigate('/complaint/view-complaint')
-      })
-      .catch((error) => {
-        console.error(error)
-        setIsLoading(false)
-
+      if (response.data.status === 200 || response.data.status === 201) {
+        Swal.fire({
+          title: 'Success',
+          text: 'Success Update Complaint',
+          icon: 'success',
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
         Swal.fire({
           title: 'Error',
-          text: error.response.data.message,
+          text: response.data.message,
           icon: 'error',
         })
+      }
+
+      navigate('/complaint/view-complaint')
+    } catch (error: any) {
+      console.error(error)
+      Swal.fire({
+        title: 'Error',
+        text: error?.response?.data?.message || error?.message || 'Gagal update status pengaduan',
+        icon: 'error',
       })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

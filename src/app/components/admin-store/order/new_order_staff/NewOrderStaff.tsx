@@ -156,8 +156,25 @@ const NewOrderStoreStaff: FC = () => {
   // Order Detail Table
   const [item, setItem] = useState<ItemSelect[]>([])
   const [searchItem, setSearchItem] = useState('')
+  const [debouncedSearchItem, setDebouncedSearchItem] = useState('')
   const [searchPemasangan, setSearchPemasangan] = useState('')
+  const [debouncedSearchPemasangan, setDebouncedSearchPemasangan] = useState('')
+  const [isLoadingItem, setIsLoadingItem] = useState<boolean>(false)
   const [grandTotal, setGrandTotal] = useState<number>(0)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchItem(searchItem)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchItem])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchPemasangan(searchPemasangan)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchPemasangan])
 
   // Fetch API Data
   const getItem = async () => {
@@ -168,21 +185,28 @@ const NewOrderStoreStaff: FC = () => {
       Number(staffStoreId) > 0
         ? `&store_id=${staffStoreId}`
         : ''
-    const itemFree =
-      paymentTypeValue[0] === 'gratis' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=1&is_promotion=1${validStoreId}`
-        : ''
-    const itemTanpaSurvey =
-      paymentTypeValue[0] === 'berbayar' && paymentTypeValue[1] === 'pemasangan_tanpa_survey'
-        ? `&item_type=2&is_promotion=1${validStoreId}`
-        : ''
-    const itemSurvey = paymentTypeValue[1] === 'survey' ? '&item_type=3&all_store=1' : ''
-    const activeSearch = searchItem || searchPemasangan
-    const search = activeSearch ? `&search=${activeSearch}` : ''
 
+    const isGratis = paymentTypeValue[0] === 'gratis'
+    const isTanpaSurvey = paymentTypeValue[1] === 'pemasangan_tanpa_survey'
+    const isSurvey = paymentTypeValue[1] === 'survey'
+
+    let itemTypeParam = ''
+    if (isGratis) {
+      itemTypeParam = `&item_type=1&is_promotion=1${validStoreId}`
+    } else if (isTanpaSurvey) {
+      itemTypeParam = `&item_type=2&is_promotion=1${validStoreId}`
+    } else if (isSurvey) {
+      itemTypeParam = `&item_type=3${validStoreId ? validStoreId : '&all_store=1'}`
+    }
+
+    const activeSearch = (isSurvey ? debouncedSearchItem : debouncedSearchPemasangan)?.trim()
+    const search = activeSearch ? `&search=${encodeURIComponent(activeSearch)}` : ''
+    const take = isSurvey ? 50 : 0
+
+    setIsLoadingItem(true)
     try {
       const response = await axios.get(
-        `${apiUrl}/items?take=0${search}${itemFree}${itemTanpaSurvey}${itemSurvey}`,
+        `${apiUrl}/items?take=${take}${search}${itemTypeParam}`,
         {
           headers: {
             Accept: 'application/json',
@@ -194,31 +218,36 @@ const NewOrderStoreStaff: FC = () => {
       )
 
       if (Array.isArray(response.data.data)) {
+        const expectedType = isGratis ? 1 : isTanpaSurvey ? 2 : 3
         const item = response.data.data
-          .filter((x: any) => Boolean(x.is_active))
-          .map((item: any) => ({
-            value: item.id,
-            label:
-              paymentTypeValue[1] === 'survey'
-                ? `${item.item_code ? `${item.item_code} - ` : ''}${item.service_name || item.item_name}`
-                : `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`,
-            item_code: item?.item_code ?? '',
-            item_name: item?.item_name ?? '',
-            service_name: item?.service_name ?? '',
-            category_id: item.category_id,
-            default_price: item.default_price,
-            type: item?.type,
-            prices: (item.prices || []).map((priceItem: any) => ({
-              id: priceItem.id,
-              is_active: priceItem.is_active,
-              item_id: priceItem.item_id,
-              store_id: priceItem.store_id,
-              periodic_start: priceItem.periodic_start,
-              periodic_end: priceItem.periodic_end,
-              min_order: priceItem.min_order,
-              price: priceItem.price,
-            })),
-          }))
+          .filter((x: any) => Boolean(x.is_active) && Number(x.type) === expectedType)
+          .map((item: any) => {
+            const itemCode = item?.item_code ?? ''
+            const itemName = item?.item_name || item?.service_name || ''
+            const surveyLabel = itemCode && itemName ? `${itemCode} - ${itemName}` : itemCode || itemName
+            const pemasanganLabel = `${item.service_name || item.item_name}${item.item_code ? ` (${item.item_code})` : ''}`
+
+            return {
+              value: item.id,
+              label: isSurvey ? surveyLabel : pemasanganLabel,
+              item_code: itemCode,
+              item_name: item?.item_name ?? '',
+              service_name: item?.service_name ?? '',
+              category_id: item.category_id,
+              default_price: item.default_price,
+              type: item?.type,
+              prices: (item.prices || []).map((priceItem: any) => ({
+                id: priceItem.id,
+                is_active: priceItem.is_active,
+                item_id: priceItem.item_id,
+                store_id: priceItem.store_id,
+                periodic_start: priceItem.periodic_start,
+                periodic_end: priceItem.periodic_end,
+                min_order: priceItem.min_order,
+                price: priceItem.price,
+              })),
+            }
+          })
 
         setItem(item)
       } else {
@@ -226,6 +255,8 @@ const NewOrderStoreStaff: FC = () => {
       }
     } catch (err) {
       console.error(err)
+    } finally {
+      setIsLoadingItem(false)
     }
   }
   // Fetch API Data
@@ -262,7 +293,26 @@ const NewOrderStoreStaff: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line
     getItem()
-  }, [paymentTypeValue, searchItem, searchPemasangan])
+  }, [paymentTypeValue, debouncedSearchItem, debouncedSearchPemasangan])
+
+  useEffect(() => {
+    setItem([])
+    setOrderForm((prev) => ({
+      ...prev,
+      order_details: [
+        {
+          item_id: null,
+          item_code: null,
+          item_name: null,
+          service_name: null,
+          quantity: 1,
+          unit_price: null,
+          total: null,
+          item_notes: null,
+        },
+      ],
+    }))
+  }, [paymentTypeValue])
 
   useEffect(() => {
     const getMember = async () => {
@@ -449,11 +499,15 @@ const NewOrderStoreStaff: FC = () => {
 
   // Selected Payment Type && Clear Order Detail if user changed the payment type
   useEffect(() => {
-    setOrderForm({
-      ...orderForm,
+    setItem([])
+    setSearchItem('')
+    setSearchPemasangan('')
+    setOrderForm((prev) => ({
+      ...prev,
       payment_type: paymentTypeValue[0] === 'gratis' ? 'gratis' : paymentTypeValue[1],
       order_details: [
         {
+          item: null,
           item_id: null,
           item_code: null,
           item_name: null,
@@ -464,7 +518,7 @@ const NewOrderStoreStaff: FC = () => {
           item_notes: null,
         },
       ],
-    })
+    }))
   }, [paymentTypeValue])
 
   useEffect(() => {
@@ -1162,6 +1216,7 @@ kami pada jam operasional.
                               name='type'
                               type='radio'
                               value='berbayar'
+                              checked={paymentTypeValue[0] === 'berbayar'}
                               onChange={() => {
                                 setPaymentTypeValue(['berbayar', 'survey'])
                               }}
@@ -1529,10 +1584,11 @@ kami pada jam operasional.
                             id={`item_id-${index}`}
                             className='form-control p-0 form-item-code'
                             classNamePrefix='select'
-                            placeholder='Pilih/Ketik Item Code'
+                            placeholder='Pilih/Ketik Item Code / Nama'
                             isSearchable={true}
                             isClearable={true}
-                            options={item}
+                            isLoading={isLoadingItem}
+                            options={item.filter((x: any) => Number(x?.type) === 3)}
                             name={`item_id`}
                             styles={{
                               singleValue: (base) => ({
@@ -1543,6 +1599,20 @@ kami pada jam operasional.
                               }),
                             }}
                             value={orderForm.order_details[index]?.item ?? null}
+                            getOptionLabel={(option: any) => {
+                              if (option?.__isNew__) {
+                                return option?.label || option?.value || ''
+                              }
+                              const code = option?.item_code || ''
+                              const name = option?.item_name || option?.service_name || ''
+                              if (code && name) {
+                                return `${code} - ${name}`
+                              }
+                              return option?.label || code || name || ''
+                            }}
+                            getOptionValue={(option: any) =>
+                              String(option?.value ?? option?.item_code ?? '')
+                            }
                             filterOption={(candidate: any, input: string) => {
                               if (!input) return true
                               const query = input.toLowerCase().trim()
@@ -1569,7 +1639,10 @@ kami pada jam operasional.
                                   item_code: newValue?.__isNew__
                                     ? ((newValue?.value ?? '') as string)
                                     : ((newValue?.item_code ?? '') as string),
-                                  item_name: newValue?.item_name ?? '',
+                                  item_name:
+                                    newValue?.item_name ||
+                                    newValue?.service_name ||
+                                    (newValue?.__isNew__ ? '' : newValue?.label ?? ''),
                                   item_notes: newValue?.service_name ?? newValue?.item_name ?? '',
                                   service_name: newValue?.service_name ?? '',
                                   item: newValue,
@@ -1617,7 +1690,6 @@ kami pada jam operasional.
                           value={element?.item_name ?? ''}
                           onChange={(e) => {
                             orderDetailsFormHandler(e, index)
-                            setSearchItem(e.target.value)
                           }}
                           onInput={() => {
                             const textarea =
@@ -1662,6 +1734,7 @@ kami pada jam operasional.
                             placeholder='Pilih/Ketik Nama Pemasangan'
                             isSearchable={true}
                             isClearable={true}
+                            isLoading={isLoadingItem}
                             styles={{
                               singleValue: (base) => ({
                                 ...base,
@@ -1670,7 +1743,7 @@ kami pada jam operasional.
                                 textOverflow: '',
                               }),
                             }}
-                            options={item}
+                            options={item.filter((x: any) => Number(x?.type) === (paymentTypeValue[0] === 'gratis' ? 1 : 2))}
                             name={`item_id`}
                             getOptionLabel={(option) => option?.service_name || option?.label || ''}
                             getOptionValue={(option) => String(option?.value ?? '')}
