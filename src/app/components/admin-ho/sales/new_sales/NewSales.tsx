@@ -492,7 +492,7 @@ const NewSales: FC = () => {
       sorter: (a, b) => a.is_active.length - b.is_active.length,
       filters: [
         {text: 'ACTIVE', value: 'ACTIVE'},
-        {text: 'INACTIVE', value: 'INACTIVE'},
+        {text: 'NON ACTIVE', value: 'NON ACTIVE'},
       ],
     },
     {
