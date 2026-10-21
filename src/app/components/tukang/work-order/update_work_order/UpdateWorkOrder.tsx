@@ -773,6 +773,10 @@ const UpdateWorkTukang: FC<{updatePageTitle: (work_order: WorkOrder) => void}> =
           if(workOrderDetail?.order?.status?.category === 'SURVEYSTART' 
             || workOrderDetail?.order?.status?.category === 'TUKANGWORK'
             || workOrderDetail?.order?.status?.category === 'WORKSTART'
+            || workOrderDetail?.order?.status?.category === 'WORKEND'
+            || workOrderDetail?.order?.status?.category === 'WORKENDSTEPONE'
+            || workOrderDetail?.order?.status?.category === 'WORKENDSTEPTWO'
+            || workOrderDetail?.order?.status?.category === 'WORKENDSTEPTHREE'
           )
           {  
             sentWA();
@@ -937,6 +941,35 @@ Dengan dimulainya pengerjaan ini, Anda dianggap telah menyetujui hasil survey da
 
 Terima kasih telah memilih Mitra10! 😊
 
+`;
+            }
+      else if (
+        workOrderDetail?.order?.status?.category === 'WORKEND' ||
+        workOrderDetail?.order?.status?.category === 'WORKENDSTEPONE' ||
+        workOrderDetail?.order?.status?.category === 'WORKENDSTEPTWO' ||
+        workOrderDetail?.order?.status?.category === 'WORKENDSTEPTHREE'
+      ){
+        iamgeIcon = await urlToBase64(window.location.origin + "/media/JASA_INSTALASI_2_CSI_PEKERJAAN.jpg");
+invoiceMessage = `
+Hi *${workOrderDetail?.order?.members?.full_name || "-"}*, pekerjaan Anda telah selesai dikerjakan tim Mitra10.
+Form pekerjaan telah ditandatangani dinyatakan selesai dan disetujui.
+
+*Garansi Layanan (7 Hari)*
+• Berlaku untuk hasil pekerjaan (1x kunjungan)
+• Tidak mencakup kerusakan produk/material
+• Tidak berlaku jika ada perubahan oleh pihak lain
+
+*Klaim Garansi:*
+Hotline : 0878-8482-1089
+(Senin–Jumat, 09.00–16.00 WIB)
+
+Dengan selesainya pekerjaan ini orderan dinyatakan selesai sesuai hasil Survey & Quotation.
+
+Terima kasih telah mempercayakan instalasi Anda kepada Mitra10
+Butuh layanan lainnya? Kami siap bantu!
+
+Bantu penilaian layanan kami:
+Puas | Biasa Saja | Tidak Puas
 `;
             }
 
