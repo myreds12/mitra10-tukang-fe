@@ -102,10 +102,13 @@ const ViewVendorRegistration: React.FC = () => {
   const debouncedCompanyName = useDebounce(companyNameFilter, 500)
 
   const handleResendEmail = async (record: VendorRegistration) => {
-    const recipient = record.pic_email || record.email_address
+    const recipients = [record.pic_email, record.email_address].filter(
+      (e): e is string => Boolean(e && e.trim() !== '')
+    )
+    const recipientText = recipients.length > 0 ? recipients.join(', ') : 'email pendaftar'
     const result = await Swal.fire({
       title: 'Kirim Ulang Email?',
-      text: `Kirim ulang email notifikasi / kredensial akun ke ${recipient}?`,
+      text: `Kirim ulang email notifikasi / kredensial akun ke ${recipientText}?`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#183383',
@@ -121,7 +124,7 @@ const ViewVendorRegistration: React.FC = () => {
       const response = await vendorRegistrationService.resendEmail(record.id)
       Swal.fire({
         title: 'Berhasil',
-        text: response.data?.message || `Email berhasil dikirim ulang ke ${recipient}`,
+        text: response.data?.message || `Email berhasil dikirim ulang ke ${recipientText}`,
         icon: 'success',
         timer: 2500,
         showConfirmButton: false,
@@ -254,7 +257,7 @@ const ViewVendorRegistration: React.FC = () => {
       title: 'Status Email',
       key: 'email_status',
       align: 'center',
-      width: 140,
+      width: 150,
       render: (record: VendorRegistration) => {
         const emailStatus = record.email_status
         const isSent = emailStatus?.sent
@@ -274,6 +277,10 @@ const ViewVendorRegistration: React.FC = () => {
           icon = faTimes
         }
 
+        const displayRecipient =
+          emailStatus?.recipient ||
+          [record.pic_email, record.email_address].filter(Boolean).join(', ')
+
         return (
           <div className='email-status-cell d-flex flex-column align-items-center gap-1'>
             <span className={`email-status-badge ${badgeClass}`}>
@@ -288,6 +295,15 @@ const ViewVendorRegistration: React.FC = () => {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
+              </span>
+            )}
+            {displayRecipient && (
+              <span
+                className='email-status-date text-muted text-truncate'
+                style={{maxWidth: '140px', fontSize: '10px'}}
+                title={displayRecipient}
+              >
+                {displayRecipient}
               </span>
             )}
           </div>
@@ -356,26 +372,24 @@ const ViewVendorRegistration: React.FC = () => {
               </a>
             </OverlayTrigger>
 
-            {!record.email_status?.sent && (
-              <OverlayTrigger
-                placement='bottom'
-                delay={{show: 250, hide: 400}}
-                overlay={<Tooltip id={`tooltip-resend-action-${id}`}>Kirim Ulang Email</Tooltip>}
+            <OverlayTrigger
+              placement='bottom'
+              delay={{show: 250, hide: 400}}
+              overlay={<Tooltip id={`tooltip-resend-action-${id}`}>Kirim Ulang Email</Tooltip>}
+            >
+              <button
+                type='button'
+                className='btn btn-icon btn-sm btn-light-warning rounded action-button shadow-none'
+                disabled={isResending}
+                onClick={() => handleResendEmail(record)}
               >
-                <button
-                  type='button'
-                  className='btn btn-icon btn-sm btn-light-warning rounded action-button shadow-none'
-                  disabled={isResending}
-                  onClick={() => handleResendEmail(record)}
-                >
-                  {isResending ? (
-                    <span className='spinner-border spinner-border-sm' role='status' style={{width: '12px', height: '12px'}} />
-                  ) : (
-                    <FontAwesomeIcon icon={faPaperPlane} fontSize={'12px'} />
-                  )}
-                </button>
-              </OverlayTrigger>
-            )}
+                {isResending ? (
+                  <span className='spinner-border spinner-border-sm' role='status' style={{width: '12px', height: '12px'}} />
+                ) : (
+                  <FontAwesomeIcon icon={faPaperPlane} fontSize={'12px'} />
+                )}
+              </button>
+            </OverlayTrigger>
 
             {(record.status === 1 || record.status === 2) && (
               <>

@@ -66,14 +66,17 @@ export function Login() {
 
   // Handle Login
   const handleLogin = () => {
+    const cleanUsername = (username || '').trim()
+    const cleanPassword = (password || '').trim()
+
     setIsLoading(true)
 
     axios
       .post(
         `${apiUrl}/auth/login`,
         {
-          username,
-          password,
+          username: cleanUsername,
+          password: cleanPassword,
         },
         {
           headers: {

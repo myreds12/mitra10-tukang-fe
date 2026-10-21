@@ -681,8 +681,8 @@ const VendorRegisterPage: React.FC = () => {
       await publicVendorService.register(submitData)
 
       Swal.fire({
-        title: 'Success',
-        text: 'Pendaftaran berhasil disubmit! Mohon tunggu konfirmasi dari admin.',
+        title: 'Pendaftaran Berhasil!',
+        text: 'Informasi username dan password telah dikirimkan ke email PIC yang terdaftar.',
         icon: 'success',
       })
 
