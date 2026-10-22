@@ -6,10 +6,10 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 import type {ColumnsType} from 'antd/es/table'
 import {LoadingOutlined} from '@ant-design/icons'
-import {Table, PaginationProps, Spin, Pagination} from 'antd'
+import {Table, PaginationProps, Spin, Pagination, Switch, Tag, Empty} from 'antd'
 import {Row, Col, Form, InputGroup, Button, OverlayTrigger, Tooltip} from 'react-bootstrap'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faSearch, faPen, faTrash} from '@fortawesome/free-solid-svg-icons'
+import {faSearch, faPen, faTrash, faUserCheck, faUserSlash} from '@fortawesome/free-solid-svg-icons'
 
 type Props = {
   className: string
@@ -21,6 +21,7 @@ interface DataType {
   username: string
   email: string
   role: string
+  is_active: boolean
 }
 
 const ListUserHO: React.FC<Props> = ({className}) => {
@@ -41,6 +42,8 @@ const ListUserHO: React.FC<Props> = ({className}) => {
   const [pageSize, setPageSize] = useState<number>(10)
 
   const [searchFilter, setSearchFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null)
 
   // Handle Change Search Filter
   const handleChangeSearchFilter = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,6 +51,57 @@ const ListUserHO: React.FC<Props> = ({className}) => {
     setSearchFilter(updatedSearchFilter)
   }
   const renderTooltip = (title: string) => <Tooltip id='button-tooltip'>{title}</Tooltip>
+
+  const requestHeaders = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+  }
+
+  const getErrorMessage = (error: any, fallback: string) =>
+    error?.response?.data?.message || fallback
+
+  const handleStatusChange = async (record: DataType, nextStatus: boolean) => {
+    const action = nextStatus ? 'mengaktifkan' : 'menonaktifkan'
+    const confirmation = await Swal.fire({
+      title: `${nextStatus ? 'Aktifkan' : 'Nonaktifkan'} user?`,
+      text: `Anda akan ${action} akun ${record.username}.`,
+      icon: nextStatus ? 'question' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: nextStatus ? 'Aktifkan' : 'Nonaktifkan',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: nextStatus ? '#16a34a' : '#dc2626',
+    })
+
+    if (!confirmation.isConfirmed) return
+
+    setStatusLoadingId(record.id)
+    try {
+      await axios.patch(
+        `${apiUrl}/auth/status/${record.id}`,
+        {is_active: nextStatus},
+        {headers: requestHeaders},
+      )
+
+      setUserData((current) =>
+        current.map((user) => (user.id === record.id ? {...user, is_active: nextStatus} : user)),
+      )
+      await Swal.fire({
+        title: 'Berhasil',
+        text: `User ${record.username} berhasil ${nextStatus ? 'diaktifkan' : 'dinonaktifkan'}.`,
+        icon: 'success',
+        timer: 1600,
+        showConfirmButton: false,
+      })
+    } catch (error) {
+      await Swal.fire({
+        title: 'Gagal mengubah status',
+        text: getErrorMessage(error, 'Status user tidak dapat diubah.'),
+        icon: 'error',
+      })
+    } finally {
+      setStatusLoadingId(null)
+    }
+  }
 
   const columns: ColumnsType<DataType> = [
     {
@@ -90,11 +144,21 @@ const ListUserHO: React.FC<Props> = ({className}) => {
       sorter: (a, b) => a.role.length - b.role.length,
     },
     {
+      title: 'Status',
+      dataIndex: 'is_active',
+      key: 'is_active',
+      align: 'center',
+      width: 120,
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'success' : 'error'}>{isActive ? 'AKTIF' : 'NONAKTIF'}</Tag>
+      ),
+    },
+    {
       title: 'Action',
       key: 'action',
       fixed: 'right',
       align: 'center',
-      width: 80,
+      width: 150,
       render: (record) => {
         const id = record.id
         const role = record.role
@@ -151,34 +215,30 @@ const ListUserHO: React.FC<Props> = ({className}) => {
             })
         }
 
-        return (
-          <div className='button-wrapper d-flex justify-content-center gap-3'>
-            {!['Owner Vendor', 'Tukang', 'Employee', 'Member'].includes(role) &&
-            userRole === 'Owner Vendor' ? (
-              <>
-                <OverlayTrigger
-                  placement='bottom'
-                  delay={{show: 250, hide: 400}}
-                  overlay={renderTooltip('Edit User')}
-                >
-                  <Button variant='primary' className='button-edit' onClick={handleUpdateId}>
-                    <FontAwesomeIcon className='text-white' icon={faPen} fontSize={'13px'} />
-                  </Button>
-                </OverlayTrigger>
+        const canManage =
+          (userRole === 'Owner Vendor' && !['Owner Vendor', 'Tukang', 'Employee', 'Member'].includes(role)) ||
+          (userRole === 'Super User' &&
+            !['Owner Vendor', 'Admin Vendor', 'Tukang', 'Employee', 'Member'].includes(role))
 
+        return (
+          <div className='button-wrapper d-flex justify-content-center align-items-center gap-2'>
+            {canManage ? (
+              <>
                 <OverlayTrigger
                   placement='bottom'
                   delay={{show: 250, hide: 400}}
-                  overlay={renderTooltip('Hapus User')}
+                  overlay={renderTooltip(record.is_active ? 'Nonaktifkan User' : 'Aktifkan User')}
                 >
-                  <Button className='button-delete' variant='danger' onClick={handleDeleteId}>
-                    <FontAwesomeIcon className='text-white' icon={faTrash} fontSize={'13px'} />
-                  </Button>
+                  <span>
+                    <Switch
+                      checked={record.is_active}
+                      loading={statusLoadingId === record.id}
+                      checkedChildren={<FontAwesomeIcon icon={faUserCheck} />}
+                      unCheckedChildren={<FontAwesomeIcon icon={faUserSlash} />}
+                      onChange={(checked) => handleStatusChange(record, checked)}
+                    />
+                  </span>
                 </OverlayTrigger>
-              </>
-            ) : !['Owner Vendor', 'Admin Vendor', 'Tukang', 'Employee', 'Member'].includes(role) &&
-              userRole === 'Super User' ? (
-              <>
                 <OverlayTrigger
                   placement='bottom'
                   delay={{show: 250, hide: 400}}
@@ -221,8 +281,8 @@ const ListUserHO: React.FC<Props> = ({className}) => {
         },
       })
 
-      setCurrentPage(response?.data?.page ?? 1)
-      setTotalData(response?.data?.total ?? 0)
+      setCurrentPage(response?.data?.page ?? response?.data?.meta?.page ?? page)
+      setTotalData(response?.data?.total ?? response?.data?.meta?.total ?? 0)
       setLoadData(false)
 
       return response.data.data
@@ -248,7 +308,8 @@ const ListUserHO: React.FC<Props> = ({className}) => {
           id: item.id,
           username: item?.username ?? '-',
           email: item?.email ?? '-',
-          role: item?.roles.name ?? '-',
+          role: item?.roles?.name ?? '-',
+          is_active: item?.is_active !== false,
         }
 
         return data
@@ -281,8 +342,7 @@ const ListUserHO: React.FC<Props> = ({className}) => {
     return originalElement
   }
 
-  const handleSubmitFilter = async () => {
-    setLoadingButton(true)
+  const buildQueryParams = () => {
     let queryparams = ``
 
     const valueCheck = (key: any, value: any) => {
@@ -292,8 +352,16 @@ const ListUserHO: React.FC<Props> = ({className}) => {
     }
 
     valueCheck(`&search=`, searchFilter)
+    if (statusFilter !== 'all') valueCheck(`&is_active=`, statusFilter)
 
-    const data = await ViewUser(1, 10, queryparams)
+    return queryparams
+  }
+
+  const handleSubmitFilter = async () => {
+    setLoadingButton(true)
+
+    const data = await ViewUser(1, pageSize, buildQueryParams())
+    setCurrentPage(1)
     setUserData(data)
 
     setLoadingButton(false)
@@ -310,10 +378,20 @@ const ListUserHO: React.FC<Props> = ({className}) => {
       <div className={`card ${className}`}>
         <div className='card-body table-view-order'>
           <Row className='table-head-wrapper' onKeyDown={handleKeyPress}>
-            <Col xs={12} md={4} lg={4} xl={4} xxl={4}></Col>
+            <Col xs={12} className='mb-4'>
+              <div className='d-flex flex-wrap justify-content-between align-items-center gap-3'>
+                <div>
+                  <h3 className='mb-1 fw-bold text-gray-800'>Manajemen User</h3>
+                  <span className='text-muted'>Kelola akses, status, dan akun pengguna.</span>
+                </div>
+                <span className='badge badge-light-primary fs-7 px-4 py-3'>
+                  {totalData} user terdaftar
+                </span>
+              </div>
+            </Col>
 
-            <Col xs={12} md={4} lg={4} xl={4} xxl={4}>
-              <div className='filter-search mb-3'>
+            <Col xs={12} md={5} lg={5} xl={5} xxl={5}>
+              <div className='filter-search mb-3 mb-md-0'>
                 <InputGroup>
                   <InputGroup.Text className='filter-ltr'>
                     <FontAwesomeIcon icon={faSearch} size='sm' />
@@ -323,9 +401,22 @@ const ListUserHO: React.FC<Props> = ({className}) => {
                     placeholder='Search'
                     className='filter-ltr'
                     onChange={handleChangeSearchFilter}
+                    value={searchFilter}
                   />
                 </InputGroup>
               </div>
+            </Col>
+
+            <Col xs={12} md={3} lg={3} xl={3} xxl={3}>
+              <Form.Select
+                className='mb-3 mb-md-0'
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value='all'>Semua status</option>
+                <option value='1'>Aktif</option>
+                <option value='0'>Nonaktif</option>
+              </Form.Select>
             </Col>
 
             <Col xs={12} md={4} lg={4} xl={4} xxl={4}>
@@ -354,8 +445,10 @@ const ListUserHO: React.FC<Props> = ({className}) => {
                 rowKey={(record) => record.id}
                 pagination={false}
                 sticky={true}
+                size='middle'
                 tableLayout='auto'
                 scroll={{x: 'max-content'}}
+                locale={{emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='User tidak ditemukan' />}}
               />
             </div>
           </Spin>
@@ -377,7 +470,7 @@ const ListUserHO: React.FC<Props> = ({className}) => {
               onChange={(page, newPageSize) => {
                 setPageSize(newPageSize)
                 setCurrentPage(page)
-                fetchData(page, newPageSize, '')
+                fetchData(page, newPageSize, buildQueryParams())
               }}
             />
           </div>
