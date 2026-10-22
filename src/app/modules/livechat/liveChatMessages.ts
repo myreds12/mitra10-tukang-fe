@@ -11,7 +11,7 @@ export const mergeLiveChatMessages = <T extends LiveChatMessageLike>(
 
   incoming.forEach((message) => byId.set(message.id, message))
 
-  return [...byId.values()].sort((left, right) => {
+  return Array.from(byId.values()).sort((left, right) => {
     const timestampOrder = left.createdAt.localeCompare(right.createdAt)
     return timestampOrder || left.id - right.id
   })
