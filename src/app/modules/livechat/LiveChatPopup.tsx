@@ -4,6 +4,8 @@ import type {OptionsOrGroups, GroupBase} from 'react-select'
 import Swal from 'sweetalert2'
 import {getStoreDisplayName, getVendorDisplayName, normalizeLiveChatRoom} from './roomDisplay'
 import {isLiveChatVideo, LIVECHAT_UPLOAD_ACCEPT, validateLiveChatUpload} from './uploadValidation'
+import {LiveChatRequestError, requestJson} from './liveChatRequest'
+import {mergeLiveChatMessages} from './liveChatMessages'
 
 const API_URL =
   process.env.REACT_APP_LIVECHAT_API_URL || 'https://apigatewayinstalasi.mitra10.com/live-chat'
@@ -106,19 +108,18 @@ const buildHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
   'Content-Type': 'application/json',
 })
+
 const api = {
   getRooms: (token: string) =>
-    fetch(`${API_URL}/rooms`, {headers: buildHeaders(token)}).then((r) => r.json()),
+    requestJson(`${API_URL}/rooms`, {headers: buildHeaders(token)}),
   getMessages: (token: string, roomId: number) =>
-    fetch(`${API_URL}/rooms/${roomId}/messages?limit=30`, {headers: buildHeaders(token)}).then(
-      (r) => r.json()
-    ),
+    requestJson(`${API_URL}/rooms/${roomId}/messages?limit=30`, {headers: buildHeaders(token)}),
   sendMessage: (token: string, roomId: number, content: string) =>
-    fetch(`${API_URL}/rooms/${roomId}/messages`, {
+    requestJson(`${API_URL}/rooms/${roomId}/messages`, {
       method: 'POST',
       headers: buildHeaders(token),
       body: JSON.stringify({content, type: 'text'}),
-    }).then((r) => r.json()),
+    }),
   markAsRead: (token: string, roomId: number) =>
     fetch(`${API_URL}/rooms/${roomId}/read`, {method: 'PATCH', headers: buildHeaders(token)}),
   createRoom: (token: string, orderId: string) =>
@@ -1110,6 +1111,9 @@ const LiveChatPopup: React.FC = () => {
   const [sending, setSending] = useState(false)
   const [loadingRooms, setLoadingRooms] = useState(false)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [roomsError, setRoomsError] = useState<string | null>(null)
+  const [messagesError, setMessagesError] = useState<string | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
   const [sseConnected, setSseConnected] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -1120,6 +1124,8 @@ const LiveChatPopup: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null) // ← scroll target: BOTTOM (newest messages)
   const sseRef = useRef<EventSource | null>(null)
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loadRoomsRef = useRef<() => Promise<void>>(async () => undefined)
+  const messageLoadRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const activeRoomRef = useRef<Room | null>(null)
@@ -1166,7 +1172,7 @@ const LiveChatPopup: React.FC = () => {
 
         // Update chat window only if this room is currently open
         if (isActiveRoom) {
-          setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]))
+          setMessages((prev) => mergeLiveChatMessages(prev, [msg]))
           if (String(msg.senderId) !== String(userId)) {
             void api.markAsRead(token, msg.roomId).catch(() => undefined)
           }
@@ -1237,7 +1243,19 @@ const LiveChatPopup: React.FC = () => {
       if (sseRef.current !== es) return
       es.close()
       reconnectRef.current = setTimeout(() => {
-        if (open) connectGlobalSSE()
+        if (!open) return
+
+        void loadRoomsRef.current()
+        const room = activeRoomRef.current
+        if (room) {
+          void api.getMessages(token, room.id).then((res: any) => {
+            if (res.success && Array.isArray(res.data) && activeRoomRef.current?.id === room.id) {
+              setMessages((prev) => mergeLiveChatMessages(prev, res.data))
+            }
+          }).catch(() => undefined)
+        }
+
+        connectGlobalSSE()
       }, 3000)
     }
   }, [token, clearSSE, open])
@@ -1246,6 +1264,7 @@ const LiveChatPopup: React.FC = () => {
   const loadRooms = useCallback(async () => {
     if (!token) return
     setLoadingRooms(true)
+    setRoomsError(null)
     try {
       const res = await api.getRooms(token)
       if (res.success) {
@@ -1262,34 +1281,55 @@ const LiveChatPopup: React.FC = () => {
         )
         setTotalUnread(unread)
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to load live chat rooms:', error)
+      setRoomsError(
+        error instanceof LiveChatRequestError && error.status === 401
+          ? 'Sesi login sudah berakhir. Silakan login kembali.'
+          : 'Room chat tidak dapat dimuat. Coba lagi.'
+      )
     } finally {
       setLoadingRooms(false)
     }
   }, [token])
 
+  loadRoomsRef.current = loadRooms
+
   // ── Open Room ──────────────────────────────────────────────
   const openRoom = useCallback(
     async (room: Room) => {
       const normalizedRoom = normalizeLiveChatRoom(room) as Room
+      const loadId = ++messageLoadRef.current
       // Sync ref FIRST to avoid race condition with SSE handlers
       activeRoomRef.current = normalizedRoom
       setActiveRoom(normalizedRoom)
       setView('chat')
       setMessages([])
       setOnlineUsers(new Set())
+      setMessagesError(null)
+      setSendError(null)
       setLoadingMessages(true)
 
       // 🧹 KOSONGKAN PANEL KANAN DULU
       try {
         const res = await api.getMessages(token, room.id)
-        if (res.success && Array.isArray(res.data)) {
-          setMessages(res.data.reverse()) // oldest-first for display, newest at bottom
+        if (
+          res.success &&
+          Array.isArray(res.data) &&
+          loadId === messageLoadRef.current &&
+          activeRoomRef.current?.id === room.id
+        ) {
+          setMessages((prev) => mergeLiveChatMessages(prev, res.data))
         }
         await api.markAsRead(token, room.id)
         setRooms((prev) => prev.map((r) => (r.id === room.id ? {...r, unreadCount: 0} : r)))
-      } catch (e) {
-        console.error(e)
+      } catch (error) {
+        console.error('Failed to load live chat messages:', error)
+        setMessagesError(
+          error instanceof LiveChatRequestError && error.status === 401
+            ? 'Sesi login sudah berakhir. Silakan login kembali.'
+            : 'Pesan chat tidak dapat dimuat. Coba lagi.'
+        )
       } finally {
         setLoadingMessages(false)
         setTimeout(() => messagesEndRef.current?.scrollIntoView({behavior: 'auto'}), 100)
@@ -1302,11 +1342,12 @@ const LiveChatPopup: React.FC = () => {
     if (!input.trim() || !activeRoom || sending) return
     const content = input.trim()
     setInput('')
+    setSendError(null)
     setSending(true)
     try {
       const res = await api.sendMessage(token, activeRoom.id, content)
       if (res.success) {
-        setMessages((prev) => (prev.find((m) => m.id === res.data.id) ? prev : [...prev, res.data])) // ← newest at BOTTOM
+        setMessages((prev) => mergeLiveChatMessages(prev, [res.data]))
         setRooms((prev) =>
           updateRoomList(prev, activeRoom.id, (room) => ({
             ...room,
@@ -1317,7 +1358,14 @@ const LiveChatPopup: React.FC = () => {
         )
         setTimeout(() => messagesEndRef.current?.scrollIntoView({behavior: 'smooth'}), 50)
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to send live chat message:', error)
+      setInput(content)
+      setSendError(
+        error instanceof LiveChatRequestError && error.status === 401
+          ? 'Sesi login sudah berakhir. Silakan login kembali.'
+          : 'Pesan belum terkirim. Coba lagi.'
+      )
     } finally {
       setSending(false)
       inputRef.current?.focus()
@@ -1731,6 +1779,13 @@ const LiveChatPopup: React.FC = () => {
                     <span className='spinner-border spinner-border-sm me-2' />
                     Memuat...
                   </div>
+                ) : roomsError ? (
+                  <div style={{textAlign: 'center', padding: 32, color: '#b42318', fontSize: 13}}>
+                    <div>{roomsError}</div>
+                    <button className='btn btn-sm btn-light-danger mt-3' onClick={loadRooms}>
+                      Coba lagi
+                    </button>
+                  </div>
                 ) : filteredRooms.length === 0 ? (
                   <div style={{textAlign: 'center', padding: 32, color: '#aaa', fontSize: 13}}>
                     {searchQuery ? 'Room tidak ditemukan' : 'Belum ada room chat'}
@@ -2063,6 +2118,10 @@ const LiveChatPopup: React.FC = () => {
                     <span className='spinner-border spinner-border-sm me-2' />
                     Memuat pesan...
                   </div>
+                ) : messagesError ? (
+                  <div style={{textAlign: 'center', padding: 32, color: '#b42318', fontSize: 13}}>
+                    {messagesError}
+                  </div>
                 ) : messages.length === 0 ? (
                   <div style={{textAlign: 'center', padding: 32, color: '#aaa', fontSize: 13}}>
                     Belum ada pesan. Mulai chat!
@@ -2101,6 +2160,9 @@ const LiveChatPopup: React.FC = () => {
                   flexShrink: 0,
                 }}
               >
+                {sendError && (
+                  <div style={{color: '#b42318', fontSize: 12, marginBottom: 8}}>{sendError}</div>
+                )}
                 <div
                   style={{
                     display: 'flex',
