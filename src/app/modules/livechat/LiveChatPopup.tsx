@@ -96,6 +96,7 @@ interface MessageHistoryResponse {
   hasMore: boolean
   nextCursor: number | null
 }
+const MESSAGE_PAGE_SIZE = 100
 interface MediaPreview {
   url: string
   fileName?: string
@@ -120,7 +121,7 @@ const api = {
   getRooms: (token: string) =>
     requestJson(`${API_URL}/rooms`, {headers: buildHeaders(token)}),
   getMessages: (token: string, roomId: number, cursor?: number | null) => {
-    const params = new URLSearchParams({limit: '30'})
+    const params = new URLSearchParams({limit: String(MESSAGE_PAGE_SIZE)})
     if (cursor !== null && cursor !== undefined) params.set('cursor', String(cursor))
 
     return requestJson(
@@ -1139,7 +1140,8 @@ const LiveChatPopup: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null) // ← scroll target: BOTTOM (newest messages)
   const sseRef = useRef<EventSource | null>(null)
-  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sseNeedsSyncRef = useRef(false)
+  const sseHasOpenedRef = useRef(false)
   const loadRoomsRef = useRef<() => Promise<void>>(async () => undefined)
   const messageLoadRef = useRef(0)
   const historyCursorRef = useRef<number | null>(null)
@@ -1154,14 +1156,12 @@ const LiveChatPopup: React.FC = () => {
 
   // ── Global SSE (room list real-time sync) ───────────────────
   const clearSSE = useCallback(() => {
-    if (reconnectRef.current) {
-      clearTimeout(reconnectRef.current)
-      reconnectRef.current = null
-    }
     if (sseRef.current) {
       sseRef.current.close()
       sseRef.current = null
     }
+    sseNeedsSyncRef.current = false
+    sseHasOpenedRef.current = false
     setSseConnected(false)
   }, [])
 
@@ -1169,6 +1169,33 @@ const LiveChatPopup: React.FC = () => {
     clearSSE()
     const es = new EventSource(`${API_URL}/rooms/sse?token=${token}`)
     sseRef.current = es
+
+    es.onopen = () => {
+      const shouldResync = sseNeedsSyncRef.current && sseHasOpenedRef.current
+      sseNeedsSyncRef.current = false
+      sseHasOpenedRef.current = true
+      setSseConnected(true)
+
+      if (!shouldResync) return
+
+      void loadRoomsRef.current()
+      const room = activeRoomRef.current
+      if (!room) return
+
+      const loadId = messageLoadRef.current
+      void api.getMessages(token, room.id).then((res) => {
+        if (
+          res.success &&
+          Array.isArray(res.data) &&
+          loadId === messageLoadRef.current &&
+          activeRoomRef.current?.id === room.id
+        ) {
+          setMessages((prev) => mergeLiveChatMessages(prev, res.data))
+          historyCursorRef.current = res.nextCursor
+          setHasMoreMessages(res.hasMore)
+        }
+      }).catch(() => undefined)
+    }
 
     es.addEventListener('CONNECTED', () => setSseConnected(true))
 
@@ -1259,26 +1286,9 @@ const LiveChatPopup: React.FC = () => {
     es.onerror = () => {
       setSseConnected(false)
       if (sseRef.current !== es) return
-      es.close()
-      reconnectRef.current = setTimeout(() => {
-        if (!open) return
-
-        void loadRoomsRef.current()
-        const room = activeRoomRef.current
-        if (room) {
-          void api.getMessages(token, room.id).then((res) => {
-            if (res.success && Array.isArray(res.data) && activeRoomRef.current?.id === room.id) {
-              setMessages((prev) => mergeLiveChatMessages(prev, res.data))
-              historyCursorRef.current = res.nextCursor
-              setHasMoreMessages(res.hasMore)
-            }
-          }).catch(() => undefined)
-        }
-
-        connectGlobalSSE()
-      }, 3000)
+      sseNeedsSyncRef.current = true
     }
-  }, [token, clearSSE, open])
+  }, [token, clearSSE])
 
   // ── Load Rooms ─────────────────────────────────────────────
   const loadRooms = useCallback(async () => {
