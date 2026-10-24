@@ -211,6 +211,17 @@
 
 /* Hide Print */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    width: 100%;
+    margin: 0 !important;
+  }
+
   .hide-print-button {
     display: none !important;
   }
@@ -234,8 +245,31 @@
   }
 
   #printout-cs .card {
+    width: 100% !important;
+    max-width: 100% !important;
     border: none !important;
     box-shadow: none !important;
+  }
+
+  #printout-cs .card .card-body {
+    min-height: 0;
+    padding: 0 !important;
+  }
+
+  #printout-cs table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  #printout-cs th,
+  #printout-cs td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  #printout-cs tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   @media screen and (max-width: 991px) {

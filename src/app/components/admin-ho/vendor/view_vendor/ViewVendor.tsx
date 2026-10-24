@@ -531,62 +531,71 @@ const ViewVendorHO: React.FC<Props> = ({className}) => {
       <div className={`card ${className}`}>
         <div className='card-body'>
           <Row className='table-head-wrapper'>
-            <div
-              className='d-flex flex-column flex-sm-row flex-md-row flex-lg-row flex-xl-row flex-xxl-row align-items-start align-items-sm-center align-items-md-center align-items-lg-center align-items-xl-center align-items-xxl-center justify-content-start gap-3'
-              onKeyDown={handleKeyPress}
-            >
-              <h3 className='d-flex align-items-center fs-5 fw-normal'>Date</h3>
+            <div className='vendor-filter-toolbar' onKeyDown={handleKeyPress}>
+              <div className='vendor-filter-field vendor-filter-date'>
+                <label htmlFor='vendor-date-range'>Tanggal Join</label>
+                <RangePicker
+                  id='vendor-date-range'
+                  format='DD-MM-YYYY'
+                  className='date-range'
+                  onChange={(values) => {
+                    if (values && values.length === 2) {
+                      const dateFromFormatted = values[0]?.format('YYYY-MM-DD') || ''
+                      const dateToFormatted = values[1]?.format('YYYY-MM-DD') || ''
 
-              <RangePicker
-                format={'DD-MM-YYYY'}
-                className='date-range'
-                onChange={(values) => {
-                  if (values && values.length === 2) {
-                    const dateFromFormatted = values[0]?.format('YYYY-MM-DD') || ''
-                    const dateToFormatted = values[1]?.format('YYYY-MM-DD') || ''
-
-                    dispatch(setDateFrom(dateFromFormatted))
-                    dispatch(setDateTo(dateToFormatted))
-                  } else {
-                    dispatch(setDateFrom(''))
-                    dispatch(setDateTo(''))
-                  }
-                }}
-              />
-
-              <div className='filter-search'>
-                <FormGroup>
-                  <Form.Control
-                    placeholder='Search'
-                    className='filter-ltr'
-                    onChange={handleChangeSearchFilter}
-                  />
-
-                  <span className='search-icon'>
-                    <FontAwesomeIcon icon={faSearch} className='text-black' size='sm' />
-                  </span>
-                </FormGroup>
+                      dispatch(setDateFrom(dateFromFormatted))
+                      dispatch(setDateTo(dateToFormatted))
+                    } else {
+                      dispatch(setDateFrom(''))
+                      dispatch(setDateTo(''))
+                    }
+                  }}
+                />
               </div>
 
-              <Select
-                name='store_id'
-                className='form-control p-0'
-                classNamePrefix='select'
-                placeholder='Pilih Vendor'
-                isSearchable={true}
-                isClearable={true}
-                options={storeOptions}
-                value={selectedStore}
-                onChange={handleStoreChange}
-              />
+              <div className='vendor-filter-field vendor-filter-search'>
+                <label htmlFor='vendor-search'>Cari vendor</label>
+                <div className='filter-search'>
+                  <FormGroup>
+                    <Form.Control
+                      id='vendor-search'
+                      placeholder='Nama, email, atau nomor vendor'
+                      className='filter-ltr'
+                      onChange={handleChangeSearchFilter}
+                    />
 
-              <Button
-                className='btn-dark-primary button-submit m-0'
-                disabled={loadingButton}
-                onClick={handleSubmitFilter}
-              >
-                {loadingButton ? 'Filtering..' : 'Submit'}
-              </Button>
+                    <span className='search-icon'>
+                      <FontAwesomeIcon icon={faSearch} className='text-black' size='sm' />
+                    </span>
+                  </FormGroup>
+                </div>
+              </div>
+
+              <div className='vendor-filter-field vendor-filter-vendor'>
+                <label htmlFor='vendor-select'>Vendor</label>
+                <Select
+                  inputId='vendor-select'
+                  name='store_id'
+                  className='vendor-select'
+                  classNamePrefix='select'
+                  placeholder='Semua vendor'
+                  isSearchable={true}
+                  isClearable={true}
+                  options={storeOptions}
+                  value={selectedStore}
+                  onChange={handleStoreChange}
+                />
+              </div>
+
+              <div className='vendor-filter-actions'>
+                <Button
+                  className='btn-dark-primary button-submit m-0'
+                  disabled={loadingButton}
+                  onClick={handleSubmitFilter}
+                >
+                  {loadingButton ? 'Memuat...' : 'Terapkan Filter'}
+                </Button>
+              </div>
             </div>
           </Row>
 

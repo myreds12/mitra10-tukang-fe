@@ -1,6 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React, {FC, useEffect, useState, useRef} from 'react'
-import axiosInstance from '../../../../../_metronic/layout/core/axiosInterceptor'
 import {useNavigate} from 'react-router-dom'
 import {useSelector, useDispatch} from 'react-redux'
 import {RootState} from '../../../../../store'
@@ -21,12 +20,10 @@ import {
 import './ViewOrder.css'
 
 import axios from 'axios'
-import dayjs from 'dayjs'
 import Select, {SingleValue} from 'react-select'
 import type {ColumnsType} from 'antd/es/table'
-import {Table, Tag, PaginationProps, Spin, Pagination, DatePicker} from 'antd'
+import {Tag, PaginationProps} from 'antd'
 import type {FilterValue, SorterResult, TableCurrentDataSource} from 'antd/es/table/interface'
-import {LoadingOutlined} from '@ant-design/icons'
 import {Image, Skeleton} from 'antd'
 import Swal from 'sweetalert2'
 import {
@@ -35,18 +32,15 @@ import {
   Col,
   Form,
   Button,
-  FormGroup,
   Modal,
   Card,
   ListGroup,
   OverlayTrigger,
-  Tooltip,
   Tab,
 } from 'react-bootstrap'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {
   faBook,
-  faSearch,
   faPen,
   faCheckCircle,
   faImage,
@@ -56,26 +50,22 @@ import {
   faEnvelope,
   faPrint,
 } from '@fortawesome/free-solid-svg-icons'
+import {OrderListRow} from '../../../../modules/order/order-list.mapper'
+import OrderListActions from '../../../../modules/order/OrderListActions'
+import OrderListTable from '../../../../modules/order/OrderListTable'
+import {createOrderListColumns} from '../../../../modules/order/order-list.columns'
+import {useOrderModalState} from '../../../../modules/order/useOrderModalState'
+import OrderModalContent from '../../../../modules/order/OrderModalContent'
+import OrderModalHeader from '../../../../modules/order/OrderModalHeader'
+import OrderFilterToolbar from '../../../../modules/order/OrderFilterToolbar'
+import {
+  buildOrderListFilterQuery,
+} from '../../../../modules/order/order-list.query'
+import {useOrderList} from '../../../../modules/order/useOrderList'
 import {formatDateWithTimeZone} from '../../../../../_metronic/helpers'
 
-const {RangePicker} = DatePicker
 
-interface DataType {
-  order_id: number
-  store_id: number
-  date_order: Date
-  assign_from: string
-  vendor_name: string
-  no_member: number
-  costumer_name: string
-  phone_number: number
-  payment_receipt: string
-  payment_quotation: string
-  order_status: string
-  order_status_label: string
-  work_order_status: string
-  print_counter: number
-}
+type DataType = OrderListRow
 
 interface StoreItem {
   value: number | null
@@ -163,7 +153,6 @@ const ViewOrders: FC = () => {
   const storeId = localStorage.getItem('storeId')
 
   const [loadingButton, setLoadingButton] = useState<boolean>(false)
-  const [loadData, setLoadData] = useState<boolean>(true)
   const today = new Date().toISOString().split('T')[0]
 
   const [mailLogs, setMailLogs] = useState<any>()
@@ -171,7 +160,6 @@ const ViewOrders: FC = () => {
   const [orderData, setOrderData] = useState<DataType[]>([])
   const [receiptFiles, setReceiptFiles] = useState<Array<File | null>>([])
 
-  const [totalData, setTotalData] = useState<number>(0)
   const {
     queryParams,
     searchFilter,
@@ -186,7 +174,29 @@ const ViewOrders: FC = () => {
     selectedPaymentQuotationStatus,
   } = useSelector((state: RootState) => state.order)
 
-  const [activeKey, setActiveKey] = useState<number>(1)
+  const {fetchOrderList, loadData, totalData} = useOrderList({
+    apiUrl,
+    searchFilter,
+    currentPage,
+    dateFrom,
+    dateTo,
+    salesId,
+    storeId,
+    selectedStoreId: selectedStore.value,
+    selectedVendorId: selectedVendor.value,
+    onPageChange: (page) => dispatch(setCurrentPage(page)),
+  })
+
+  const {
+    activeKey,
+    setActiveKey,
+    loadingModal,
+    setLoadingModal,
+    showModal,
+    modalType,
+    openModal,
+    closeModal,
+  } = useOrderModalState()
 
   const [store, setStore] = useState<StoreItem[]>([])
   const storeOptions = [{value: null, label: 'All Store'}, ...store]
@@ -525,13 +535,6 @@ const ViewOrders: FC = () => {
 
   // Modal
   const [loadingUpdate, setLoadingUpdate] = useState(false)
-  const [loadingModal, setLoadingModal] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [modalType, setModalType] = useState<number | null>(null)
-  const handleCloseModal = () => {
-    setShowModal(false)
-  }
-
   // CSI
   const [csiData, setCsiData] = useState<CSI[]>([])
   const [selectedCSI, setSelectedCSI] = useState<SingleValue<CSI>>({
@@ -756,121 +759,8 @@ const ViewOrders: FC = () => {
     setSelectedFileIndex(index)
   }
 
-  const fetchOrderList = async (page: number, pageSize: number, queryparams: any) => {
-    let apiUrlWithParams = `${apiUrl}/orders?order_by=desc${queryparams}`
-
-    try {
-      const response = await axiosInstance.get(apiUrlWithParams, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
-        },
-        params: {
-          search: searchFilter || null,
-          page: page || currentPage,
-          take: pageSize,
-          date_from: dateFrom || null,
-          date_to: dateTo || null,
-          sales_id: salesId || null,
-          store_id: storeId ? storeId : selectedStore.value ? selectedStore.value : null,
-          vendor_id: selectedVendor.value ? selectedVendor.value : null,
-        },
-      })
-
-      const resPage = Number(response?.data?.page ?? response?.data?.meta?.page ?? page)
-      const resTotal = Number(response?.data?.total ?? response?.data?.meta?.total ?? 0)
-      dispatch(setCurrentPage(resPage))
-      setTotalData(resTotal)
-
-      return response.data.data
-    } catch (error: any) {
-      console.log('error when fetching data', error)
-    } finally {
-      setLoadData(false)
-    }
-  }
-
-  const ViewOrder = async (page: number, pageSize: number, queryparams: any) => {
-    try {
-      const apiData = await fetchOrderList(page, pageSize, queryparams)
-
-      if (!apiData) {
-        console.error('No data received from fetchOrderList')
-        return []
-      }
-
-      const orderData = apiData.map((item: any) => {
-        let data
-
-        const phoneNumber = item?.project_number.startsWith('0')
-          ? item.project_number
-          : `+62${item.project_number}`
-
-        const orderDate = formatDateWithTimeZone(item?.created_at)
-
-        const paymentReceipt = (() => {
-          if (item?.payment_type === 'survey') {
-            return item.receipt_number === null ? 'UNPAID' : 'PAID'
-          } else if (item?.payment_type === 'pemasangan_tanpa_survey') {
-            return item.receipt_number === null ? 'UNPAID' : 'PAID'
-          } else if (item?.payment_type === 'gratis') {
-            return 'FREE'
-          } else {
-            return ''
-          }
-        })()
-
-        const paymentQuotation = (() => {
-          if (item?.quotation?.length) {
-            if (
-              item?.quotation[0]?.receipt_quotation !== null &&
-              item?.quotation[0]?.quotation_files.length &&
-              item?.quotation[0].quotation_files.find((x: any) => x.type === 2)
-            ) {
-              return 'PAID (RECEIPT DI UPLOAD OLEH TOKO)'
-            } else if (
-              item?.quotation[0]?.receipt_quotation !== null &&
-              item?.quotation[0]?.quotation_files.length &&
-              item?.quotation[0].quotation_files.find((x: any) => x.type === 3)
-            ) {
-              return 'BUKTI TRANSFER SUDAH DI UPLOAD OLEH KONSUMEN'
-            } else {
-              return 'UNPAID'
-            }
-          } else {
-            return ''
-          }
-        })()
-        data = {
-          order_id: item.id,
-          store_id: item?.store?.id,
-          assign_from: item?.store?.store_name,
-          date_order: orderDate,
-          vendor_name: item?.vendor?.company_name ?? 'Vendor Belum Ditugaskan',
-          no_member: item?.members?.member_number,
-          costumer_name: item?.members?.full_name,
-          phone_number: phoneNumber,
-          payment_receipt: paymentReceipt,
-          payment_quotation: paymentQuotation,
-          order_status: item?.status?.category,
-          order_status_label: item?.status?.description,
-          print_counter: item?.print_counter ?? 0,
-        }
-
-        return data
-      })
-
-      return orderData
-    } catch (error) {
-      console.error('Error getting order list data:', error)
-      return []
-    }
-  }
-
   const fetchData = async (page: number, pageSize: number, queryparams: any) => {
-    const data = await ViewOrder(page, pageSize, queryparams)
+    const data = await fetchOrderList(page, pageSize, queryparams)
     setOrderData(data)
   }
 
@@ -916,16 +806,11 @@ const ViewOrders: FC = () => {
     sorter: SorterResult<DataType> | SorterResult<DataType>[],
     extra: TableCurrentDataSource<DataType>
   ) => {
-    const newQueryParams: string[] = []
-
     if (filters.order_status_label) {
       const statusValues = filters.order_status_label as string[]
 
       dispatch(setSelectedOrderStatus(statusValues))
 
-      if (statusValues.length > 0) {
-        newQueryParams.push(`&status=${statusValues.join(',')}`)
-      }
     } else {
       dispatch(setSelectedOrderStatus([]))
     }
@@ -935,9 +820,6 @@ const ViewOrders: FC = () => {
 
       dispatch(setSelectedPaymentReceiptStatus(paymentReceiptValues))
 
-      if (paymentReceiptValues.length > 0) {
-        newQueryParams.push(`&is_receipt=${paymentReceiptValues.join(',')}`)
-      }
     } else {
       dispatch(setSelectedPaymentReceiptStatus([]))
     }
@@ -947,14 +829,11 @@ const ViewOrders: FC = () => {
 
       dispatch(setSelectedPaymentQuotationStatus(paymentQuotationValues))
 
-      if (paymentQuotationValues.length > 0) {
-        newQueryParams.push(`&is_receipt_quotation=${paymentQuotationValues.join(',')}`)
-      }
     } else {
       dispatch(setSelectedPaymentQuotationStatus([]))
     }
 
-    const finalQueryParams = newQueryParams.join('')
+    const finalQueryParams = buildOrderListFilterQuery(filters)
 
     dispatch(setQueryParams(finalQueryParams))
     dispatch(setCurrentPage(1))
@@ -967,7 +846,7 @@ const ViewOrders: FC = () => {
     dispatch(setCurrentPage(1))
 
     try {
-      const data = await ViewOrder(currentPage, pageSize, queryParams)
+      const data = await fetchOrderList(currentPage, pageSize, queryParams)
       setOrderData(data)
     } catch (error) {
       console.error('Error getting order list data:', error)
@@ -1405,11 +1284,11 @@ const ViewOrders: FC = () => {
   const CustomerIndexModal = ({orderDetail, loadingModal, mailLogs}: any) => {
     return (
       <>
-        <Modal.Header closeButton>
-          <Skeleton active loading={loadingModal} paragraph={{rows: 0}}>
-            <Modal.Title>History Aktivitas Email - Order ID {orderDetail?.id}</Modal.Title>
-          </Skeleton>
-        </Modal.Header>
+        <OrderModalHeader
+          title='History Aktivitas Email'
+          orderId={orderDetail?.id}
+          loading={loadingModal}
+        />
 
         <Modal.Body>
           <Tab.Container activeKey={activeKey} onSelect={(key) => setActiveKey(Number(key))}>
@@ -1989,11 +1868,11 @@ const ViewOrders: FC = () => {
   }: any) => {
     return (
       <>
-        <Modal.Header closeButton>
-          <Skeleton active loading={loadingModal} paragraph={{rows: 0}}>
-            <Modal.Title>Verifikasi Pembayaran Quotation - Order ID {orderDetail?.id}</Modal.Title>
-          </Skeleton>
-        </Modal.Header>
+        <OrderModalHeader
+          title='Verifikasi Pembayaran Quotation'
+          orderId={orderDetail?.id}
+          loading={loadingModal}
+        />
 
         <Modal.Body>
           <Row className='mb-5'>
@@ -2738,11 +2617,11 @@ const ViewOrders: FC = () => {
   const RefundModal = ({orderDetail, loadingModal}: any) => {
     return (
       <>
-        <Modal.Header closeButton>
-          <Skeleton active loading={loadingModal} paragraph={{rows: 0}}>
-            <Modal.Title>Permintaan Refund - Order ID {orderDetail?.id}</Modal.Title>
-          </Skeleton>
-        </Modal.Header>
+        <OrderModalHeader
+          title='Permintaan Refund'
+          orderId={orderDetail?.id}
+          loading={loadingModal}
+        />
 
         <Modal.Body>
           <Row className='mb-5'>
@@ -3299,8 +3178,45 @@ const ViewOrders: FC = () => {
       })
   }
 
-  const renderTooltip = (title: string) => <Tooltip id='button-tooltip'>{title}</Tooltip>
-  const columns: ColumnsType<DataType> = [
+  const handlePrintout = (orderId: number, status?: string) => {
+    if (status === 'PICKLIST') navigate(`/order/printout-order-picklist/${orderId}`)
+    if (['BOOK', 'BOOKED', 'SURVEYREQ', 'SURVEYSTART', 'SURVEYDONE'].includes(status ?? '')) {
+      navigate(`/order/printout-order-dipesan/${orderId}`)
+    }
+  }
+
+  const handleShowActionModal = (id: number, type: number) => {
+    const selected = orderData.find((order) => order.order_id === id)
+    if (selected) {
+      fetchOrderData(selected.order_id)
+      getVendor(selected.store_id)
+      openModal(type)
+    }
+  }
+
+  const handleEmailAction = (id: number) => {
+    handleShowActionModal(id, 1)
+    setActiveKey(1)
+    setSelectedCSI({value: null, label: 'Pilih Format CSI'})
+  }
+
+  const columns = createOrderListColumns({
+    userRole,
+    statusFilters,
+    selectedOrderStatus,
+    selectedPaymentReceiptStatus,
+    selectedPaymentQuotationStatus,
+    onPrintout: handlePrintout,
+    onCancel: (id) => handleShowActionModal(id, 3),
+    onDetail: (id) => navigate(`/order/detail-order/${id}`),
+    onUpdate: (id) => navigate(`/order/update-order/${id}`),
+    onEmail: handleEmailAction,
+    onVerify: (id) => handleShowActionModal(id, 2),
+    onExportPdf: exportToPDF,
+  })
+
+  /*
+  const legacyColumns: ColumnsType<DataType> = [
     {
       title: 'Order ID',
       dataIndex: 'order_id',
@@ -3353,7 +3269,7 @@ const ViewOrders: FC = () => {
       key: 'phone_number',
       align: 'left',
       width: 120,
-      sorter: (a: DataType, b: DataType) => a.phone_number - b.phone_number,
+      sorter: (a: DataType, b: DataType) => a.phone_number.localeCompare(b.phone_number),
     },
     {
       title: 'Status Pembayaran Receipt',
@@ -3417,7 +3333,20 @@ const ViewOrders: FC = () => {
       key: 'action',
       align: 'center',
       fixed: 'right',
-      render: (record: any) => {
+      render: (record: DataType) => {
+        return (
+          <OrderListActions
+            record={record}
+            userRole={userRole}
+            onPrintout={handlePrintout}
+            onCancel={(id) => handleShowActionModal(id, 3)}
+            onDetail={(id) => navigate(`/order/detail-order/${id}`)}
+            onUpdate={(id) => navigate(`/order/update-order/${id}`)}
+            onEmail={handleEmailAction}
+            onVerify={(id) => handleShowActionModal(id, 2)}
+            onExportPdf={exportToPDF}
+          />
+        )
         const id = record.order_id
         const handlePrintout = (status: string) => {
           if (['PICKLIST'].includes(status)) {
@@ -3656,173 +3585,86 @@ const ViewOrders: FC = () => {
       },
     },
   ].filter(Boolean) as ColumnsType<DataType>
+  */
 
   return (
     <section id='view-order'>
       <Card>
         <Card.Body className='table-view-order'>
-          <Row className='table-head-wrapper'>
-            <div
-              className='d-flex flex-column flex-sm-row flex-md-row flex-lg-row flex-xl-row flex-xxl-row align-items-start align-items-sm-center align-items-md-center align-items-lg-center align-items-xl-center align-items-xxl-center justify-content-start gap-3'
-              onKeyDown={handleKeyPress}
-            >
-              <h3 className='d-flex align-items-center fs-5 fw-normal'>Date</h3>
+          <OrderFilterToolbar
+            userRole={userRole}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            searchFilter={searchFilter}
+            selectedStore={selectedStore}
+            selectedVendor={selectedVendor}
+            storeOptions={storeOptions}
+            vendorOptions={vendorOptions}
+            loading={loadingButton}
+            onKeyPress={handleKeyPress}
+            onDateChange={(values) => {
+              if (values && values.length === 2) {
+                dispatch(setDateFrom(values[0]?.format('YYYY-MM-DD') || ''))
+                dispatch(setDateTo(values[1]?.format('YYYY-MM-DD') || ''))
+              } else {
+                dispatch(setDateFrom(''))
+                dispatch(setDateTo(''))
+              }
+            }}
+            onSearchChange={handleChangeSearchFilter}
+            onStoreChange={handleStoreChange}
+            onVendorChange={handleVendorChange}
+            onSubmit={handleSubmitFilter}
+          />
 
-              <RangePicker
-                format={'DD-MM-YYYY'}
-                className='date-range'
-                value={[
-                  dateFrom ? dayjs(dateFrom, 'YYYY-MM-DD') : null,
-                  dateTo ? dayjs(dateTo, 'YYYY-MM-DD') : null,
-                ]}
-                onChange={(values) => {
-                  if (values && values.length === 2) {
-                    const dateFromFormatted = values[0]?.format('YYYY-MM-DD') || ''
-                    const dateToFormatted = values[1]?.format('YYYY-MM-DD') || ''
-
-                    dispatch(setDateFrom(dateFromFormatted))
-                    dispatch(setDateTo(dateToFormatted))
-                  } else {
-                    dispatch(setDateFrom(''))
-                    dispatch(setDateTo(''))
-                  }
-                }}
-              />
-
-              <div className='filter-search'>
-                <FormGroup>
-                  <Form.Control
-                    placeholder='Search'
-                    className='filter-ltr'
-                    value={searchFilter ?? ''}
-                    onChange={handleChangeSearchFilter}
-                  />
-
-                  <span className='search-icon'>
-                    <FontAwesomeIcon icon={faSearch} className='text-black' size='sm' />
-                  </span>
-                </FormGroup>
-              </div>
-
-              {['Super User', 'Admin HO'].includes(userRole ?? '') && (
-                <Select
-                  name='store_id'
-                  className='form-control p-0 w-25'
-                  classNamePrefix='select'
-                  placeholder='Pilih Toko'
-                  isSearchable={true}
-                  options={storeOptions}
-                  value={selectedStore}
-                  onChange={handleStoreChange}
-                />
-              )}
-
-              {['Super User', 'Admin HO'].includes(userRole ?? '') && (
-                <Select
-                  name='store_id'
-                  className='form-control p-0 w-25'
-                  classNamePrefix='select'
-                  placeholder='Pilih Vendor'
-                  isSearchable={true}
-                  options={vendorOptions}
-                  value={selectedVendor}
-                  onChange={handleVendorChange}
-                />
-              )}
-
-              <Button
-                className='btn-dark-primary button-submit m-0'
-                disabled={loadingButton}
-                onClick={() => handleSubmitFilter()}
-              >
-                {loadingButton ? 'Filtering..' : 'Submit'}
-              </Button>
-            </div>
-          </Row>
-
-          <Spin
-            tip='Loading...'
-            spinning={loadData}
-            size='large'
-            indicator={<LoadingOutlined style={{fontSize: 24}} spin />}
-          >
-            <div className='table-custom-wrapper'>
-              <Table
-                className='table-striped-rows'
-                bordered
-                columns={columns}
-                dataSource={orderData}
-                rowKey={(record) => record.order_id}
-                pagination={false}
-                sticky={true}
-                tableLayout='auto'
-                scroll={{x: 'max-content'}}
-                onChange={handleFilterTable}
-              />
-            </div>
-          </Spin>
-
-          <div className='pagination-container mt-5'>
-            <span className='total-text'>
-              Showing {totalData === 0 ? 0 : (currentPage - 1) * pageSize + 1} -{' '}
-              {Math.min(currentPage * pageSize, totalData)} of {totalData} Orders
-            </span>
-
-            <Pagination
-              className='pagination'
-              pageSize={pageSize}
-              current={currentPage}
-              total={totalData}
-              showSizeChanger
-              pageSizeOptions={[5, 10, 20, 50, 100, 250, 500]}
-              itemRender={itemRender}
-              onChange={(page, pageSize) => {
-                handlePageChange(page, pageSize)
-              }}
-            />
-          </div>
+          <OrderListTable
+            columns={columns}
+            data={orderData}
+            loading={loadData}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalData={totalData}
+            itemRender={itemRender}
+            onFilter={handleFilterTable}
+            onPageChange={handlePageChange}
+          />
         </Card.Body>
       </Card>
 
-      {orderDetail && (
-        <Modal
-          dialogClassName='modal-verification'
-          centered
-          show={showModal}
-          onHide={handleCloseModal}
-        >
-          {modalType === 1 && (
-            <CustomerIndexModal
-              mailLogs={mailLogs}
-              orderDetail={orderDetail}
-              loadingModal={loadingModal}
-            />
-          )}
-
-          {modalType === 2 && (
-            <QuotationModal
-              show={showModal}
-              handleClose={handleCloseModal}
-              orderDetail={orderDetail}
-              loadingModal={loadingModal}
-              handleReceiptClick={handleReceiptClick}
-              handleReceiptChange={handleReceiptChange}
-              handleUpdateQuotation={handleUpdateQuotation}
-              loadingUpdate={loadingUpdate}
-              receiptQuotation={receiptQuotation}
-              quotationFiles={quotationFiles}
-              handleFileReceipt={handleFileReceipt}
-              handleRemoveReceipt={handleRemoveReceipt}
-              handleImageClick={handleImageClick}
-              handleFileChange={handleFileChange}
-              handleFileClick={handleFileClick}
-              handleRemoveFile={handleRemoveFile}
-            />
-          )}
-
-          {modalType === 3 && <RefundModal orderDetail={orderDetail} loadingModal={loadingModal} />}
-        </Modal>
-      )}
+      <OrderModalContent
+        show={showModal}
+        modalType={modalType}
+        orderDetail={orderDetail}
+        onClose={closeModal}
+        renderCustomer={() => (
+          <CustomerIndexModal
+            mailLogs={mailLogs}
+            orderDetail={orderDetail}
+            loadingModal={loadingModal}
+          />
+        )}
+        renderQuotation={() => (
+          <QuotationModal
+            show={showModal}
+            handleClose={closeModal}
+            orderDetail={orderDetail}
+            loadingModal={loadingModal}
+            handleReceiptClick={handleReceiptClick}
+            handleReceiptChange={handleReceiptChange}
+            handleUpdateQuotation={handleUpdateQuotation}
+            loadingUpdate={loadingUpdate}
+            receiptQuotation={receiptQuotation}
+            quotationFiles={quotationFiles}
+            handleFileReceipt={handleFileReceipt}
+            handleRemoveReceipt={handleRemoveReceipt}
+            handleImageClick={handleImageClick}
+            handleFileChange={handleFileChange}
+            handleFileClick={handleFileClick}
+            handleRemoveFile={handleRemoveFile}
+          />
+        )}
+        renderRefund={() => <RefundModal orderDetail={orderDetail} loadingModal={loadingModal} />}
+      />
     </section>
   )
 }

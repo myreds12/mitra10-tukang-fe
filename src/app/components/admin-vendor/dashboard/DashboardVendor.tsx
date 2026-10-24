@@ -1,4 +1,5 @@
 import React, {useState, useEffect, FC} from 'react'
+import {Link} from 'react-router-dom'
 
 import './DashboardVendor.css'
 
@@ -6,6 +7,7 @@ import {ChartBarPerformance} from './components/ChartBarPerformance'
 import {ChartBarOrder} from './components/ChartBarOrder'
 import {ChartBarSurvey} from './components/ChartBarSurvey'
 import {MoreInformation} from './components/MoreInformation'
+import {vendorSpService} from '../../../services/vendorSpService'
 
 import axios from 'axios'
 import dayjs from 'dayjs'
@@ -26,6 +28,33 @@ interface DataType {
   service_name: string
   total: number
   order_status: string
+}
+
+interface VendorSpDashboardInfo {
+  loaded: boolean
+  sp_id: number | null
+  sp_level: number | null
+  sp_status: string
+  total_point: number
+  violation_count: number
+  allocation_reduction: number
+  quarter: number
+  year: number
+}
+
+const getQuarterDateRangeText = (quarter: number, year: number): string => {
+  const q = quarter >= 1 && quarter <= 4 ? quarter : Math.ceil((new Date().getMonth() + 1) / 3)
+  const y = year || new Date().getFullYear()
+  const startMonth = (q - 1) * 3
+  const startDate = new Date(y, startMonth, 1)
+  const endDate = new Date(y, startMonth + 3, 0)
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  return `${fmt(startDate)} - ${fmt(endDate)}`
 }
 
 const columns: ColumnsType<DataType> = [
@@ -137,6 +166,22 @@ const DashboardVendor: FC = () => {
   const [chartDataOrder, setChartDataOrder] = useState<any[]>([])
   const [chartReportTukang, setChartReportTukang] = useState<any[]>([])
 
+  const now = new Date()
+  const defaultQuarter = Math.ceil((now.getMonth() + 1) / 3)
+  const defaultYear = now.getFullYear()
+
+  const [vendorSpInfo, setVendorSpInfo] = useState<VendorSpDashboardInfo>({
+    loaded: false,
+    sp_id: null,
+    sp_level: null,
+    sp_status: 'NORMAL',
+    total_point: 0,
+    violation_count: 0,
+    allocation_reduction: 0,
+    quarter: defaultQuarter,
+    year: defaultYear,
+  })
+
   const today = new Date()
   const formatDate = (date: any) => {
     const day = date.getDate().toString().padStart(2, '0')
@@ -148,16 +193,41 @@ const DashboardVendor: FC = () => {
   const [dateFrom, setDateFrom] = useState<any>(new Date().toISOString().split('T')[0])
   const [dateTo, setDateTo] = useState<any>(new Date().toISOString().split('T')[0])
 
+  const fetchVendorSpSummary = async () => {
+    try {
+      const storedVendorId = localStorage.getItem('vendor_id')
+      const res = storedVendorId
+        ? await vendorSpService.checkStatus(Number(storedVendorId))
+        : await vendorSpService.checkMyStatus()
+      const payload = res.data?.data || res.data || {}
+      if (payload?.vendor_id && !localStorage.getItem('vendor_id')) {
+        localStorage.setItem('vendor_id', String(payload.vendor_id))
+      }
+      setVendorSpInfo({
+        loaded: true,
+        sp_id: payload?.sp_id ?? null,
+        sp_level: payload?.sp_level ?? null,
+        sp_status: payload?.sp_status || (payload?.sp_level ? `SP${payload.sp_level}` : 'NORMAL'),
+        total_point: payload?.total_point ?? 0,
+        violation_count: payload?.violation_count ?? payload?.total_violation_count ?? 0,
+        allocation_reduction: payload?.allocation_reduction ?? 0,
+        quarter: payload?.quarter || defaultQuarter,
+        year: payload?.year || defaultYear,
+      })
+    } catch (error) {
+      setVendorSpInfo((prev) => ({...prev, loaded: true}))
+    }
+  }
+
   const fetchOrderList = async (page: number, pageSize: number, queryparams: any) => {
-    let apiUrlWithParams = `${apiUrl}/orders?order_by=desc&vendor_id=${vendorId}&date_from=${dateFrom}&date_to=${dateTo}&page=${page}&take=${pageSize}${queryparams}`
+    const activeVendorId = localStorage.getItem('vendor_id') || vendorId || ''
+    let apiUrlWithParams = `${apiUrl}/orders?order_by=desc&vendor_id=${activeVendorId}&date_from=${dateFrom}&date_to=${dateTo}&page=${page}&take=${pageSize}${queryparams}`
 
     try {
       const response = await axios.get(apiUrlWithParams, {
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
         },
       })
 
@@ -174,14 +244,13 @@ const DashboardVendor: FC = () => {
 
   const getReportOrder = async () => {
     try {
+      const activeVendorId = localStorage.getItem('vendor_id') || vendorId || ''
       const response = await axios.get(
-        `${apiUrl}/reports/orders?vendor_id=${vendorId}&date_from=${dateFrom}&date_to=${dateTo}`,
+        `${apiUrl}/reports/orders?vendor_id=${activeVendorId}&date_from=${dateFrom}&date_to=${dateTo}`,
         {
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            // 'Access-Control-Allow-Origin': '*',
-           // 'ngrok-skip-browser-warning':  'true',
           },
         }
       )
@@ -288,12 +357,11 @@ const DashboardVendor: FC = () => {
 
   const getReportTukang = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/reports/tukang?vendor_id=${vendorId}`, {
+      const activeVendorId = localStorage.getItem('vendor_id') || vendorId || ''
+      const response = await axios.get(`${apiUrl}/reports/tukang?vendor_id=${activeVendorId}`, {
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
         },
       })
 
@@ -312,6 +380,7 @@ const DashboardVendor: FC = () => {
   }
 
   useEffect(() => {
+    void fetchVendorSpSummary()
     fetchData(1, 10, '')
   }, [])
 
@@ -324,6 +393,7 @@ const DashboardVendor: FC = () => {
     setLoadingButton(true)
     let queryparams = ''
 
+    await fetchVendorSpSummary()
     const data = await ViewOrder(1, 10, queryparams)
     setOrderList(data)
 
@@ -360,11 +430,26 @@ const DashboardVendor: FC = () => {
   const renderStat = (value: number, label: string, className = 'text-center') => (
     <Col className='mb-5'>
       <div className='d-flex flex-column align-items-center gap-2'>
-        <h1 className='fw-normal'>{value}</h1>
+        <h1 className='fw-normal' style={{fontVariantNumeric: 'tabular-nums'}}>
+          {value}
+        </h1>
         <p className={`fs-6 ${className}`}>{label}</p>
       </div>
     </Col>
   )
+
+  const getSpBadgeStyle = (spLevel: number | null): React.CSSProperties => {
+    if (spLevel === 3) {
+      return {backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5'}
+    }
+    if (spLevel === 2) {
+      return {backgroundColor: '#fff5f8', color: '#b91c1c', border: '1px solid #fecdd3'}
+    }
+    if (spLevel === 1) {
+      return {backgroundColor: '#fff8dd', color: '#b45309', border: '1px solid #fde68a'}
+    }
+    return {backgroundColor: '#e8fff3', color: '#15803d', border: '1px solid #bbf7d0'}
+  }
 
   return (
     <section id='dashboard-vendor'>
@@ -417,6 +502,140 @@ const DashboardVendor: FC = () => {
         <Col xl={12}>
           <Card>
             <Card.Body>
+              <div className='d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4'>
+                <div>
+                  <div className='fs-5 fw-semibold text-gray-800'>
+                    Status SP & Poin Pelanggaran Vendor
+                  </div>
+                  <div className='text-muted fs-7'>
+                    Ringkasan akumulasi poin pelanggaran dan level Surat Peringatan (SP) pada kuartal
+                    berjalan
+                  </div>
+                </div>
+                <div className='d-flex align-items-center gap-2'>
+                  {vendorSpInfo.sp_id ? (
+                    <Link
+                      to={`/vendor-sp/detail/${vendorSpInfo.sp_id}`}
+                      className='btn btn-sm btn-light-danger fw-semibold'
+                    >
+                      Lihat Detail SP
+                    </Link>
+                  ) : null}
+                  <Link
+                    to='/vendor-sp/violation-log'
+                    className='btn btn-sm btn-light-primary fw-semibold'
+                  >
+                    Lihat Log Pelanggaran
+                  </Link>
+                </div>
+              </div>
+
+              <Row className='g-4'>
+                <Col md={3} sm={6}>
+                  <div className='border border-gray-200 rounded p-4 h-100 d-flex flex-column justify-content-between'>
+                    <span className='text-muted fs-7 fw-semibold text-uppercase'>
+                      Poin Pelanggaran
+                    </span>
+                    <div className='mt-2 mb-1 d-flex align-items-baseline gap-2'>
+                      <span
+                        className='fw-bold'
+                        style={{
+                          fontSize: '26px',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: vendorSpInfo.total_point > 0 ? '#b91c1c' : '#15803d',
+                        }}
+                      >
+                        {vendorSpInfo.total_point}
+                      </span>
+                      <span className='text-gray-700 fw-semibold fs-6'>Poin</span>
+                    </div>
+                    <span className='text-muted fs-8' style={{fontVariantNumeric: 'tabular-nums'}}>
+                      {vendorSpInfo.violation_count} pelanggaran tercatat (Q{vendorSpInfo.quarter}{' '}
+                      {vendorSpInfo.year})
+                    </span>
+                  </div>
+                </Col>
+
+                <Col md={3} sm={6}>
+                  <div className='border border-gray-200 rounded p-4 h-100 d-flex flex-column justify-content-between'>
+                    <span className='text-muted fs-7 fw-semibold text-uppercase'>
+                      Level SP Saat Ini
+                    </span>
+                    <div className='mt-2 mb-1'>
+                      <span
+                        style={{
+                          ...getSpBadgeStyle(vendorSpInfo.sp_level),
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          padding: '4px 12px',
+                          borderRadius: '6px',
+                          display: 'inline-block',
+                        }}
+                      >
+                        {vendorSpInfo.sp_level
+                          ? `SP${vendorSpInfo.sp_level}`
+                          : 'Normal (Bebas SP)'}
+                      </span>
+                    </div>
+                    <span className='text-muted fs-8'>
+                      Ambang batas: SP1 (1-25), SP2 (26-50), SP3 (&gt;50 Poin)
+                    </span>
+                  </div>
+                </Col>
+
+                <Col md={3} sm={6}>
+                  <div className='border border-gray-200 rounded p-4 h-100 d-flex flex-column justify-content-between'>
+                    <span className='text-muted fs-7 fw-semibold text-uppercase'>
+                      Pengurangan Alokasi Order
+                    </span>
+                    <div className='mt-2 mb-1'>
+                      <span
+                        className='fw-bold'
+                        style={{
+                          fontSize: '24px',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: vendorSpInfo.allocation_reduction > 0 ? '#b45309' : '#15803d',
+                        }}
+                      >
+                        {vendorSpInfo.allocation_reduction}%
+                      </span>
+                    </div>
+                    <span className='text-muted fs-8'>
+                      {vendorSpInfo.allocation_reduction > 0
+                        ? 'Penalti pengurangan alokasi order aktif'
+                        : 'Alokasi order normal (tidak ada pengurangan)'}
+                    </span>
+                  </div>
+                </Col>
+
+                <Col md={3} sm={6}>
+                  <div className='border border-gray-200 rounded p-4 h-100 d-flex flex-column justify-content-between'>
+                    <span className='text-muted fs-7 fw-semibold text-uppercase'>
+                      Periode Evaluasi Kuartal
+                    </span>
+                    <div className='mt-2 mb-1'>
+                      <span
+                        className='fw-bold text-gray-800'
+                        style={{fontSize: '20px', fontVariantNumeric: 'tabular-nums'}}
+                      >
+                        Q{vendorSpInfo.quarter} {vendorSpInfo.year}
+                      </span>
+                    </div>
+                    <span className='text-muted fs-8' style={{fontVariantNumeric: 'tabular-nums'}}>
+                      {getQuarterDateRangeText(vendorSpInfo.quarter, vendorSpInfo.year)}
+                    </span>
+                  </div>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row className='g-5 g-xl-8 mb-5'>
+        <Col xl={12}>
+          <Card>
+            <Card.Body>
               <div className='fs-5 fw-normal mb-5'>Order</div>
 
               <Row className='justify-content-md-center'>
@@ -445,6 +664,9 @@ const DashboardVendor: FC = () => {
             totalReschedule={totalReschedule}
             totalRefund={totalRefund}
             totalCancel={totalCancel}
+            totalViolationPoints={vendorSpInfo.total_point}
+            violationCount={vendorSpInfo.violation_count}
+            spLevel={vendorSpInfo.sp_level}
           />
         </Col>
 

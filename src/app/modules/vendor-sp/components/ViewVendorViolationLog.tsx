@@ -1,37 +1,41 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import apiClient from '../../../services/apiClient'
 import {
   Table,
   Button,
-  Tag,
   Space,
   Input,
   Select,
   Modal,
   Form,
   message,
-  Badge,
-  Descriptions,
-  Upload,
+  DatePicker,
   Pagination,
 } from 'antd'
 import {
   PlusOutlined,
   EyeOutlined,
   DownloadOutlined,
-  UploadOutlined,
   SearchOutlined,
   ClearOutlined,
   FileSearchOutlined,
 } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
 import {
   VendorSpActionButton,
+  VendorSpOrderLink,
   VendorSpPill,
   vendorSpTableClassName,
+  formatQuarterDateBounds,
+  formatViolationIncidentDate,
+  formatViolationIncidentDateTime,
 } from './VendorSpTable'
 import { vendorViolationService } from '../../../services/vendorViolationService'
+import { vendorSpService } from '../../../services/vendorSpService'
+import { DetailVendorSpModal } from './DetailVendorSP'
 import './VendorSpFilter.css'
 
 const { Option } = Select
@@ -77,15 +81,25 @@ const CATEGORIES = [
 ]
 
 const ViewVendorViolationLog: React.FC = () => {
+  const navigate = useNavigate()
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null
+  const isVendorRole = userRole === 'Admin Vendor' || userRole === 'Owner Vendor'
+  const storedVendorId =
+    typeof window !== 'undefined' && localStorage.getItem('vendor_id')
+      ? Number(localStorage.getItem('vendor_id'))
+      : undefined
+
   const [data, setData] = useState<ViolationLog[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [mySpStatus, setMySpStatus] = useState<any>(null)
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   })
   const [detailModal, setDetailModal] = useState<ViolationLog | null>(null)
+  const [selectedSpId, setSelectedSpId] = useState<number | null>(null)
   const [addModal, setAddModal] = useState(false)
   const [vendors, setVendors] = useState<any[]>([])
   const [violationTypes, setViolationTypes] = useState<any[]>([])
@@ -93,24 +107,45 @@ const ViewVendorViolationLog: React.FC = () => {
     search: '',
     category: undefined as string | undefined,
     vendor_id: undefined as number | undefined,
+    quarter: undefined as number | undefined,
   })
   const [appliedFilters, setAppliedFilters] = useState({
     search: '',
     category: undefined as string | undefined,
     vendor_id: undefined as number | undefined,
+    quarter: undefined as number | undefined,
   })
   const [loadingButton, setLoadingButton] = useState(false)
+
+  const fetchMyVendorSpSummary = async () => {
+    if (!isVendorRole) return
+    try {
+      const response = await vendorSpService.checkMyStatus()
+      const payload = response.data?.data || response.data || null
+      if (payload?.vendor_id && !localStorage.getItem('vendor_id')) {
+        localStorage.setItem('vendor_id', String(payload.vendor_id))
+      }
+      setMySpStatus(payload)
+    } catch (error) {
+      // ignore if vendor status cannot be loaded
+    }
+  }
 
   const fetchData = async () => {
     setLoading(true)
     try {
       const token = localStorage.getItem('accessToken')
+      const effectiveVendorId = isVendorRole
+        ? mySpStatus?.vendor_id || storedVendorId
+        : appliedFilters.vendor_id
+
       const params = new URLSearchParams({
         page: pagination.current.toString(),
         take: pagination.pageSize.toString(),
         ...(appliedFilters.search && { search: appliedFilters.search }),
         ...(appliedFilters.category && { category: appliedFilters.category }),
-        ...(appliedFilters.vendor_id && { vendor_id: appliedFilters.vendor_id.toString() }),
+        ...(effectiveVendorId && { vendor_id: effectiveVendorId.toString() }),
+        ...(appliedFilters.quarter && { quarter: appliedFilters.quarter.toString() }),
       })
 
       const response = await axios.get(
@@ -138,6 +173,7 @@ const ViewVendorViolationLog: React.FC = () => {
   }
 
   const fetchVendors = async () => {
+    if (isVendorRole) return
     try {
       const token = localStorage.getItem('accessToken')
       const response = await axios.get(
@@ -151,43 +187,48 @@ const ViewVendorViolationLog: React.FC = () => {
   }
 
   const fetchViolationTypes = async () => {
+    if (isVendorRole) return
     try {
       const response = await apiClient.get('/vendor-violation/type', {
-        params: {take: 100, is_active: true},
+        params: { take: 100, is_active: true },
       })
-      // eslint-disable-next-line no-console
-      console.log('[ViolationTypes] raw response:', response.data)
       const payload = response.data?.data && response.data?.meta
         ? response.data
         : response.data?.data || response.data
       const types = Array.isArray(payload?.data)
         ? payload.data
         : Array.isArray(payload)
-        ? payload
-        : []
-      // eslint-disable-next-line no-console
-      console.log('[ViolationTypes] parsed types count:', types.length)
+          ? payload
+          : []
       setViolationTypes(types)
     } catch (error: any) {
-      // eslint-disable-next-line no-console
       console.error(
         '[ViolationTypes] fetch failed:',
         error?.response?.status,
         error?.response?.data,
       )
-      message.error(
-        `Gagal mengambil jenis pelanggaran${
-          error?.response?.status ? ` (HTTP ${error.response.status})` : ''
-        }`,
-      )
     }
   }
 
   useEffect(() => {
-    fetchData()
+    void fetchMyVendorSpSummary()
     fetchVendors()
     fetchViolationTypes()
-  }, [pagination.current, pagination.pageSize, appliedFilters.search, appliedFilters.category, appliedFilters.vendor_id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    pagination.current,
+    pagination.pageSize,
+    appliedFilters.search,
+    appliedFilters.category,
+    appliedFilters.vendor_id,
+    appliedFilters.quarter,
+    mySpStatus?.vendor_id,
+  ])
 
   const handleSubmitFilter = () => {
     setLoadingButton(true)
@@ -198,26 +239,33 @@ const ViewVendorViolationLog: React.FC = () => {
   const hasActiveFilters =
     !!filtersInput.search ||
     !!filtersInput.category ||
-    filtersInput.vendor_id !== undefined
+    filtersInput.vendor_id !== undefined ||
+    filtersInput.quarter !== undefined ||
+    !!appliedFilters.search ||
+    !!appliedFilters.category ||
+    appliedFilters.vendor_id !== undefined ||
+    appliedFilters.quarter !== undefined
 
   const handleClearFilters = () => {
-    setFiltersInput({search: '', category: undefined, vendor_id: undefined})
-    setAppliedFilters({search: '', category: undefined, vendor_id: undefined})
-    setPagination((prev) => ({...prev, current: 1}))
+    setFiltersInput({
+      search: '',
+      category: undefined,
+      vendor_id: undefined,
+      quarter: undefined,
+    })
+    setAppliedFilters({
+      search: '',
+      category: undefined,
+      vendor_id: undefined,
+      quarter: undefined,
+    })
+    setPagination((prev) => ({ ...prev, current: 1 }))
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter') {
       handleSubmitFilter()
     }
-  }
-
-  const handleTableChange = (newPagination: any) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || prev.pageSize,
-    }))
   }
 
   const handleAdd = async (values: any) => {
@@ -279,106 +327,127 @@ const ViewVendorViolationLog: React.FC = () => {
     }
   }
 
-  const canExport = (() => {
-    const role =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('userRole')
-        : null
-    return role === 'Admin HO' || role === 'Super User'
-  })()
+  const canExport = userRole === 'Admin HO' || userRole === 'Super User'
 
   const getCategoryColor = (category: string) => {
     const found = CATEGORIES.find((c) => c.value === category)
     return found?.color || 'default'
   }
 
+  const getCategoryLabel = (category: string) => {
+    const found = CATEGORIES.find((c) => c.value === category)
+    return found?.label || category || '-'
+  }
+
+  const getSpLevelColor = (level?: number | null) => {
+    if (level === 1) return 'orange'
+    if (level === 2) return 'red'
+    if (level === 3) return 'dark'
+    return 'success'
+  }
+
+  const now = new Date()
+  const currentQuarter = mySpStatus?.quarter || Math.ceil((now.getMonth() + 1) / 3)
+  const currentYear = mySpStatus?.year || now.getFullYear()
+  const currentQuarterBounds = formatQuarterDateBounds(
+    currentQuarter,
+    currentYear,
+    mySpStatus?.end_date,
+    1,
+  )
+
   const columns: ColumnsType<ViolationLog> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 60,
+      title: 'No',
+      key: 'no',
+      width: 65,
+      align: 'center',
+      render: (_, __, index) =>
+        (pagination.current - 1) * pagination.pageSize + index + 1,
     },
     {
-      title: 'Vendor',
-      key: 'vendor',
+      title: 'Order ID',
+      key: 'order_id',
+      width: 110,
+      align: 'center',
       render: (_, record) => (
-        <div>
-          <div className='fw-bold'>{record.vendor?.company_name}</div>
-          <div className='text-muted small'>{record.vendor?.pic_name}</div>
-        </div>
+        <VendorSpOrderLink orderId={record.order_id ?? record.orders?.id} />
       ),
     },
+    ...(!isVendorRole
+      ? [
+          {
+            title: 'Vendor',
+            key: 'vendor',
+            render: (_: any, record: ViolationLog) => (
+              <div>
+                <div className='fw-bold text-gray-800'>{record.vendor?.company_name || '-'}</div>
+                <div className='text-muted small'>{record.vendor?.pic_name || '-'}</div>
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       title: 'Jenis Pelanggaran',
       key: 'violation',
       render: (_, record) => (
         <div>
           <VendorSpPill color={getCategoryColor(record.violation_type?.category)}>
-            {record.violation_type?.code}
+            {record.violation_type?.code || '-'}
           </VendorSpPill>
-          <div className='small mt-1'>{record.violation_type?.name}</div>
+          <div className='small mt-1'>{record.violation_type?.name || '-'}</div>
         </div>
       ),
     },
     {
       title: 'Poin',
       key: 'point',
-      width: 80,
-      render: (_, record) => (
-        <Badge count={record.adjusted_point ?? record.violation_type?.point ?? 0} showZero color='red' />
-      ),
+      width: 110,
+      align: 'center',
+      render: (_, record) => {
+        const point = record.adjusted_point ?? record.violation_type?.point ?? 0
+        return (
+          <VendorSpPill color={point >= 2 ? 'red' : 'orange'}>
+            {point} Poin
+          </VendorSpPill>
+        )
+      },
     },
     {
       title: 'Periode',
       key: 'period',
-      width: 100,
+      width: 190,
+      align: 'center',
+      render: (_, record) => {
+        const bounds = formatQuarterDateBounds(record.quarter, record.year)
+        return (
+          <div className='small'>
+            <div className='fw-semibold'>{bounds.quarterLabel}</div>
+            <div className='text-muted'>{bounds.rangeFormatted}</div>
+          </div>
+        )
+      },
+    },
+    {
+      title: 'Tanggal Kejadian',
+      key: 'incident_date',
+      width: 150,
+      align: 'center',
       render: (_, record) => (
-        <span>Q{record.quarter} {record.year}</span>
+        <span className='fw-semibold text-gray-800' style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {formatViolationIncidentDate(record)}
+        </span>
       ),
-    },
-    {
-      title: 'Order',
-      key: 'order',
-      width: 120,
-      render: (_, record) =>
-        record.orders ? (
-          <VendorSpPill>{record.orders.project_number}</VendorSpPill>
-        ) : (
-          <span className='text-muted'>-</span>
-        ),
-    },
-    {
-      // [POIN 6] Badge untuk legacy data yang evidence_path masih null
-      // (data sebelum fix Poin 6). Data baru setelah fix tidak akan pernah null.
-      title: 'Evidence',
-      key: 'evidence',
-      width: 130,
-      render: (_, record) =>
-        !record.evidence_path ? (
-          <Tag color='warning'>
-            ⚠ Tanpa Evidence
-          </Tag>
-        ) : record.evidence_provenance === 'SYSTEM_GENERATED' ? (
-          <Tag color='blue' title='Snapshot kejadian sistem (JSON)'>Sistem</Tag>
-        ) : (
-          <Tag color='green' title={record.evidence_path}>Upload</Tag>
-        ),
-    },
-    {
-      title: 'Tanggal',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 120,
-      render: (date: string) => new Date(date).toLocaleDateString('id-ID'),
     },
     {
       title: 'Aksi',
       key: 'action',
-      width: 80,
+      width: 90,
+      align: 'center',
       render: (_, record) => (
         <VendorSpActionButton
-          title='Detail'
+          title='Detail Pelanggaran'
           tone='primary'
           icon={<EyeOutlined />}
           onClick={() => setDetailModal(record)}
@@ -389,231 +458,431 @@ const ViewVendorViolationLog: React.FC = () => {
 
   return (
     <div id='vendor-sp-violations'>
-    <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
-      <div className='card-header border-0 pt-5'>
-        <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3'>
-          <h3 className='card-label fw-bold fs-3 mb-0'>Log Pelanggaran Vendor</h3>
-          <div className='d-flex gap-2 flex-wrap'>
-            {canExport && (
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={handleExport}
-                loading={exporting}
-                className='vendor-sp-recap-button'
-              >
-                <span className='d-none d-md-inline'>Download Excel</span>
-                <span className='d-md-none'>Export</span>
-              </Button>
-            )}
-            <Button
-              type='primary'
-              icon={<PlusOutlined />}
-              onClick={() => setAddModal(true)}
-              className='vendor-sp-recap-button'
-            >
-              <span className='d-none d-md-inline'>Catat Pelanggaran</span>
-              <span className='d-md-none'>Tambah</span>
-            </Button>
-          </div>
-        </div>
-        <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
-          <div className='row g-2 align-items-end'>
-            <div className='col-12 col-md-4'>
-              <label className='form-label fw-semibold fs-7 mb-1'>Pencarian</label>
-              <div className='vendor-sp-search-wrapper'>
-                <SearchOutlined className='vendor-sp-search-icon' />
-                <Input
-                  className='vendor-sp-search'
-                  placeholder='Cari nama vendor atau PIC...'
-                  allowClear
-                  value={filtersInput.search}
-                  onChange={(e) =>
-                    setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
-                  }
-                />
-              </div>
+      <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
+        <div className='card-header border-0 pt-5'>
+          <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3'>
+            <div>
+              <h3 className='card-label fw-bold fs-3 mb-1'>
+                {isVendorRole ? 'Log SP & Pelanggaran Vendor' : 'Log Pelanggaran Vendor'}
+              </h3>
+              <span className='text-muted fs-7'>
+                {isVendorRole
+                  ? 'Pantau level Surat Peringatan aktif, akumulasi poin kuartal, dan riwayat log pelanggaran Anda.'
+                  : 'Riwayat pelanggaran vendor, bukti pendukung, dan akumulasi poin per kuartal.'}
+              </span>
             </div>
-            <div className='col-6 col-md-2'>
-              <label className='form-label fw-semibold fs-7 mb-1'>Kategori</label>
-              <Select
-                className='vendor-sp-filter-select'
-                placeholder='Semua Kategori'
-                allowClear
-                value={filtersInput.category}
-                onChange={(value) =>
-                  setFiltersInput((prev) => ({ ...prev, category: value }))
-                }
-                style={{ width: '100%' }}
-              >
-                {CATEGORIES.map((cat) => (
-                  <Option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </Option>
-                ))}
-              </Select>
-            </div>
-            <div className='col-6 col-md-2'>
-              <label className='form-label fw-semibold fs-7 mb-1'>Vendor</label>
-              <Select
-                className='vendor-sp-filter-select'
-                placeholder='Semua Vendor'
-                allowClear
-                showSearch
-                value={filtersInput.vendor_id}
-                onChange={(value) =>
-                  setFiltersInput((prev) => ({ ...prev, vendor_id: value }))
-                }
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-                options={vendors.map((v) => ({
-                  value: v.id,
-                  label: v.company_name,
-                }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div className='col-12 col-md-4 d-flex justify-content-end gap-2 flex-wrap'>
-              <Button
-                onClick={handleClearFilters}
-                disabled={!hasActiveFilters}
-                icon={<ClearOutlined />}
-              >
-                <span className='d-none d-sm-inline'>Reset Filter</span>
-                <span className='d-sm-none'>Reset</span>
-              </Button>
-              <Button
-                type='primary'
-                className='btn-dark-primary'
-                onClick={handleSubmitFilter}
-                loading={loadingButton}
-                icon={<SearchOutlined />}
-              >
-                {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className='card-body py-3'>
-        <Table
-          className={vendorSpTableClassName}
-          columns={columns}
-          dataSource={data}
-          rowKey='id'
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 1000 }}
-          locale={{
-            emptyText: (
-              <div className='vendor-sp-empty-state'>
-                <FileSearchOutlined className='vendor-sp-empty-icon' />
-                <div className='vendor-sp-empty-title'>
-                  {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Data Pelanggaran'}
-                </div>
-                <div className='vendor-sp-empty-desc'>
-                  {hasActiveFilters
-                    ? 'Coba ubah atau reset filter untuk menampilkan data.'
-                    : 'Belum ada log pelanggaran vendor yang tercatat.'}
-                </div>
-                {hasActiveFilters && (
+            {!isVendorRole && (
+              <div className='d-flex gap-2 flex-wrap'>
+                {canExport && (
                   <Button
-                    type='link'
-                    onClick={handleClearFilters}
-                    className='vendor-sp-empty-action'
+                    icon={<DownloadOutlined />}
+                    onClick={handleExport}
+                    loading={exporting}
+                    className='vendor-sp-header-btn'
                   >
-                    Reset Filter
+                    <span className='d-none d-md-inline'>Download Excel</span>
+                    <span className='d-md-none'>Export</span>
                   </Button>
                 )}
+                <Button
+                  type='primary'
+                  icon={<PlusOutlined />}
+                  onClick={() => setAddModal(true)}
+                  className='vendor-sp-recap-button'
+                >
+                  <span className='d-none d-md-inline'>Catat Pelanggaran</span>
+                  <span className='d-md-none'>Tambah</span>
+                </Button>
               </div>
-            ),
-          }}
-        />
-        <div className='pagination-container'>
-          <span className='pagination-total'>
-            {pagination.total === 0
-              ? 'Belum ada data Pelanggaran'
-              : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
-                  pagination.current * pagination.pageSize,
-                  pagination.total,
-                )} dari ${pagination.total} Pelanggaran`}
-          </span>
-          <Pagination
-            current={pagination.current}
-            pageSize={pagination.pageSize}
-            total={pagination.total}
-            showSizeChanger
-            pageSizeOptions={[10, 20, 50, 100]}
-            onChange={(page, size) =>
-              setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
-            }
-          />
+            )}
+          </div>
+
+          {isVendorRole && (
+            <div className='vendor-sp-metric-grid mt-4 mb-1'>
+              <div className='vendor-sp-metric-card'>
+                <span className='vendor-sp-metric-label'>Level Surat Peringatan</span>
+                <div className='vendor-sp-metric-value'>
+                  <VendorSpPill color={getSpLevelColor(mySpStatus?.sp_level)}>
+                    {mySpStatus?.sp_level
+                      ? `SP${mySpStatus.sp_level}`
+                      : 'Normal (Bebas SP)'}
+                  </VendorSpPill>
+                </div>
+              </div>
+              <div className='vendor-sp-metric-card'>
+                <span className='vendor-sp-metric-label'>Total Poin Penalti Aktif</span>
+                <div className='vendor-sp-metric-value'>
+                  <VendorSpPill
+                    color={(mySpStatus?.total_point ?? 0) >= 2 ? 'red' : 'orange'}
+                  >
+                    {mySpStatus?.total_point ?? 0} Poin
+                  </VendorSpPill>
+                </div>
+              </div>
+              <div className='vendor-sp-metric-card'>
+                <span className='vendor-sp-metric-label'>Pengurangan Alokasi Order</span>
+                <div className='vendor-sp-metric-value'>
+                  {mySpStatus?.allocation_reduction ? (
+                    <VendorSpPill color='red'>-{mySpStatus.allocation_reduction}%</VendorSpPill>
+                  ) : (
+                    <span className='text-muted fs-6 fw-semibold'>Tidak Ada (0%)</span>
+                  )}
+                </div>
+              </div>
+              <div className='vendor-sp-metric-card'>
+                <span className='vendor-sp-metric-label'>Periode Kuartal</span>
+                <div className='d-flex justify-content-between align-items-center flex-wrap gap-2'>
+                  <div className='d-flex flex-column'>
+                    <span className='fw-bold text-gray-800' style={{ fontSize: 14 }}>
+                      {currentQuarterBounds.quarterLabel}
+                    </span>
+                    <span className='text-muted' style={{ fontSize: 12 }}>
+                      {currentQuarterBounds.rangeFormatted}
+                    </span>
+                  </div>
+                  {mySpStatus?.sp_id && (
+                    <Button
+                      size='small'
+                      type='primary'
+                      icon={<EyeOutlined />}
+                      onClick={() => setSelectedSpId(mySpStatus.sp_id)}
+                      className='vendor-sp-save-notes-btn'
+                    >
+                      Detail SP
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+            <div className='row g-3 align-items-end'>
+              <div className='col-12 col-md-4 col-lg-4'>
+                <label className='form-label'>Pencarian</label>
+                <div className='vendor-sp-search-wrapper'>
+                  <SearchOutlined className='vendor-sp-search-icon' />
+                  <Input
+                    className='vendor-sp-search'
+                    placeholder={
+                      isVendorRole
+                        ? 'Cari kode atau nama pelanggaran...'
+                        : 'Cari nama vendor atau PIC...'
+                    }
+                    allowClear
+                    value={filtersInput.search}
+                    onChange={(e) =>
+                      setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className='col-6 col-md-2 col-lg-2'>
+                <label className='form-label'>Kategori</label>
+                <Select
+                  className='vendor-sp-filter-select'
+                  placeholder='Semua Kategori'
+                  allowClear
+                  value={filtersInput.category}
+                  onChange={(value) =>
+                    setFiltersInput((prev) => ({ ...prev, category: value }))
+                  }
+                >
+                  {CATEGORIES.map((cat) => (
+                    <Option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+              {isVendorRole ? (
+                <div className='col-6 col-md-2 col-lg-2'>
+                  <label className='form-label'>Kuartal</label>
+                  <Select
+                    className='vendor-sp-filter-select'
+                    placeholder='Semua Kuartal'
+                    allowClear
+                    value={filtersInput.quarter}
+                    onChange={(value) =>
+                      setFiltersInput((prev) => ({ ...prev, quarter: value }))
+                    }
+                  >
+                    <Option value={1}>Q1 (1 Jan - 31 Mar)</Option>
+                    <Option value={2}>Q2 (1 Apr - 30 Jun)</Option>
+                    <Option value={3}>Q3 (1 Jul - 30 Sep)</Option>
+                    <Option value={4}>Q4 (1 Okt - 31 Des)</Option>
+                  </Select>
+                </div>
+              ) : (
+                <div className='col-6 col-md-2 col-lg-2'>
+                  <label className='form-label'>Vendor</label>
+                  <Select
+                    className='vendor-sp-filter-select'
+                    placeholder='Semua Vendor'
+                    allowClear
+                    showSearch
+                    value={filtersInput.vendor_id}
+                    onChange={(value) =>
+                      setFiltersInput((prev) => ({ ...prev, vendor_id: value }))
+                    }
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                    options={vendors.map((v) => ({
+                      value: v.id,
+                      label: v.company_name,
+                    }))}
+                  />
+                </div>
+              )}
+              <div className='col-12 col-md-4 col-lg-4'>
+                <div className='vendor-sp-filter-actions'>
+                  <Button
+                    className='btn-reset-filter'
+                    onClick={handleClearFilters}
+                    disabled={!hasActiveFilters}
+                    icon={<ClearOutlined />}
+                  >
+                    <span className='d-none d-sm-inline'>Reset Filter</span>
+                    <span className='d-sm-none'>Reset</span>
+                  </Button>
+                  <Button
+                    type='primary'
+                    className='btn-dark-primary'
+                    onClick={handleSubmitFilter}
+                    loading={loadingButton}
+                    icon={<SearchOutlined />}
+                  >
+                    {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Detail Modal */}
-      <Modal
-        title='Detail Pelanggaran'
-        open={!!detailModal}
-        onCancel={() => setDetailModal(null)}
-        footer={[
-          <Button key='close' onClick={() => setDetailModal(null)}>
-            Tutup
-          </Button>,
-        ]}
-      >
-        {detailModal && (
-          <Descriptions column={1} bordered size='small'>
-            <Descriptions.Item label='ID'>{detailModal.id}</Descriptions.Item>
-            <Descriptions.Item label='Vendor'>
-              {detailModal.vendor?.company_name}
-            </Descriptions.Item>
-            <Descriptions.Item label='Kategori'>
-              <Tag color={getCategoryColor(detailModal.violation_type?.category)}>
-                {detailModal.violation_type?.category}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label='Kode'>
-              {detailModal.violation_type?.code}
-            </Descriptions.Item>
-            <Descriptions.Item label='Nama Pelanggaran'>
-              {detailModal.violation_type?.name}
-            </Descriptions.Item>
-            <Descriptions.Item label='Poin'>
-              {detailModal.violation_type?.point}
-            </Descriptions.Item>
-            <Descriptions.Item label='Periode'>
-              Q{detailModal.quarter} {detailModal.year}
-            </Descriptions.Item>
-            <Descriptions.Item label='Order'>
-              {detailModal.orders?.project_number || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label='Deskripsi'>
-              {detailModal.description || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label='Tanggal'>
-              {new Date(detailModal.created_at).toLocaleString('id-ID')}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
+        <div className='card-body py-3'>
+          <Table
+            className={vendorSpTableClassName}
+            columns={columns}
+            dataSource={data}
+            rowKey='id'
+            loading={loading}
+            pagination={false}
+            scroll={{ x: 1000 }}
+            locale={{
+              emptyText: (
+                <div className='vendor-sp-empty-state'>
+                  <FileSearchOutlined className='vendor-sp-empty-icon' />
+                  <div className='vendor-sp-empty-title'>
+                    {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Data Pelanggaran'}
+                  </div>
+                  <div className='vendor-sp-empty-desc'>
+                    {hasActiveFilters
+                      ? 'Coba ubah atau reset filter untuk menampilkan data.'
+                      : 'Belum ada log pelanggaran vendor yang tercatat.'}
+                  </div>
+                  {hasActiveFilters && (
+                    <Button
+                      type='link'
+                      onClick={handleClearFilters}
+                      className='vendor-sp-empty-action'
+                    >
+                      Reset Filter
+                    </Button>
+                  )}
+                </div>
+              ),
+            }}
+          />
+          <div className='pagination-container'>
+            <span className='pagination-total'>
+              {pagination.total === 0
+                ? 'Belum ada data Pelanggaran'
+                : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+                    pagination.current * pagination.pageSize,
+                    pagination.total,
+                  )} dari ${pagination.total} Pelanggaran`}
+            </span>
+            <Pagination
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              showSizeChanger
+              pageSizeOptions={[10, 20, 50, 100]}
+              onChange={(page, size) =>
+                setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
+              }
+            />
+          </div>
+        </div>
 
-      {/* Add Violation Modal */}
-      <Modal
-        title='Catat Pelanggaran Baru'
-        open={addModal}
-        onCancel={() => setAddModal(false)}
-        footer={null}
-      >
-        <AddViolationForm
-          vendors={vendors}
-          violationTypes={violationTypes}
-          onSubmit={handleAdd}
-          onCancel={() => setAddModal(false)}
+        {/* Detail Modal */}
+        <Modal
+          title='Detail Pelanggaran Vendor'
+          open={!!detailModal}
+          onCancel={() => setDetailModal(null)}
+          width={680}
+          centered
+          className='vendor-sp-popup-modal'
+          footer={[
+            <Button
+              key='close'
+              type='primary'
+              className='vendor-sp-modal-close-btn'
+              onClick={() => setDetailModal(null)}
+            >
+              Tutup
+            </Button>,
+          ]}
+        >
+          {detailModal && (
+            <div className='vendor-sp-table'>
+              <div className='vendor-sp-detail-banner'>
+                <div>
+                  <div className='eyebrow'>Vendor Terkait</div>
+                  <div className='name'>
+                    {detailModal.vendor?.company_name || '-'}
+                  </div>
+                  <div className='pic'>
+                    PIC: {detailModal.vendor?.pic_name || '-'}
+                  </div>
+                </div>
+                <div className='badges'>
+                  <span className='vendor-sp-detail-badge'>
+                    {getCategoryLabel(detailModal.violation_type?.category)}
+                  </span>
+                  <span className='vendor-sp-detail-badge warn'>
+                    {detailModal.adjusted_point ?? detailModal.violation_type?.point ?? 0} Poin
+                  </span>
+                  <span
+                    className={`vendor-sp-detail-badge ${
+                      detailModal.is_active !== false ? 'ok' : ''
+                    }`}
+                  >
+                    {detailModal.is_active !== false ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </div>
+              </div>
+
+              <div className='vendor-sp-detail-grid'>
+                <section className='vendor-sp-info-card'>
+                  <div className='vendor-sp-info-card-title'>
+                    <span>Informasi Pelanggaran</span>
+                  </div>
+                  <div className='vendor-sp-info-list'>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Order ID</span>
+                      <span className='vendor-sp-info-row-value'>
+                        <VendorSpOrderLink
+                          orderId={detailModal.order_id ?? detailModal.orders?.id}
+                        />
+                      </span>
+                    </div>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Kode Pelanggaran</span>
+                      <span className='vendor-sp-info-row-value mono'>
+                        {detailModal.violation_type?.code || '-'}
+                      </span>
+                    </div>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Nama Pelanggaran</span>
+                      <span className='vendor-sp-info-row-value'>
+                        {detailModal.violation_type?.name || '-'}
+                      </span>
+                    </div>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Periode Evaluasi</span>
+                      <span className='vendor-sp-info-row-value'>
+                        {
+                          formatQuarterDateBounds(detailModal.quarter, detailModal.year)
+                            .quarterLabel
+                        }{' '}
+                        (
+                        {
+                          formatQuarterDateBounds(detailModal.quarter, detailModal.year)
+                            .rangeFormatted
+                        }
+                        )
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                <section className='vendor-sp-info-card'>
+                  <div className='vendor-sp-info-card-title'>
+                    <span>Bukti & Pencatatan</span>
+                  </div>
+                  <div className='vendor-sp-info-list'>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Sumber Bukti</span>
+                      <span className='vendor-sp-info-row-value'>
+                        {!detailModal.evidence_path ? (
+                          <span className='vendor-sp-detail-badge warn'>Tanpa Evidence</span>
+                        ) : detailModal.evidence_provenance === 'SYSTEM_GENERATED' ? (
+                          <span className='vendor-sp-detail-badge info'>Sistem</span>
+                        ) : (
+                          <span className='vendor-sp-detail-badge ok'>Upload Manual</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Tanggal Kejadian</span>
+                      <span className='vendor-sp-info-row-value'>
+                        {formatViolationIncidentDateTime(detailModal)}
+                      </span>
+                    </div>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Poin Dasar</span>
+                      <span className='vendor-sp-info-row-value'>
+                        {detailModal.violation_type?.point ?? 0} Poin
+                      </span>
+                    </div>
+                    <div className='vendor-sp-info-row'>
+                      <span className='vendor-sp-info-row-label'>Tanggal Tercatat</span>
+                      <span className='vendor-sp-info-row-value'>
+                        {new Date(detailModal.created_at).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <section className='vendor-sp-info-card full'>
+                <div className='vendor-sp-info-card-title'>
+                  <span>Deskripsi / Keterangan Tambahan</span>
+                </div>
+                <div className='vendor-sp-note-box'>
+                  {detailModal.description || 'Tidak ada keterangan tambahan pada pelanggaran ini.'}
+                </div>
+              </section>
+            </div>
+          )}
+        </Modal>
+
+        <DetailVendorSpModal
+          spId={selectedSpId}
+          open={Boolean(selectedSpId)}
+          onClose={() => setSelectedSpId(null)}
         />
-      </Modal>
-    </div>
+
+        {/* Add Violation Modal */}
+        {!isVendorRole && (
+          <Modal
+            title='Catat Pelanggaran Baru'
+            open={addModal}
+            onCancel={() => setAddModal(false)}
+            footer={null}
+          >
+            <AddViolationForm
+              vendors={vendors}
+              violationTypes={violationTypes}
+              onSubmit={handleAdd}
+              onCancel={() => setAddModal(false)}
+            />
+          </Modal>
+        )}
+      </div>
     </div>
   )
 }
@@ -626,59 +895,29 @@ const AddViolationForm: React.FC<{
   onCancel: () => void
 }> = ({ vendors, violationTypes, onSubmit, onCancel }) => {
   const [form] = Form.useForm()
-  const [uploading, setUploading] = useState(false)
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
-  const [evidencePath, setEvidencePath] = useState<string | null>(null)
-
-  const handleEvidenceUpload = async (file: any): Promise<boolean> => {
-    const actualFile: File = file.originFileObj || file
-    const allowedPrefixes = ['image/', 'application/pdf']
-    if (!allowedPrefixes.some((p) => actualFile.type.startsWith(p))) {
-      message.error('Tipe file tidak didukung. Hanya gambar atau PDF.')
-      return false
-    }
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', actualFile)
-      const token = localStorage.getItem('accessToken')
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/vendor-violation/log/upload`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        },
-      )
-      setEvidencePath(res.data.data.path)
-      setEvidenceFile(actualFile)
-      message.success('File berhasil diupload')
-      return false
-    } catch (err) {
-      message.error('Gagal upload file')
-      return false
-    } finally {
-      setUploading(false)
-    }
-  }
 
   const handleFinish = (values: any) => {
-    if (!evidencePath) {
-      message.error('Upload bukti pelanggaran terlebih dahulu')
-      return
-    }
-    onSubmit({ ...values, evidence_path: evidencePath })
-  }
+    const formattedIncidentDate = values.incident_date
+      ? values.incident_date.format('YYYY-MM-DD')
+      : dayjs().format('YYYY-MM-DD')
 
-  const handleEvidenceRemove = () => {
-    setEvidenceFile(null)
-    setEvidencePath(null)
+    onSubmit({
+      vendor_id: values.vendor_id,
+      violation_type_id: values.violation_type_id,
+      ...(values.order_id ? { order_id: Number(values.order_id) } : {}),
+      description: values.description,
+      incident_date: formattedIncidentDate,
+      evidence_path: formattedIncidentDate,
+    })
   }
 
   return (
-    <Form form={form} layout='vertical' onFinish={handleFinish}>
+    <Form
+      form={form}
+      layout='vertical'
+      onFinish={handleFinish}
+      initialValues={{ incident_date: dayjs() }}
+    >
       <Form.Item
         name='vendor_id'
         label='Vendor'
@@ -710,7 +949,7 @@ const AddViolationForm: React.FC<{
           }
           notFoundContent={
             violationTypes.length === 0
-              ? 'Belum ada jenis pelanggaran. Tambahkan di menu Jenis Pelanggaran (Admin → Vendor SP → Jenis Pelanggaran).'
+              ? 'Belum ada jenis pelanggaran. Tambahkan di menu Jenis Pelanggaran (Admin > Vendor SP > Jenis Pelanggaran).'
               : 'Tidak ada hasil'
           }
         >
@@ -722,6 +961,18 @@ const AddViolationForm: React.FC<{
         </Select>
       </Form.Item>
 
+      <Form.Item
+        name='incident_date'
+        label='Tanggal Kejadian'
+        rules={[{ required: true, message: 'Pilih tanggal kejadian pelanggaran' }]}
+      >
+        <DatePicker
+          className='w-100'
+          format='DD-MM-YYYY'
+          placeholder='Pilih Tanggal Kejadian'
+        />
+      </Form.Item>
+
       <Form.Item name='order_id' label='Order (opsional)'>
         <Input type='number' placeholder='ID Order' />
       </Form.Item>
@@ -730,39 +981,10 @@ const AddViolationForm: React.FC<{
         <Input.TextArea rows={3} placeholder='Keterangan tambahan' />
       </Form.Item>
 
-      <Form.Item label='Bukti Pelanggaran (wajib)' required>
-        <Upload
-          maxCount={1}
-          accept='image/*,application/pdf'
-          beforeUpload={handleEvidenceUpload}
-          onRemove={handleEvidenceRemove}
-          fileList={
-            evidenceFile
-              ? [
-                  {
-                    uid: '-1',
-                    name: evidenceFile.name,
-                    status: 'done',
-                  },
-                ]
-              : []
-          }
-        >
-          <Button icon={<UploadOutlined />} loading={uploading}>
-            {evidencePath ? 'Ganti File' : 'Pilih File'}
-          </Button>
-        </Upload>
-        {evidencePath && (
-          <div className='small text-muted mt-1'>
-            Path: {evidencePath}
-          </div>
-        )}
-      </Form.Item>
-
       <Form.Item className='mb-0 text-end'>
         <Space>
           <Button onClick={onCancel}>Batal</Button>
-          <Button type='primary' htmlType='submit' disabled={!evidencePath}>
+          <Button type='primary' htmlType='submit'>
             Simpan
           </Button>
         </Space>

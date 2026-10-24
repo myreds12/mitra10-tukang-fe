@@ -9,17 +9,26 @@ import {
   faExclamationTriangle,
   faUser,
   faUserShield,
+  faExternalLinkAlt,
 } from '@fortawesome/free-solid-svg-icons'
 
 import './DetailVendor.css'
 
-import {useParams} from 'react-router-dom'
+import {useParams, useNavigate, Link} from 'react-router-dom'
 import {Form, Row, Col, Nav, Tab, Modal, Button, Alert} from 'react-bootstrap'
 import Swal from 'sweetalert2'
 
 const DetailVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({updatePageTitle}) => {
   const apiUrl = process.env.REACT_APP_API_URL
   const params = useParams()
+  const navigate = useNavigate()
+  const userRole = localStorage.getItem('userRole')
+  const isVendorRole = userRole === 'Admin Vendor' || userRole === 'Owner Vendor'
+
+  const getOrderTargetRoute = (orderId: number | string) =>
+    isVendorRole
+      ? `/work-order/detail-work-order/${orderId}`
+      : `/order/detail-order/${orderId}`
 
   const [vendorDetail, setVendorDetail] = useState<any>()
 
@@ -49,7 +58,6 @@ const DetailVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
   // SP Status
   const [spStatus, setSpStatus] = useState<any>(null)
   const [spLoading, setSpLoading] = useState(false)
-  const userRole = localStorage.getItem('userRole')
   const canSubmitRevision = userRole === 'Admin HO' || userRole === 'Super User'
 
   // Fetch API
@@ -690,85 +698,121 @@ const DetailVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
                   </Form.Group>
                 </div>
               </Row>
+            </Col>
+          </Row>
+        </div>
+      </div>
 
-              {/* Tabs for vendor details */}
-              <hr />
-              <h5 className='fw-bold mb-3'>RIWAYAT & DETAIL</h5>
-              <Tab.Container defaultActiveKey='sp-history'>
-                <Nav variant='tabs' className='mb-3'>
-                  <Nav.Item>
-                    <Nav.Link eventKey='sp-history'>
-                      <FontAwesomeIcon icon={faUserShield} className='me-2' />
-                      Riwayat SP ({spHistory.length})
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey='violation-logs'>
-                      <FontAwesomeIcon icon={faExclamationTriangle} className='me-2' />
-                      Log Pelanggaran ({violationLogs.length})
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey='tukang-list'>
-                      <FontAwesomeIcon icon={faUser} className='me-2' />
-                      Daftar Tukang ({tukangList.filter((t: any) => !t.deleted_at).length})
-                    </Nav.Link>
-                  </Nav.Item>
-                </Nav>
+      {/* Card 2: Riwayat SP & Log Pelanggaran */}
+      <div className='card mb-5'>
+        <div className='card-header border-0 pt-6 pb-2'>
+          <h3 className='card-title align-items-start flex-column'>
+            <span className='card-label fw-bolder fs-3 mb-1 text-gray-900'>
+              Riwayat Surat Peringatan & Log Pelanggaran
+            </span>
+            <span className='text-muted mt-1 fw-semibold fs-7'>
+              Evaluasi kinerja operasional, log kasus pelanggaran, dan daftar teknisi vendor
+            </span>
+          </h3>
+        </div>
+        <div className='card-body pt-3'>
+          <Tab.Container defaultActiveKey='violation-logs'>
+            <Nav variant='tabs' className='nav-line-tabs mb-6 fs-6'>
+              <Nav.Item>
+                <Nav.Link eventKey='violation-logs' className='py-3'>
+                  <FontAwesomeIcon icon={faExclamationTriangle} className='me-2 text-warning' />
+                  Log Pelanggaran ({violationLogs.length})
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey='sp-history' className='py-3'>
+                  <FontAwesomeIcon icon={faUserShield} className='me-2 text-primary' />
+                  Riwayat SP ({spHistory.length})
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey='tukang-list' className='py-3'>
+                  <FontAwesomeIcon icon={faUser} className='me-2 text-info' />
+                  Daftar Tukang ({tukangList.filter((t: any) => !t.deleted_at).length})
+                </Nav.Link>
+              </Nav.Item>
+            </Nav>
 
-                <Tab.Content>
-                  {/* SP History Tab */}
-                  <Tab.Pane eventKey='sp-history'>
-                      {spHistoryLoading ? (
-                        <div className='text-center py-4'>
-                          <div className='spinner-border text-primary' role='status' />
-                        </div>
-                      ) : spHistory.length === 0 ? (
-                        <div className='alert alert-success mb-0'>
-                          <FontAwesomeIcon icon={faUserShield} className='me-2' />
-                          Vendor tidak memiliki riwayat Surat Peringatan.
-                        </div>
-                      ) : (
-                        <div className='table-responsive'>
-                          <table className='table table-hover table-bordered'>
-                            <thead className='table-light'>
-                              <tr>
-                                <th>Level</th>
-                                <th>Tanggal Mulai</th>
-                                <th>Tanggal Berakhir</th>
-                                <th>Total Poin</th>
-                                <th>Status</th>
-                                <th>Pengurangan Alokasi</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {spHistory.map((sp: any) => (
-                                <tr key={sp.id}>
+            <Tab.Content>
+              {/* SP History Tab */}
+              <Tab.Pane eventKey='sp-history'>
+                {spHistoryLoading ? (
+                  <div className='text-center py-5'>
+                    <div className='spinner-border text-primary' role='status' />
+                  </div>
+                ) : spHistory.length === 0 ? (
+                  <div className='alert alert-light-success d-flex align-items-center p-5 mb-0'>
+                    <FontAwesomeIcon icon={faUserShield} className='fs-2hx text-success me-4' />
+                    <div className='d-flex flex-column'>
+                      <h5 className='mb-1 text-success'>Status Vendor Bersih</h5>
+                      <span>Vendor ini tidak memiliki catatan atau riwayat Surat Peringatan.</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className='card border border-gray-200 shadow-none rounded-3 mb-6'>
+                    <div className='card-header border-0 pt-4 pb-2 px-5 d-flex align-items-center justify-content-between'>
+                      <div>
+                        <h6 className='card-title fw-bolder text-gray-800 m-0 fs-6'>
+                          Daftar Surat Peringatan (SP)
+                        </h6>
+                        <span className='text-muted fs-7'>
+                          Riwayat penerbitan SP, masa berlaku, dan sanksi pemotongan alokasi
+                        </span>
+                      </div>
+                      <span className='badge badge-light-secondary text-gray-700 fw-bold fs-7'>
+                        {spHistory.length} Riwayat
+                      </span>
+                    </div>
+                    <div className='card-body p-0'>
+                      <div className='table-responsive'>
+                        <table className='table table-hover table-row-dashed table-row-gray-200 align-middle gs-5 gy-3 mb-0 fs-7'>
+                          <thead className='bg-light text-gray-700 fw-bold fs-8 text-uppercase'>
+                            <tr>
+                              <th className='min-w-100px'>Tingkat SP</th>
+                              <th className='min-w-140px'>Tanggal Mulai</th>
+                              <th className='min-w-140px'>Tanggal Berakhir</th>
+                              <th className='min-w-100px text-center'>Total Poin</th>
+                              <th className='min-w-120px text-center'>Status</th>
+                              <th className='min-w-140px text-center'>Pengurangan Alokasi</th>
+                            </tr>
+                          </thead>
+                          <tbody className='text-gray-600'>
+                            {spHistory.map((sp: any) => (
+                              <tr key={sp.id}>
                                 <td>
                                   <span
-                                    className={`badge bg-${
+                                    className={`badge ${
                                       sp.sp_level === 1
-                                        ? 'warning'
+                                        ? 'badge-warning text-dark'
                                         : sp.sp_level === 2
-                                        ? 'danger'
-                                        : 'dark'
-                                    }`}
+                                        ? 'badge-danger text-white'
+                                        : 'badge-dark text-white'
+                                    } fw-bolder fs-8 px-2 py-1`}
                                   >
-                                    SP{sp.sp_level}
+                                    SP {sp.sp_level}
                                   </span>
                                 </td>
-                                <td>{formatDate(new Date(sp.start_date))}</td>
-                                <td>{formatDate(new Date(sp.end_date))}</td>
-                                <td>{sp.total_point} poin</td>
-                                <td>
+                                <td className='text-gray-700 fw-normal'>{formatDate(new Date(sp.start_date))}</td>
+                                <td className='text-gray-700 fw-normal'>{formatDate(new Date(sp.end_date))}</td>
+                                <td className='text-center'>
+                                  <span className='badge badge-light-danger fw-bolder fs-7 px-2 py-1'>
+                                    {sp.total_point} Poin
+                                  </span>
+                                </td>
+                                <td className='text-center'>
                                   <span
-                                    className={`badge bg-${
+                                    className={`badge ${
                                       sp.status === 1
-                                        ? 'success'
+                                        ? 'badge-light-success text-success'
                                         : sp.status === 2
-                                        ? 'secondary'
-                                        : 'info'
-                                    }`}
+                                        ? 'badge-light-secondary text-secondary'
+                                        : 'badge-light-info text-info'
+                                    } fw-bold fs-8 px-2 py-1`}
                                   >
                                     {sp.status === 1
                                       ? 'AKTIF'
@@ -777,7 +821,7 @@ const DetailVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
                                       : 'DIPERPANJANG'}
                                   </span>
                                 </td>
-                                <td>
+                                <td className='text-center text-gray-700 fw-semibold'>
                                   {sp.allocation_reduction
                                     ? `${sp.allocation_reduction}%`
                                     : '-'}
@@ -787,206 +831,258 @@ const DetailVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
                           </tbody>
                         </table>
                       </div>
-                    )}
-                  </Tab.Pane>
+                    </div>
+                  </div>
+                )}
+              </Tab.Pane>
 
-                  {/* Violation Logs Tab */}
-                  <Tab.Pane eventKey='violation-logs'>
-                    {violationLogsLoading || quarterPointsLoading ? (
-                      <div className='text-center py-4'>
-                        <div className='spinner-border text-primary' role='status' />
-                      </div>
-                    ) : violationLogs.length === 0 ? (
-                      <div className='alert alert-success mb-0'>
-                        <FontAwesomeIcon icon={faExclamationTriangle} className='me-2' />
-                        Vendor tidak memiliki log pelanggaran.
-                      </div>
-                    ) : (
-                      <>
-                        {/* Total Points Metric Card */}
-                        {canSubmitRevision && (
-                          <div className='d-flex flex-wrap gap-2 mb-4'>
-                            <button
-                              type='button'
-                              className='btn btn-sm btn-light-primary'
-                              onClick={() => openRevisionModal('REVISE')}
-                            >
-                              Ajukan Revisi Poin
-                            </button>
-                            <button
-                              type='button'
-                              className='btn btn-sm btn-light-danger'
-                              onClick={() => openRevisionModal('RESET')}
-                            >
-                              Reset Poin Quarter
-                            </button>
-                          </div>
-                        )}
-
-                        {quarterPoints?.has_ever_sp && (
-                          <Alert variant='warning' className='py-2'>
-                            Vendor pernah mencapai SP. Histori SP tetap ditampilkan meskipun poin sudah direvisi/reset.
-                          </Alert>
-                        )}
-
-                        <div
-                          className={`d-flex align-items-center gap-4 p-3 mb-4 rounded-3 ${
-                            (quarterPoints?.total_points || 0) > 50
-                              ? 'bg-danger bg-opacity-10 border border-danger'
-                              : (quarterPoints?.total_points || 0) > 25
-                              ? 'bg-danger bg-opacity-10 border border-danger'
-                              : (quarterPoints?.total_points || 0) > 0
-                              ? 'bg-warning bg-opacity-10 border border-warning'
-                              : 'bg-success bg-opacity-10 border border-success'
-                          }`}
-                          style={{ borderWidth: '2px' }}
+              {/* Violation Logs Tab */}
+              <Tab.Pane eventKey='violation-logs'>
+                {violationLogsLoading || quarterPointsLoading ? (
+                  <div className='text-center py-5'>
+                    <div className='spinner-border text-primary' role='status' />
+                  </div>
+                ) : violationLogs.length === 0 ? (
+                  <div className='alert alert-light-success d-flex align-items-center p-5 mb-0'>
+                    <FontAwesomeIcon icon={faExclamationTriangle} className='fs-2hx text-success me-4' />
+                    <div className='d-flex flex-column'>
+                      <h5 className='mb-1 text-success'>Tidak Ada Pelanggaran</h5>
+                      <span>Vendor tidak memiliki log pelanggaran operasional.</span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Action buttons */}
+                    {canSubmitRevision && (
+                      <div className='d-flex flex-wrap gap-2 mb-4'>
+                        <button
+                          type='button'
+                          className='btn btn-sm btn-light-primary fw-semibold'
+                          onClick={() => openRevisionModal('REVISE')}
                         >
-                          <div
-                            className={`d-flex align-items-center justify-content-center rounded-circle ${
-                              (quarterPoints?.total_points || 0) > 25
-                                ? 'bg-danger text-white'
-                                : (quarterPoints?.total_points || 0) > 0
-                                ? 'bg-warning text-dark'
-                                : 'bg-success text-white'
-                            }`}
-                            style={{ width: '48px', height: '48px', minWidth: '48px' }}
-                          >
-                            <FontAwesomeIcon icon={faExclamationTriangle} size='lg' />
-                          </div>
-                          <div>
-                            <p className='mb-0 text-gray-500 fw-semibold' style={{ fontSize: '12px' }}>
-                              TOTAL POIN PELANGGARAN (QUARTER INI)
-                            </p>
-                            <h2
-                              className={`mb-0 fw-boldest ${
+                          Ajukan Revisi Poin
+                        </button>
+                        <button
+                          type='button'
+                          className='btn btn-sm btn-light-danger fw-semibold'
+                          onClick={() => openRevisionModal('RESET')}
+                        >
+                          Reset Poin Quarter
+                        </button>
+                      </div>
+                    )}
+
+                    {quarterPoints?.has_ever_sp && (
+                      <Alert variant='warning' className='d-flex align-items-center py-3 mb-4'>
+                        <FontAwesomeIcon icon={faUserShield} className='me-2 fs-5 text-warning' />
+                        <div>
+                          Vendor pernah mencapai Surat Peringatan (SP). Histori SP tetap dipertahankan meskipun poin evaluasi telah direvisi atau di-reset.
+                        </div>
+                      </Alert>
+                    )}
+
+                    {/* Summary Metric Header */}
+                    <div className='d-flex flex-column flex-sm-row align-items-sm-center justify-content-between p-4 mb-5 rounded bg-light-primary border border-primary border-dashed gap-3'>
+                      <div className='d-flex align-items-center gap-4'>
+                        <div
+                          className={`d-flex align-items-center justify-content-center rounded-circle ${
+                            (quarterPoints?.total_points || 0) > 25
+                              ? 'bg-danger text-white'
+                              : (quarterPoints?.total_points || 0) > 0
+                              ? 'bg-warning text-white'
+                              : 'bg-success text-white'
+                          }`}
+                          style={{ width: '48px', height: '48px', minWidth: '48px' }}
+                        >
+                          <FontAwesomeIcon icon={faExclamationTriangle} size='lg' />
+                        </div>
+                        <div>
+                          <p className='mb-0 text-muted fw-semibold fs-8 text-uppercase tracking-wider'>
+                            TOTAL POIN PELANGGARAN (QUARTER INI)
+                          </p>
+                          <div className='d-flex align-items-baseline gap-2'>
+                            <span
+                              className={`fs-2hx fw-bolder ${
                                 (quarterPoints?.total_points || 0) > 25
                                   ? 'text-danger'
                                   : (quarterPoints?.total_points || 0) > 0
                                   ? 'text-warning'
                                   : 'text-success'
                               }`}
-                              style={{ fontSize: '28px' }}
                             >
                               {quarterPoints?.total_points || 0}
-                            </h2>
-                          </div>
-                          <div className='ms-auto text-end'>
-                            <p className='mb-0 text-muted' style={{ fontSize: '11px' }}>
-                              Q{quarterPoints?.quarter || '-'} {quarterPoints?.year || '-'}
-                            </p>
-                            <span
-                              className={`badge ${
-                                (quarterPoints?.violation_count || 0) > 0
-                                  ? 'badge-secondary'
-                                  : 'badge-success'
-                              } fw-semibold`}
-                            >
-                              {quarterPoints?.violation_count || 0} Pelanggaran
                             </span>
+                            <span className='text-gray-600 fw-semibold fs-7'>Poin</span>
                           </div>
                         </div>
+                      </div>
+                      <div className='text-sm-end'>
+                        <p className='mb-1 text-muted fw-semibold fs-7'>
+                          Periode Evaluasi: Q{quarterPoints?.quarter || '-'} {quarterPoints?.year || '-'}
+                        </p>
+                        <span
+                          className={`badge ${
+                            (quarterPoints?.violation_count || 0) > 0
+                              ? 'badge-light-danger'
+                              : 'badge-light-success'
+                          } fw-bold fs-7`}
+                        >
+                          {quarterPoints?.violation_count || 0} Kasus Pelanggaran
+                        </span>
+                      </div>
+                    </div>
 
-                        {/* Metronic Styled Table */}
-                        <div className='table-responsive'>
-                          <table className='table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4'>
-                            <thead>
-                              <tr className='fw-bold text-gray-700 border-bottom'>
-                                <th className='pb-3'>Tanggal</th>
-                                <th className='pb-3'>Jenis Pelanggaran</th>
-                                <th className='pb-3'>Kategori</th>
-                                <th className='pb-3 text-center'>Poin</th>
-                                <th className='pb-3'>Keterangan</th>
-                                <th className='pb-3'>Order</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {violationLogs.map((log: any) => (
-                                <tr key={log.id} className='border-bottom-0'>
-                                  <td className='text-gray-600 fw-normal'>{formatDate(new Date(log.created_at))}</td>
-                                  <td>
-                                    <span className='text-gray-800 fw-semibold'>{log.violation_type?.name || '-'}</span>
-                                  </td>
-                                  <td>
-                                    <span className={`badge ${
-                                      log.violation_type?.category === 'SLA'
-                                        ? 'badge-primary'
-                                        : log.violation_type?.category === 'KUALITAS'
-                                        ? 'badge-info'
-                                        : 'badge-secondary'
-                                    } fw-semibold`}>
-                                      {log.violation_type?.category || '-'}
-                                    </span>
-                                  </td>
-                                  <td className='text-center'>
-                                    <span className='badge badge-danger fw-bold fs-6'>
-                                      +{log.adjusted_point ?? log.violation_type?.point ?? 0}
-                                    </span>
-                                  </td>
-                                  <td className='text-gray-600 fw-normal'>{log.description || '-'}</td>
-                                  <td>
-                                    <span className='text-primary fw-semibold'>
-                                      {log.orders?.project_number || '-'}
-                                    </span>
-                                    {canSubmitRevision && (
-                                      <button
-                                        type='button'
-                                        className='btn btn-link btn-sm p-0 ms-2'
-                                        onClick={() => openRevisionModal('REVISE', log.id)}
-                                      >
-                                        Revisi
-                                      </button>
-                                    )}
-                                  </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          </table>
+                    {/* Metronic Card & Styled Table matching Order History */}
+                    <div className='card border border-gray-200 shadow-none rounded-3 mb-6'>
+                      <div className='card-header border-0 pt-4 pb-2 px-5 d-flex align-items-center justify-content-between'>
+                        <div>
+                          <h6 className='card-title fw-bolder text-gray-800 m-0 fs-6'>
+                            Rincian Log Pelanggaran
+                          </h6>
+                          <span className='text-muted fs-7'>
+                            Daftar seluruh pelanggaran operasional dan alokasi Order ID terkait
+                          </span>
                         </div>
-                      </>
-                    )}
-
-                    {revisionRequests.length > 0 && (
-                      <div className='mt-5'>
-                        <h6 className='fw-bold mb-3'>Request Revisi/Reset Poin</h6>
+                        <span className='badge badge-light-secondary text-gray-700 fw-bold fs-7'>
+                          {violationLogs.length} Data
+                        </span>
+                      </div>
+                      <div className='card-body p-0'>
                         <div className='table-responsive'>
-                          <table className='table table-sm table-bordered'>
-                            <thead>
+                          <table className='table table-hover table-row-dashed table-row-gray-200 align-middle gs-5 gy-3 mb-0 fs-7'>
+                            <thead className='bg-light text-gray-700 fw-bold fs-8 text-uppercase'>
                               <tr>
-                                <th>Tanggal</th>
-                                <th>Tipe</th>
-                                <th>Status</th>
-                                <th>Alasan</th>
-                                <th>Review</th>
+                                <th className='min-w-110px text-center'>Order ID</th>
+                                <th className='min-w-110px'>Tanggal</th>
+                                <th className='min-w-200px'>Jenis Pelanggaran</th>
+                                <th className='min-w-130px'>Kategori</th>
+                                <th className='min-w-90px text-center'>Poin</th>
+                                <th className='min-w-220px'>Keterangan</th>
                               </tr>
                             </thead>
-                            <tbody>
-                              {revisionRequests.map((request: any) => (
-                                <tr key={request.id}>
-                                  <td>{formatDate(new Date(request.created_at))}</td>
-                                  <td>{request.type}</td>
-                                  <td>
-                                    <span
-                                      className={`badge ${
-                                        request.status === 'APPROVED'
-                                          ? 'badge-light-success'
-                                          : request.status === 'REJECTED'
-                                          ? 'badge-light-danger'
-                                          : 'badge-light-warning'
-                                      }`}
-                                    >
-                                      {request.status}
-                                    </span>
-                                  </td>
-                                  <td>{request.reason}</td>
-                                  <td>{request.review_note || '-'}</td>
-                                </tr>
-                              ))}
+                            <tbody className='text-gray-600'>
+                              {violationLogs.map((log: any) => {
+                                const orderTargetId = log.order_id ?? log.orders?.id
+                                const projectNum = log.orders?.project_number
+                                const displayOrderId = orderTargetId
+                                  ? String(orderTargetId)
+                                  : projectNum
+                                  ? String(projectNum)
+                                  : null
+                                return (
+                                  <tr key={log.id}>
+                                    <td className='text-center'>
+                                      {orderTargetId && displayOrderId ? (
+                                        <Link
+                                          to={getOrderTargetRoute(orderTargetId)}
+                                          className='btn btn-sm btn-light-primary py-1 px-3 fw-bold fs-7'
+                                          title={
+                                            projectNum
+                                              ? `Nomor Project: ${projectNum}`
+                                              : `Detail Order ${displayOrderId}`
+                                          }
+                                        >
+                                          <span>{displayOrderId}</span>
+                                        </Link>
+                                      ) : (
+                                        <span className='text-muted fs-7'>-</span>
+                                      )}
+                                    </td>
+                                    <td className='text-gray-700 fw-normal text-nowrap'>
+                                      {formatDate(new Date(log.created_at))}
+                                    </td>
+                                    <td>
+                                      <span className='text-gray-900 fw-semibold'>
+                                        {log.violation_type?.name || '-'}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span
+                                        className={`badge ${
+                                          log.violation_type?.category === 'SLA'
+                                            ? 'badge-light-primary text-primary'
+                                            : log.violation_type?.category === 'KUALITAS'
+                                            ? 'badge-light-info text-info'
+                                            : log.violation_type?.category === 'KONFIRMASI_ORDER'
+                                            ? 'badge-light-primary text-primary'
+                                            : log.violation_type?.category === 'RESCHEDULE'
+                                            ? 'badge-light-warning text-warning'
+                                            : log.violation_type?.category === 'REFUND'
+                                            ? 'badge-light-danger text-danger'
+                                            : 'badge-light-secondary text-secondary'
+                                        } fw-bold fs-8 px-2 py-1`}
+                                      >
+                                        {log.violation_type?.category || '-'}
+                                      </span>
+                                    </td>
+                                    <td className='text-center'>
+                                      <span className='badge badge-light-danger fw-bolder fs-7 px-2 py-1'>
+                                        +{log.adjusted_point ?? log.violation_type?.point ?? 0}
+                                      </span>
+                                    </td>
+                                    <td className='text-gray-700 fw-normal'>
+                                      {log.description || '-'}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
                             </tbody>
                           </table>
                         </div>
                       </div>
-                    )}
-                  </Tab.Pane>
+                    </div>
+                  </>
+                )}
+
+                {/* Revision Requests */}
+                {revisionRequests.length > 0 && (
+                  <div className='mt-6 pt-4 border-top'>
+                    <h6 className='fw-bolder text-gray-800 mb-3'>Riwayat Request Revisi / Reset Poin</h6>
+                    <div className='table-responsive'>
+                      <table className='table table-sm table-hover table-rounded table-striped border gy-3 gs-4 align-middle'>
+                        <thead className='bg-light text-gray-700 fw-bold fs-7 text-uppercase'>
+                          <tr>
+                            <th>Tanggal</th>
+                            <th>Tipe</th>
+                            <th>Status</th>
+                            <th>Alasan</th>
+                            <th>Catatan Review</th>
+                          </tr>
+                        </thead>
+                        <tbody className='fs-7'>
+                          {revisionRequests.map((request: any) => (
+                            <tr key={request.id}>
+                              <td className='text-gray-600 text-nowrap'>
+                                {formatDate(new Date(request.created_at))}
+                              </td>
+                              <td>
+                                <span className='badge badge-light-primary fw-bold'>
+                                  {request.type}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  className={`badge ${
+                                    request.status === 'APPROVED'
+                                      ? 'badge-light-success'
+                                      : request.status === 'REJECTED'
+                                      ? 'badge-light-danger'
+                                      : 'badge-light-warning'
+                                  } fw-bold`}
+                                >
+                                  {request.status}
+                                </span>
+                              </td>
+                              <td className='text-gray-800'>{request.reason}</td>
+                              <td className='text-gray-600'>{request.review_note || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </Tab.Pane>
 
                   {/* Tukang List Tab */}
                   <Tab.Pane eventKey='tukang-list'>
@@ -1098,10 +1194,8 @@ const DetailVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
                   </Tab.Pane>
                 </Tab.Content>
               </Tab.Container>
-            </Col>
-          </Row>
-        </div>
-      </div>
+            </div>
+          </div>
 
       <Modal show={revisionModal} onHide={() => setRevisionModal(false)} centered>
         <Modal.Header closeButton>

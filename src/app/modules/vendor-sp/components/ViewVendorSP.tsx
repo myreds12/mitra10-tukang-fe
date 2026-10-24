@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { vendorSpService } from '../../../services/vendorSpService'
+import { DetailVendorSpModal } from './DetailVendorSP'
 import {
   Table,
   Button,
@@ -9,7 +9,6 @@ import {
   Select,
   Modal,
   Form,
-  Badge,
   Pagination,
 } from 'antd'
 import {
@@ -26,6 +25,8 @@ import {
   VendorSpActionButton,
   VendorSpPill,
   vendorSpTableClassName,
+  formatQuarterDateBounds,
+  deduplicateHighestVendorSp,
 } from './VendorSpTable'
 import './VendorSpFilter.css'
 
@@ -44,6 +45,7 @@ interface VendorSP {
   allocation_reduction: number | null
   notes: string | null
   created_at: string
+  updated_at?: string
   vendor: {
     id: number
     company_name: string
@@ -53,9 +55,9 @@ interface VendorSP {
 }
 
 const ViewVendorSP: React.FC = () => {
-  const navigate = useNavigate()
   const [data, setData] = useState<VendorSP[]>([])
   const [loading, setLoading] = useState(false)
+  const [selectedSpId, setSelectedSpId] = useState<number | null>(null)
   const [exportingRecap, setExportingRecap] = useState(false)
   const [recapModalOpen, setRecapModalOpen] = useState(false)
   const [recapForm] = Form.useForm()
@@ -90,13 +92,20 @@ const ViewVendorSP: React.FC = () => {
       const payload = response.data?.data && response.data?.meta
         ? response.data
         : response.data?.data || response.data
-      const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : []
-      const total = payload?.meta?.total ?? rows.length
+      const rawRows: VendorSP[] = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : []
+      const deduplicatedRows = deduplicateHighestVendorSp(rawRows)
+      const removedDuplicates = rawRows.length - deduplicatedRows.length
+      const apiTotal = payload?.meta?.total ?? deduplicatedRows.length
+      const adjustedTotal = Math.max(deduplicatedRows.length, apiTotal - removedDuplicates)
 
-      setData(rows)
+      setData(deduplicatedRows)
       setPagination((prev) => ({
         ...prev,
-        total,
+        total: adjustedTotal,
       }))
     } catch (error) {
       Swal.fire('Error', 'Gagal mengambil data Surat Peringatan', 'error')
@@ -110,14 +119,6 @@ const ViewVendorSP: React.FC = () => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.current, pagination.pageSize, appliedFilters.search, appliedFilters.sp_level, appliedFilters.status])
-
-  const handleTableChange = (newPagination: any) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || prev.pageSize,
-    }))
-  }
 
   const getSpLevelColor = (level: number) => {
     switch (level) {
@@ -197,7 +198,10 @@ const ViewVendorSP: React.FC = () => {
   const hasActiveFilters =
     !!filtersInput.search ||
     filtersInput.sp_level !== undefined ||
-    filtersInput.status !== undefined
+    filtersInput.status !== undefined ||
+    !!appliedFilters.search ||
+    appliedFilters.sp_level !== undefined ||
+    appliedFilters.status !== undefined
 
   const handleClearFilters = () => {
     setFiltersInput({ search: '', sp_level: undefined, status: undefined })
@@ -249,18 +253,20 @@ const ViewVendorSP: React.FC = () => {
 
   const columns: ColumnsType<VendorSP> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 60,
+      title: 'No',
+      key: 'no',
+      width: 65,
+      align: 'center',
+      render: (_, __, index) =>
+        (pagination.current - 1) * pagination.pageSize + index + 1,
     },
     {
       title: 'Vendor',
       key: 'vendor',
       render: (_, record) => (
         <div>
-          <div className='fw-bold'>{record.vendor?.company_name}</div>
-          <div className='text-muted small'>{record.vendor?.pic_name}</div>
+          <div className='fw-bold text-gray-800'>{record.vendor?.company_name || '-'}</div>
+          <div className='text-muted small'>{record.vendor?.pic_name || '-'}</div>
         </div>
       ),
     },
@@ -268,6 +274,8 @@ const ViewVendorSP: React.FC = () => {
       title: 'Level SP',
       dataIndex: 'sp_level',
       key: 'sp_level',
+      width: 110,
+      align: 'center',
       render: (level: number) => (
         <VendorSpPill color={getSpLevelColor(level)}>
           {getSpLevelText(level)}
@@ -278,34 +286,52 @@ const ViewVendorSP: React.FC = () => {
       title: 'Total Poin',
       dataIndex: 'total_point',
       key: 'total_point',
+      width: 120,
+      align: 'center',
       render: (point: number) => (
-        <Badge count={point} showZero color='red' />
+        <VendorSpPill color={(point ?? 0) >= 2 ? 'red' : 'orange'}>
+          {point ?? 0} Poin
+        </VendorSpPill>
       ),
     },
     {
       title: 'Periode',
       key: 'period',
-      render: (_, record) => (
-        <div className='small'>
-          <div>Q{record.quarter} {record.year}</div>
-          <div className='text-muted'>
-            {new Date(record.start_date).toLocaleDateString('id-ID')} -{' '}
-            {new Date(record.end_date).toLocaleDateString('id-ID')}
+      width: 200,
+      render: (_, record) => {
+        const periodBounds = formatQuarterDateBounds(
+          record.quarter,
+          record.year,
+          record.end_date,
+          record.status
+        )
+        return (
+          <div className='small'>
+            <div className='fw-semibold'>{periodBounds.quarterLabel}</div>
+            <div className='text-muted'>{periodBounds.rangeFormatted}</div>
           </div>
-        </div>
-      ),
+        )
+      },
     },
     {
       title: 'Pengurangan Alokasi',
       dataIndex: 'allocation_reduction',
       key: 'allocation_reduction',
+      width: 160,
+      align: 'center',
       render: (reduction: number | null) =>
-        reduction ? `${reduction}%` : '-',
+        reduction ? (
+          <VendorSpPill color='red'>-{reduction}%</VendorSpPill>
+        ) : (
+          <span className='text-muted'>-</span>
+        ),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 130,
+      align: 'center',
       render: (status: number) => (
         <VendorSpPill color={getStatusColor(status)}>{getStatusText(status)}</VendorSpPill>
       ),
@@ -313,14 +339,15 @@ const ViewVendorSP: React.FC = () => {
     {
       title: 'Aksi',
       key: 'action',
-      width: 120,
+      width: 110,
+      align: 'center',
       render: (_, record) => (
         <Space size='small'>
           <VendorSpActionButton
             title='Lihat detail SP ini'
             tone='primary'
             icon={<EyeOutlined />}
-            onClick={() => navigate(`/vendor-sp/detail/${record.id}`)}
+            onClick={() => setSelectedSpId(record.id)}
           />
           {record.status === 1 && (
             <VendorSpActionButton
@@ -337,196 +364,210 @@ const ViewVendorSP: React.FC = () => {
 
   return (
     <div id='vendor-sp-list'>
-    <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
-      <div className='card-header border-0 pt-5'>
-        <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3'>
-          <h3 className='card-label fw-bold fs-3 mb-0'>Daftar SP Vendor</h3>
-          <Button
-            type='primary'
-            icon={<DownloadOutlined />}
-            onClick={openRecapModal}
-            loading={exportingRecap}
-            className='vendor-sp-recap-button'
-          >
-            <span className='d-none d-md-inline'>Download Rekap Vendor Bersih</span>
-            <span className='d-md-none'>Rekap</span>
-          </Button>
-        </div>
-        <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
-          <div className='row g-2 align-items-end'>
-            <div className='col-12 col-md-4'>
-              <label className='form-label fw-semibold fs-7 mb-1'>Pencarian</label>
-              <div className='vendor-sp-search-wrapper'>
-                <SearchOutlined className='vendor-sp-search-icon' />
-                <Input
-                  className='vendor-sp-search'
-                  placeholder='Cari nama vendor...'
-                  allowClear
-                  value={filtersInput.search}
-                  onChange={(e) =>
-                    setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
-                  }
-                />
+      <div className='card card-xxl-stretch mb-5 mb-xxl-8 vendor-sp-table'>
+        <div className='card-header border-0 pt-5'>
+          <div className='card-title d-flex justify-content-between align-items-center flex-wrap gap-3'>
+            <div>
+              <h3 className='card-label fw-bold fs-3 mb-1'>Daftar SP Vendor</h3>
+              <span className='text-muted fs-7'>
+                Menampilkan satu Surat Peringatan tertinggi per vendor beserta poin kumulatif dan periode kuartal.
+              </span>
+            </div>
+            <Button
+              type='primary'
+              icon={<DownloadOutlined />}
+              onClick={openRecapModal}
+              loading={exportingRecap}
+              className='vendor-sp-recap-button'
+            >
+              <span className='d-none d-md-inline'>Download Rekap Vendor Bersih</span>
+              <span className='d-md-none'>Rekap</span>
+            </Button>
+          </div>
+
+          <div className='vendor-sp-table-head' onKeyDown={handleKeyPress}>
+            <div className='row g-3 align-items-end'>
+              <div className='col-12 col-md-4 col-lg-4'>
+                <label className='form-label'>Pencarian</label>
+                <div className='vendor-sp-search-wrapper'>
+                  <SearchOutlined className='vendor-sp-search-icon' />
+                  <Input
+                    className='vendor-sp-search'
+                    placeholder='Cari nama vendor atau PIC...'
+                    allowClear
+                    value={filtersInput.search}
+                    onChange={(e) =>
+                      setFiltersInput((prev) => ({ ...prev, search: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
-            </div>
-            <div className='col-6 col-md-2'>
-              <label className='form-label fw-semibold fs-7 mb-1'>Level SP</label>
-              <Select
-                className='vendor-sp-filter-select'
-                placeholder='Semua Level'
-                allowClear
-                value={filtersInput.sp_level}
-                onChange={(value) =>
-                  setFiltersInput((prev) => ({ ...prev, sp_level: value }))
-                }
-                style={{ width: '100%' }}
-              >
-                <Option value={1}>SP1</Option>
-                <Option value={2}>SP2</Option>
-                <Option value={3}>SP3</Option>
-              </Select>
-            </div>
-            <div className='col-6 col-md-2'>
-              <label className='form-label fw-semibold fs-7 mb-1'>Status</label>
-              <Select
-                className='vendor-sp-filter-select'
-                placeholder='Semua Status'
-                allowClear
-                value={filtersInput.status}
-                onChange={(value) =>
-                  setFiltersInput((prev) => ({ ...prev, status: value }))
-                }
-                style={{ width: '100%' }}
-              >
-                <Option value={1}>Aktif</Option>
-                <Option value={2}>Selesai</Option>
-                <Option value={3}>Diperpanjang</Option>
-              </Select>
-            </div>
-            <div className='col-12 col-md-4 d-flex justify-content-end gap-2 flex-wrap'>
-              <Button
-                onClick={handleClearFilters}
-                disabled={!hasActiveFilters}
-                icon={<ClearOutlined />}
-              >
-                <span className='d-none d-sm-inline'>Reset Filter</span>
-                <span className='d-sm-none'>Reset</span>
-              </Button>
-              <Button
-                type='primary'
-                className='btn-dark-primary'
-                onClick={handleSubmitFilter}
-                loading={loadingButton}
-                icon={<SearchOutlined />}
-              >
-                {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
-              </Button>
+              <div className='col-6 col-md-2 col-lg-2'>
+                <label className='form-label'>Level SP</label>
+                <Select
+                  className='vendor-sp-filter-select'
+                  placeholder='Semua Level'
+                  allowClear
+                  value={filtersInput.sp_level}
+                  onChange={(value) =>
+                    setFiltersInput((prev) => ({ ...prev, sp_level: value }))
+                  }
+                >
+                  <Option value={1}>SP1</Option>
+                  <Option value={2}>SP2</Option>
+                  <Option value={3}>SP3</Option>
+                </Select>
+              </div>
+              <div className='col-6 col-md-2 col-lg-2'>
+                <label className='form-label'>Status</label>
+                <Select
+                  className='vendor-sp-filter-select'
+                  placeholder='Semua Status'
+                  allowClear
+                  value={filtersInput.status}
+                  onChange={(value) =>
+                    setFiltersInput((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <Option value={1}>Aktif</Option>
+                  <Option value={2}>Selesai</Option>
+                  <Option value={3}>Diperpanjang</Option>
+                </Select>
+              </div>
+              <div className='col-12 col-md-4 col-lg-4'>
+                <div className='vendor-sp-filter-actions'>
+                  <Button
+                    className='btn-reset-filter'
+                    onClick={handleClearFilters}
+                    disabled={!hasActiveFilters}
+                    icon={<ClearOutlined />}
+                  >
+                    <span className='d-none d-sm-inline'>Reset Filter</span>
+                    <span className='d-sm-none'>Reset</span>
+                  </Button>
+                  <Button
+                    type='primary'
+                    className='btn-dark-primary'
+                    onClick={handleSubmitFilter}
+                    loading={loadingButton}
+                    icon={<SearchOutlined />}
+                  >
+                    {loadingButton ? 'Memfilter...' : 'Terapkan Filter'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className='card-body py-3'>
-        <Table
-          className={vendorSpTableClassName}
-          columns={columns}
-          dataSource={data}
-          rowKey='id'
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 1000 }}
-          locale={{
-            emptyText: (
-              <div className='vendor-sp-empty-state'>
-                <FileSearchOutlined className='vendor-sp-empty-icon' />
-                <div className='vendor-sp-empty-title'>
-                  {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Data Vendor SP'}
+        <div className='card-body py-3'>
+          <Table
+            className={vendorSpTableClassName}
+            columns={columns}
+            dataSource={data}
+            rowKey='id'
+            loading={loading}
+            pagination={false}
+            scroll={{ x: 1000 }}
+            locale={{
+              emptyText: (
+                <div className='vendor-sp-empty-state'>
+                  <FileSearchOutlined className='vendor-sp-empty-icon' />
+                  <div className='vendor-sp-empty-title'>
+                    {hasActiveFilters ? 'Tidak Ada Data yang Cocok' : 'Belum Ada Data Vendor SP'}
+                  </div>
+                  <div className='vendor-sp-empty-desc'>
+                    {hasActiveFilters
+                      ? 'Coba ubah atau reset filter untuk menampilkan data.'
+                      : 'Belum ada Surat Peringatan yang terdaftar untuk vendor.'}
+                  </div>
+                  {hasActiveFilters && (
+                    <Button
+                      type='link'
+                      onClick={handleClearFilters}
+                      className='vendor-sp-empty-action'
+                    >
+                      Reset Filter
+                    </Button>
+                  )}
                 </div>
-                <div className='vendor-sp-empty-desc'>
-                  {hasActiveFilters
-                    ? 'Coba ubah atau reset filter untuk menampilkan data.'
-                    : 'Belum ada Surat Peringatan yang terdaftar untuk vendor.'}
-                </div>
-                {hasActiveFilters && (
-                  <Button
-                    type='link'
-                    onClick={handleClearFilters}
-                    className='vendor-sp-empty-action'
-                  >
-                    Reset Filter
-                  </Button>
-                )}
-              </div>
-            ),
-          }}
-        />
-        <div className='pagination-container'>
-          <span className='pagination-total'>
-            {pagination.total === 0
-              ? 'Belum ada data Vendor SP'
-              : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
-                  pagination.current * pagination.pageSize,
-                  pagination.total,
-                )} dari ${pagination.total} Vendor SP`}
-          </span>
-          <Pagination
-            current={pagination.current}
-            pageSize={pagination.pageSize}
-            total={pagination.total}
-            showSizeChanger
-            pageSizeOptions={[10, 20, 50, 100]}
-            onChange={(page, size) =>
-              setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
-            }
+              ),
+            }}
           />
+          <div className='pagination-container'>
+            <span className='pagination-total'>
+              {pagination.total === 0
+                ? 'Belum ada data Vendor SP'
+                : `Menampilkan ${(pagination.current - 1) * pagination.pageSize + 1} - ${Math.min(
+                    pagination.current * pagination.pageSize,
+                    pagination.total,
+                  )} dari ${pagination.total} Vendor SP`}
+            </span>
+            <Pagination
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              showSizeChanger
+              pageSizeOptions={[10, 20, 50, 100]}
+              onChange={(page, size) =>
+                setPagination((prev) => ({ ...prev, current: page, pageSize: size }))
+              }
+            />
+          </div>
         </div>
-      </div>
 
-      <Modal
-        title='Download Rekap Vendor Bersih'
-        open={recapModalOpen}
-        onCancel={() => setRecapModalOpen(false)}
-        footer={null}
-      >
-        <Form form={recapForm} layout='vertical' onFinish={handleRecapSubmit}>
-          <Form.Item
-            name='quarter'
-            label='Quartal'
-            rules={[{ required: true, message: 'Pilih quartal' }]}
-          >
-            <Select placeholder='Pilih quartal'>
-              <Option value={1}>Q1 (Jan-Mar)</Option>
-              <Option value={2}>Q2 (Apr-Jun)</Option>
-              <Option value={3}>Q3 (Jul-Sep)</Option>
-              <Option value={4}>Q4 (Okt-Des)</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name='year'
-            label='Tahun'
-            rules={[{ required: true, message: 'Tahun wajib diisi' }]}
-          >
-            <Input type='number' min={2020} max={2100} />
-          </Form.Item>
-          <Form.Item name='category' label='Kategori Pelanggaran (opsional)'>
-            <Select allowClear placeholder='Semua kategori'>
-              <Option value='KONFIRMASI_ORDER'>Konfirmasi Order</Option>
-              <Option value='REFUND'>Refund</Option>
-              <Option value='RESCHEDULE'>Reschedule</Option>
-              <Option value='LAINNYA'>Lainnya</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item className='mb-0 text-end'>
-            <Space>
-              <Button onClick={() => setRecapModalOpen(false)}>Batal</Button>
-              <Button type='primary' htmlType='submit' loading={exportingRecap}>
-                Download PDF
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+        <Modal
+          title='Download Rekap Vendor Bersih'
+          open={recapModalOpen}
+          onCancel={() => setRecapModalOpen(false)}
+          footer={null}
+        >
+          <Form form={recapForm} layout='vertical' onFinish={handleRecapSubmit}>
+            <Form.Item
+              name='quarter'
+              label='Kuartal'
+              rules={[{ required: true, message: 'Pilih kuartal' }]}
+            >
+              <Select placeholder='Pilih kuartal'>
+                <Option value={1}>Q1 (1 Jan - 31 Mar)</Option>
+                <Option value={2}>Q2 (1 Apr - 30 Jun)</Option>
+                <Option value={3}>Q3 (1 Jul - 30 Sep)</Option>
+                <Option value={4}>Q4 (1 Okt - 31 Des)</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name='year'
+              label='Tahun'
+              rules={[{ required: true, message: 'Tahun wajib diisi' }]}
+            >
+              <Input type='number' min={2020} max={2100} />
+            </Form.Item>
+            <Form.Item name='category' label='Kategori Pelanggaran (opsional)'>
+              <Select allowClear placeholder='Semua kategori'>
+                <Option value='KONFIRMASI_ORDER'>Konfirmasi Order</Option>
+                <Option value='REFUND'>Refund</Option>
+                <Option value='RESCHEDULE'>Reschedule</Option>
+                <Option value='LAINNYA'>Lainnya</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item className='mb-0 text-end'>
+              <Space>
+                <Button onClick={() => setRecapModalOpen(false)}>Batal</Button>
+                <Button type='primary' htmlType='submit' loading={exportingRecap}>
+                  Download PDF
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        <DetailVendorSpModal
+          spId={selectedSpId}
+          open={Boolean(selectedSpId)}
+          onClose={() => setSelectedSpId(null)}
+          onUpdated={fetchData}
+        />
+      </div>
     </div>
   )
 }

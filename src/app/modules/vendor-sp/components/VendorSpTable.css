@@ -17,13 +17,17 @@
 .vendor-sp-table .vendor-sp-filter-control,
 .vendor-sp-table .vendor-sp-filter-control .ant-input,
 .vendor-sp-table .vendor-sp-filter-control .ant-select-selector {
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .vendor-sp-table .ant-table-wrapper .ant-table-thead > tr > th {
-  color: #fff;
-  font-weight: 500;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
   background-color: #183383;
+  padding: 13px 16px;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .vendor-sp-table .ant-table-wrapper .ant-table {
@@ -37,7 +41,10 @@
   table
   > thead
   > tr:first-child
-  > *:first-child,
+  > *:first-child {
+  border-start-start-radius: 6px;
+}
+
 .vendor-sp-table
   .ant-table-wrapper
   .ant-table-container
@@ -45,45 +52,53 @@
   > thead
   > tr:first-child
   > *:last-child {
-  border-radius: 0;
+  border-start-end-radius: 6px;
 }
 
 .vendor-sp-table .ant-table-tbody > tr.ant-table-row:hover > td {
-  background-color: #dcdcdc;
+  background-color: #dce3f5;
 }
 
 .vendor-sp-table .ant-table-tbody > tr > td {
+  padding: 12px 16px;
+  vertical-align: middle;
   word-wrap: break-word;
   word-break: break-word;
 }
 
 .vendor-sp-table .table-striped-rows tr:nth-child(even) td {
-  background-color: #fff;
+  background-color: #ffffff;
 }
 
 .vendor-sp-table .table-striped-rows tr:nth-child(odd) td {
-  background-color: #e4e9f7;
+  background-color: #eef2fb;
 }
 
 .vendor-sp-table .vendor-sp-action-button {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: #ffffff;
   box-shadow: none;
   line-height: 1;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .vendor-sp-table .vendor-sp-action-button:hover,
-.vendor-sp-table .vendor-sp-action-button:focus {
-  color: #fff;
-  opacity: 0.88;
+.vendor-sp-table .vendor-sp-action-button:focus-visible {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.vendor-sp-table .vendor-sp-action-button:focus-visible {
+  outline: 2px solid #183383;
+  outline-offset: 2px;
 }
 
 .vendor-sp-table .vendor-sp-action-button.action-primary {
@@ -104,34 +119,54 @@
 }
 
 .vendor-sp-table .vendor-sp-action-button .anticon {
-  color: #fff;
-  font-size: 13px;
+  color: #ffffff;
+  font-size: 14px;
 }
 
 .vendor-sp-table .vendor-sp-pill {
-  border-radius: 0.475rem;
-  padding: 0.35rem 0.65rem;
-  font-size: 11px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
 .vendor-sp-table .vendor-sp-pill.badge-light-primary {
-  color: #0d6efd;
+  color: #0b5ed7;
   background-color: #e8f1ff;
 }
 
+.vendor-sp-table .vendor-sp-pill.badge-light-success {
+  color: #146c43;
+  background-color: #d1e7dd;
+}
+
+.vendor-sp-table .vendor-sp-pill.badge-light-warning {
+  color: #995400;
+  background-color: #fff3cd;
+}
+
+.vendor-sp-table .vendor-sp-pill.badge-light-danger {
+  color: #b02a37;
+  background-color: #f8d7da;
+}
+
 .vendor-sp-table .vendor-sp-pill.badge-light-secondary {
-  background-color: #f5f8fa;
+  color: #3f4254;
+  background-color: #eff2f5;
 }
 
 .vendor-sp-table .vendor-sp-pill.badge-light-dark {
-  color: #3f4254;
+  color: #181c32;
   background-color: #e4e6ef;
 }
 
 .vendor-sp-table .ant-pagination {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .vendor-sp-table .ant-pagination-total-text {
@@ -143,7 +178,7 @@
 .vendor-sp-table .ant-pagination-prev .ant-pagination-item-link,
 .vendor-sp-table .ant-pagination-next .ant-pagination-item-link,
 .vendor-sp-table .ant-pagination-item {
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .vendor-sp-table .ant-pagination-item-active {
@@ -175,12 +210,6 @@
   .vendor-sp-table .ant-table-tbody > tr > td .ant-space {
     flex-wrap: wrap;
     gap: 6px !important;
-  }
-
-  .vendor-sp-table .vendor-sp-action-button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
   }
 
   .vendor-sp-table .ant-pagination {

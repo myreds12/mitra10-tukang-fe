@@ -14,6 +14,13 @@ interface User {
   roles: string
 }
 
+interface VendorSpBadgeState {
+  loaded: boolean
+  sp_level: number | null
+  sp_status: string
+  total_point: number
+}
+
 const AsideDefault: FC = () => {
   const {config, classes} = useLayout()
   const asideRef = useRef<HTMLDivElement | null>(null)
@@ -28,6 +35,39 @@ const AsideDefault: FC = () => {
     full_name: '',
     roles: '',
   })
+
+  const [vendorSpBadge, setVendorSpBadge] = useState<VendorSpBadgeState>({
+    loaded: false,
+    sp_level: null,
+    sp_status: 'NORMAL',
+    total_point: 0,
+  })
+
+  const fetchVendorSpBadge = async (vendorId?: number | string | null) => {
+    try {
+      const endpoint = vendorId
+        ? `${apiUrl}/vendor-sp/check/${vendorId}`
+        : `${apiUrl}/vendor-sp/my-status`
+      const response = await axiosInstance.get(endpoint)
+      const payload = response.data?.data || response.data || {}
+      if (payload?.vendor_id && !localStorage.getItem('vendor_id')) {
+        localStorage.setItem('vendor_id', String(payload.vendor_id))
+      }
+      setVendorSpBadge({
+        loaded: true,
+        sp_level: payload?.sp_level ?? null,
+        sp_status: payload?.sp_status || (payload?.sp_level ? `SP${payload.sp_level}` : 'NORMAL'),
+        total_point: payload?.total_point ?? 0,
+      })
+    } catch (error) {
+      setVendorSpBadge({
+        loaded: true,
+        sp_level: null,
+        sp_status: 'NORMAL',
+        total_point: 0,
+      })
+    }
+  }
 
   const getUser = async () => {
     try {
@@ -77,22 +117,40 @@ const AsideDefault: FC = () => {
               roles: role,
             })
             break
-          case 'Owner Vendor':
+          case 'Owner Vendor': {
+            const vendorId =
+              data?.pic_vendor?.[0]?.vendor?.id ??
+              data?.pic_vendor?.[0]?.vendor_id ??
+              localStorage.getItem('vendor_id')
+            if (vendorId) {
+              localStorage.setItem('vendor_id', String(vendorId))
+            }
             setUser({
               user_id: data.id,
               username: data?.username ?? '',
               full_name: data?.pic_vendor[0]?.vendor?.company_name ?? '',
               roles: role,
             })
+            void fetchVendorSpBadge(vendorId)
             break
-          case 'Admin Vendor':
+          }
+          case 'Admin Vendor': {
+            const vendorId =
+              data?.pic_vendor?.[0]?.vendor?.id ??
+              data?.pic_vendor?.[0]?.vendor_id ??
+              localStorage.getItem('vendor_id')
+            if (vendorId) {
+              localStorage.setItem('vendor_id', String(vendorId))
+            }
             setUser({
               user_id: data.id,
               username: data?.username ?? '',
               full_name: data?.pic_vendor[0]?.pic_name ?? '',
               roles: role,
             })
+            void fetchVendorSpBadge(vendorId)
             break
+          }
           case 'Tukang':
             setUser({
               user_id: data.id,
@@ -149,6 +207,10 @@ const AsideDefault: FC = () => {
 
   useEffect(() => {
     getUser()
+    const currentRole = localStorage.getItem('userRole') || ''
+    if (currentRole === 'Owner Vendor' || currentRole === 'Admin Vendor') {
+      void fetchVendorSpBadge(localStorage.getItem('vendor_id'))
+    }
     // eslint-disable-next-line
   }, [])
 
@@ -189,6 +251,36 @@ const AsideDefault: FC = () => {
       // ignore
     }
   }
+
+  const getSpBadgeStyle = (spLevel: number | null): React.CSSProperties => {
+    if (spLevel === 3) {
+      return {
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+        border: '1px solid #fca5a5',
+      }
+    }
+    if (spLevel === 2) {
+      return {
+        backgroundColor: '#fff5f8',
+        color: '#b91c1c',
+        border: '1px solid #fecdd3',
+      }
+    }
+    if (spLevel === 1) {
+      return {
+        backgroundColor: '#fff8dd',
+        color: '#b45309',
+        border: '1px solid #fde68a',
+      }
+    }
+    return {
+      backgroundColor: '#e8fff3',
+      color: '#15803d',
+      border: '1px solid #bbf7d0',
+    }
+  }
+
   return (
     <div
       id='kt_aside'
@@ -225,6 +317,7 @@ const AsideDefault: FC = () => {
 
           {(() => {
             const roleName = user.roles || localStorage.getItem('userRole') || ''
+            const isVendorRole = roleName === 'Owner Vendor' || roleName === 'Admin Vendor'
             const displayName =
               [
                 'Super User',
@@ -237,14 +330,43 @@ const AsideDefault: FC = () => {
                 ? user.username || localStorage.getItem('username') || ''
                 : user.full_name || user.username || localStorage.getItem('username') || ''
             return (
-              <h6 className='text-center text-secondary-emphasis'>
-                {displayName}
-                {roleName ? (
-                  <>
-                    <br />({roleName}){' '}
-                  </>
-                ) : null}
-              </h6>
+              <div className='d-flex flex-column align-items-center text-center'>
+                <h6 className='text-center text-secondary-emphasis mb-1'>
+                  {displayName}
+                  {roleName ? (
+                    <>
+                      <br />({roleName}){' '}
+                    </>
+                  ) : null}
+                </h6>
+                {isVendorRole && (
+                  <Link
+                    to='/vendor-sp/violation-log'
+                    title='Lihat Log SP & Pelanggaran Vendor'
+                    style={{
+                      ...getSpBadgeStyle(vendorSpBadge.sp_level),
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      marginTop: '2px',
+                      marginBottom: '4px',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    <span>
+                      Level SP:{' '}
+                      {vendorSpBadge.sp_level
+                        ? `SP${vendorSpBadge.sp_level}`
+                        : 'Normal (Bebas SP)'}
+                    </span>
+                  </Link>
+                )}
+              </div>
             )
           })()}
         </div>

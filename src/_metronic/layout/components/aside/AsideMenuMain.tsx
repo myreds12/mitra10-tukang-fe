@@ -276,6 +276,28 @@ export function AsideMenuMain() {
         />
       </AsideMenuItemWithSub>
 
+      {/* Halaman Vendor SP (Khusus Role Vendor: Admin Vendor & Owner Vendor) */}
+      <AsideMenuItemWithSub
+        to='/vendor-sp'
+        title='Vendor SP'
+        icon='/media/icons/duotune/general/gen044.svg'
+        fontIcon='bi-exclamation-triangle'
+        role={['Admin Vendor', 'Owner Vendor']}
+      >
+        <AsideMenuItem
+          to='/vendor-sp/violation-log'
+          title='Log SP'
+          role={['Admin Vendor', 'Owner Vendor']}
+          hasBullet={true}
+        />
+        <AsideMenuItem
+          to='/vendor-sp/violation-type'
+          title='Jenis Pelanggaran'
+          role={['Admin Vendor', 'Owner Vendor']}
+          hasBullet={true}
+        />
+      </AsideMenuItemWithSub>
+
       {/* Halaman Vendor */}
       <AsideMenuItemWithSub
         to='/vendor'
@@ -436,17 +458,6 @@ export function AsideMenuMain() {
         icon='/media/icons/duotune/finance/fin004.svg'
         role={['Super User', 'Admin HO', 'Payroll']}
       >
-        {/* <AsideMenuItem
-          to='/reports/report-insentif-manager'
-          title={
-            ['Super User', 'Admin HO'].includes(userRole)
-              ? 'Laporan Insentif Store Manager'
-              : 'Laporan Insentif'
-          }
-          role={['Admin HO', 'Super User']}
-          hasBullet={true}
-        /> */}
-
         <AsideMenuItem
           to='/incentive-manager/list-request-incentive-manager'
           title='Daftar Pengajuan Insentif Store Manager'
@@ -549,66 +560,7 @@ export function AsideMenuMain() {
           role={['Admin WA', 'Admin WA2']}
           hasBullet={true}
         />
-        {/* <AsideMenuItem
-          to='/reports/log-notif-quotation'
-          title='Log chat notif quotation'
-          role={['Admin WA', 'Admin WA2']}
-          hasBullet={true}
-        /> */}
-
-        {/* <AsideMenuItem
-          to='/reports/log-status-chat'
-          title='Log chat notif status'
-          role={['Admin WA', 'Admin WA2']}
-          hasBullet={true}
-        /> */}
       </AsideMenuItemWithSub>
-
-      {/* Halaman Payment */}
-      {/* <AsideMenuItemWithSub
-        to='/payment'
-        title='Payment'
-        icon='/media/icons/duotune/communication/com006.svg'
-        fontIcon='bi-person'
-        role={['Admin HO', 'Super User']}
-      >
-        <AsideMenuItem
-          to='/payment/view-payment'
-          title='List Payment'
-          role={['Admin HO', 'Super User']}
-          hasBullet={true}
-        />
-
-         <AsideMenuItem
-          to='/payment/new-payment'
-          title='New Payment'
-          role={['Admin HO', 'Super User']}
-          hasBullet={true}
-        /> 
-
-        <AsideMenuItem
-          to='/payment/detail-payment'
-          title='Detail Payment'
-          role={['Admin HO', 'Super User']}
-          hasBullet={true}
-        />
-      </AsideMenuItemWithSub> */}
-
-      {/* Halaman Refund */}
-      {/* <AsideMenuItemWithSub
-        to='/refund'
-        title='Cancel dan Refund'
-        icon='/media/icons/duotune/communication/com006.svg'
-        fontIcon='bi-person'
-        role={['Store CS', 'Admin HO', 'Super User']}
-      >
-        <AsideMenuItem
-          to='/refund/view-refund'
-          title='View Cancel dan Refund'
-          role={['Store CS', 'Admin HO', 'Super User']}
-          hasBullet={true}
-        />
-      </AsideMenuItemWithSub> */}
 
       {/* Halaman Setting */}
       <AsideMenuItemWithSub
@@ -691,7 +643,6 @@ export function AsideMenuMain() {
           hasBullet={true}
         />
 
-
         <AsideMenuItemWithSub
           to='/incentive-sales'
           title='Insentif Sales'
@@ -733,13 +684,6 @@ export function AsideMenuMain() {
           />
         </AsideMenuItemWithSub>
 
-        {/* <AsideMenuItem
-          to='/employee/new-employee'
-          title='Register Staff'
-          role={['Store CS']}
-          hasBullet={true}
-        /> */}
-
         <AsideMenuItemWithSub
           to='/promotion-quotation'
           title='Promosi Quotation'
@@ -780,21 +724,6 @@ export function AsideMenuMain() {
           role={['Admin WA', 'Admin WA2']}
           hasBullet={true}
         />
-        {/* <AsideMenuItemWithSub
-          to='/notif-setting'
-          title='Notif Setting'
-          hasBullet={true}
-          role={['Admin WA', 'Admin WA2']}
-        >
-          <AsideMenuItem
-            to='/notif-setting/view-setting'
-            title='View Notif Setting'
-            role={['Admin WA', 'Admin WA2']}
-            hasBullet={true}
-          />
-        </AsideMenuItemWithSub> */}
-
-        {/* </AsideMenuItemWithSub> */}
         <AsideMenuItem
           to={`/profile/update-profile/${userVendor !== null ? userVendor : userTukang}`}
           title={userRole === 'Owner Vendor' ? 'Profile Vendor' : 'Profile Tukang'}
@@ -928,22 +857,7 @@ export function AsideMenuMain() {
         </AsideMenuItemWithSub>
       </AsideMenuItemWithSub>
 
-      {/* Halaman Livechat */}
-      {/* <AsideMenuItemWithSub
-        title='Chat'
-        to='/apps/chat'
-        icon='/media/icons/duotune/communication/com012.svg'
-        fontIcon='bi-person'
-        role={['Store CS', 'Admin HO', 'Super User']}
-      >
-        <AsideMenuItem
-          to='/apps/chat/private-chat'
-          title='Private Chat'
-          role={['Store CS', 'Admin HO', 'Super User']}
-          hasBullet={true}
-        />
-      </AsideMenuItemWithSub> */}
-      {/* Logout */}
+      {/* Manual Book */}
       <div className='menu-item'>
         <a className='menu-link' onClick={manualBookHandle}>
           <span className='menu-icon'>

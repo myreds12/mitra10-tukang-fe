@@ -11,17 +11,28 @@ import {VendorReactivation} from './components/VendorReactivation'
 import {VendorViolationRevisionRequests} from './components/VendorViolationRevisionRequests'
 import {DetailVendorSP} from './components/DetailVendorSP'
 
-const orderBreadCrumbs: Array<PageLink> = [
-  {
-    title: 'Vendor SP',
-    path: '/vendor-sp/view',
-    isSeparator: false,
-    isActive: false,
-  },
-]
-
 const VendorSPPage: React.FC = () => {
   const userRole = localStorage.getItem('userRole')
+  const isVendorRole = userRole === 'Admin Vendor' || userRole === 'Owner Vendor'
+
+  const orderBreadCrumbs: Array<PageLink> = [
+    {
+      title: 'Vendor SP',
+      path: isVendorRole ? '/vendor-sp/violation-log' : '/vendor-sp/view',
+      isSeparator: false,
+      isActive: false,
+    },
+  ]
+
+  const renderRoleHeader = () => {
+    if (userRole === 'Admin HO' || userRole === 'Super User') {
+      return <HeaderWrapper className='bg-header-ho' />
+    }
+    if (isVendorRole) {
+      return <HeaderWrapper className='bg-header-vendor' />
+    }
+    return null
+  }
 
   return (
     <Routes>
@@ -29,13 +40,7 @@ const VendorSPPage: React.FC = () => {
         path='view'
         element={
           <>
-            {userRole === 'Admin HO' || userRole === 'Super User' ? (
-              <>
-                <HeaderWrapper className='bg-header-ho' />
-              </>
-            ) : (
-              <></>
-            )}
+            {renderRoleHeader()}
             <PageTitle breadcrumbs={orderBreadCrumbs}>
               DAFTAR SURAT PERINGATAN VENDOR
             </PageTitle>
@@ -48,13 +53,7 @@ const VendorSPPage: React.FC = () => {
         path='detail/:id'
         element={
           <>
-            {userRole === 'Admin HO' || userRole === 'Super User' ? (
-              <>
-                <HeaderWrapper className='bg-header-ho' />
-              </>
-            ) : (
-              <></>
-            )}
+            {renderRoleHeader()}
             <PageTitle breadcrumbs={orderBreadCrumbs}>
               DETAIL SURAT PERINGATAN VENDOR
             </PageTitle>
@@ -67,13 +66,7 @@ const VendorSPPage: React.FC = () => {
         path='violation-type'
         element={
           <>
-            {userRole === 'Admin HO' || userRole === 'Super User' ? (
-              <>
-                <HeaderWrapper className='bg-header-ho' />
-              </>
-            ) : (
-              <></>
-            )}
+            {renderRoleHeader()}
             <PageTitle breadcrumbs={orderBreadCrumbs}>
               JENIS PELANGGARAN VENDOR
             </PageTitle>
@@ -86,15 +79,9 @@ const VendorSPPage: React.FC = () => {
         path='violation-log'
         element={
           <>
-            {userRole === 'Admin HO' || userRole === 'Super User' ? (
-              <>
-                <HeaderWrapper className='bg-header-ho' />
-              </>
-            ) : (
-              <></>
-            )}
+            {renderRoleHeader()}
             <PageTitle breadcrumbs={orderBreadCrumbs}>
-              LOG PELANGGARAN VENDOR
+              {isVendorRole ? 'LOG SP & PELANGGARAN VENDOR' : 'LOG PELANGGARAN VENDOR'}
             </PageTitle>
             <ViewVendorViolationLog />
           </>
@@ -105,13 +92,7 @@ const VendorSPPage: React.FC = () => {
         path='reactivation'
         element={
           <>
-            {userRole === 'Admin HO' || userRole === 'Super User' ? (
-              <>
-                <HeaderWrapper className='bg-header-ho' />
-              </>
-            ) : (
-              <></>
-            )}
+            {renderRoleHeader()}
             <PageTitle breadcrumbs={orderBreadCrumbs}>
               REAKTIVASI VENDOR SP3
             </PageTitle>
@@ -124,13 +105,7 @@ const VendorSPPage: React.FC = () => {
         path='revision-request'
         element={
           <>
-            {userRole === 'Admin HO' || userRole === 'Super User' ? (
-              <>
-                <HeaderWrapper className='bg-header-ho' />
-              </>
-            ) : (
-              <></>
-            )}
+            {renderRoleHeader()}
             <PageTitle breadcrumbs={orderBreadCrumbs}>
               APPROVAL REVISI / RESET POIN VENDOR
             </PageTitle>

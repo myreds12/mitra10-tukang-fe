@@ -27,7 +27,7 @@ const DetailQuotationHO: FC = () => {
             Accept: 'application/json',
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
             // 'Access-Control-Allow-Origin': '*',
-           // 'ngrok-skip-browser-warning':  'true',
+            // 'ngrok-skip-browser-warning':  'true',
           },
         })
         .then((response) => {
@@ -46,22 +46,62 @@ const DetailQuotationHO: FC = () => {
   const generatePdf = async () => {
     setLoadingPDF(true)
     const input = pdfRef.current
-    if (input) {
-      const canvas = await html2canvas(input)
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const imgProps = pdf.getImageProperties(imgData)
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+    try {
+      if (!input) return
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      const canvas = await html2canvas(input, {
+        backgroundColor: '#ffffff',
+        useCORS: true,
+      })
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = pdf.internal.pageSize.getHeight()
+      const renderedPageHeight = (canvas.width * pdfHeight) / pdfWidth
+      let sourceY = 0
+      let pageNumber = 0
+
+      while (sourceY < canvas.height) {
+        const pageCanvas = document.createElement('canvas')
+        pageCanvas.width = canvas.width
+        pageCanvas.height = Math.min(renderedPageHeight, canvas.height - sourceY)
+
+        const pageContext = pageCanvas.getContext('2d')
+        if (!pageContext) throw new Error('Canvas context tidak tersedia')
+
+        pageContext.fillStyle = '#ffffff'
+        pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+        pageContext.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          pageCanvas.height,
+          0,
+          0,
+          pageCanvas.width,
+          pageCanvas.height
+        )
+
+        const pageImage = pageCanvas.toDataURL('image/png')
+        const pageImageHeight = (pageCanvas.height * pdfWidth) / pageCanvas.width
+
+        if (pageNumber > 0) pdf.addPage()
+        pdf.addImage(pageImage, 'PNG', 0, 0, pdfWidth, pageImageHeight)
+
+        sourceY += pageCanvas.height
+        pageNumber += 1
+      }
+
       pdf.save(
         `Quotation - ${quotationDetail?.order?.members?.full_name} - ${formatDate(
           quotationDetail?.quotation_date
         )}.pdf`
       )
+    } catch (error) {
+      console.error('Gagal membuat PDF quotation', error)
+    } finally {
+      setLoadingPDF(false)
     }
-    setLoadingPDF(false)
   }
 
   return (
