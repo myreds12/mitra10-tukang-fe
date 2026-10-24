@@ -89,6 +89,13 @@ interface Message {
   createdAt: string
   isRead?: boolean
 }
+
+interface MessageHistoryResponse {
+  success: boolean
+  data: Message[]
+  hasMore: boolean
+  nextCursor: number | null
+}
 interface MediaPreview {
   url: string
   fileName?: string
@@ -112,8 +119,15 @@ const buildHeaders = (token: string) => ({
 const api = {
   getRooms: (token: string) =>
     requestJson(`${API_URL}/rooms`, {headers: buildHeaders(token)}),
-  getMessages: (token: string, roomId: number) =>
-    requestJson(`${API_URL}/rooms/${roomId}/messages?limit=30`, {headers: buildHeaders(token)}),
+  getMessages: (token: string, roomId: number, cursor?: number | null) => {
+    const params = new URLSearchParams({limit: '30'})
+    if (cursor !== null && cursor !== undefined) params.set('cursor', String(cursor))
+
+    return requestJson(
+      `${API_URL}/rooms/${roomId}/messages?${params.toString()}`,
+      {headers: buildHeaders(token)}
+    ) as Promise<MessageHistoryResponse>
+  },
   sendMessage: (token: string, roomId: number, content: string) =>
     requestJson(`${API_URL}/rooms/${roomId}/messages`, {
       method: 'POST',
@@ -1111,6 +1125,8 @@ const LiveChatPopup: React.FC = () => {
   const [sending, setSending] = useState(false)
   const [loadingRooms, setLoadingRooms] = useState(false)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [roomsError, setRoomsError] = useState<string | null>(null)
   const [messagesError, setMessagesError] = useState<string | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -1126,6 +1142,8 @@ const LiveChatPopup: React.FC = () => {
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadRoomsRef = useRef<() => Promise<void>>(async () => undefined)
   const messageLoadRef = useRef(0)
+  const historyCursorRef = useRef<number | null>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const activeRoomRef = useRef<Room | null>(null)
@@ -1248,9 +1266,11 @@ const LiveChatPopup: React.FC = () => {
         void loadRoomsRef.current()
         const room = activeRoomRef.current
         if (room) {
-          void api.getMessages(token, room.id).then((res: any) => {
+          void api.getMessages(token, room.id).then((res) => {
             if (res.success && Array.isArray(res.data) && activeRoomRef.current?.id === room.id) {
               setMessages((prev) => mergeLiveChatMessages(prev, res.data))
+              historyCursorRef.current = res.nextCursor
+              setHasMoreMessages(res.hasMore)
             }
           }).catch(() => undefined)
         }
@@ -1296,6 +1316,53 @@ const LiveChatPopup: React.FC = () => {
   loadRoomsRef.current = loadRooms
 
   // ── Open Room ──────────────────────────────────────────────
+  const loadOlderMessages = useCallback(async () => {
+    const room = activeRoomRef.current
+    const cursor = historyCursorRef.current
+    const container = messagesContainerRef.current
+
+    if (
+      !room ||
+      cursor === null ||
+      !hasMoreMessages ||
+      loadingOlderMessages ||
+      !container
+    ) {
+      return
+    }
+
+    const loadId = messageLoadRef.current
+    const previousScrollHeight = container.scrollHeight
+    const previousScrollTop = container.scrollTop
+    setLoadingOlderMessages(true)
+
+    try {
+      const res = await api.getMessages(token, room.id, cursor)
+      if (loadId !== messageLoadRef.current || activeRoomRef.current?.id !== room.id) return
+
+      setMessages((prev) => mergeLiveChatMessages(prev, res.data))
+      historyCursorRef.current = res.nextCursor
+      setHasMoreMessages(res.hasMore)
+
+      requestAnimationFrame(() => {
+        const currentContainer = messagesContainerRef.current
+        if (!currentContainer) return
+        currentContainer.scrollTop =
+          currentContainer.scrollHeight - previousScrollHeight + previousScrollTop
+      })
+    } catch (error) {
+      console.error('Failed to load older live chat messages:', error)
+    } finally {
+      setLoadingOlderMessages(false)
+    }
+  }, [hasMoreMessages, loadingOlderMessages, token])
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current
+    if (!container || container.scrollTop > 80) return
+    void loadOlderMessages()
+  }, [loadOlderMessages])
+
   const openRoom = useCallback(
     async (room: Room) => {
       const normalizedRoom = normalizeLiveChatRoom(room) as Room
@@ -1309,6 +1376,8 @@ const LiveChatPopup: React.FC = () => {
       setMessagesError(null)
       setSendError(null)
       setLoadingMessages(true)
+      setHasMoreMessages(false)
+      historyCursorRef.current = null
 
       // 🧹 KOSONGKAN PANEL KANAN DULU
       try {
@@ -1320,6 +1389,8 @@ const LiveChatPopup: React.FC = () => {
           activeRoomRef.current?.id === room.id
         ) {
           setMessages((prev) => mergeLiveChatMessages(prev, res.data))
+          historyCursorRef.current = res.nextCursor
+          setHasMoreMessages(res.hasMore)
         }
         await api.markAsRead(token, room.id)
         setRooms((prev) => prev.map((r) => (r.id === room.id ? {...r, unreadCount: 0} : r)))
@@ -2106,6 +2177,8 @@ const LiveChatPopup: React.FC = () => {
 
               {/* Messages */}
               <div
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
                 style={{
                   flex: 1,
                   overflowY: 'auto',
@@ -2128,6 +2201,19 @@ const LiveChatPopup: React.FC = () => {
                   </div>
                 ) : (
                   <>
+                    {loadingOlderMessages && (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          padding: '4px 0 12px',
+                          color: '#7b8794',
+                          fontSize: 12,
+                        }}
+                      >
+                        <span className='spinner-border spinner-border-sm me-2' />
+                        Memuat pesan sebelumnya...
+                      </div>
+                    )}
                     {messages.map((msg, i) => {
                       const isMe = String(msg.senderId) === String(userId)
                       const prev = messages[i - 1]
