@@ -96,6 +96,9 @@ const UpdateVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
             setKtpNumber(data.ktp_number)
             setNpwpNumber(data.npwp_number)
             setMaxOrder(data.max_order)
+            const activeQ = data.active_quarter ?? Math.ceil((new Date().getMonth() + 1) / 3)
+            const activeQKey = data.active_quarter_key ?? `q${activeQ}`
+            setQuarterOrder(String(data.quarter_order ?? data[activeQKey] ?? 0))
             setNominalSurvey(data.nominal_survey)
             setMarginNominal(data.margin_nominal)
             setMarginType(data.margin_type)
@@ -350,6 +353,9 @@ const UpdateVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
   const [username, setUsername] = useState<any>('')
   const [password, setPassword] = useState<any>('')
   const [maxOrder, setMaxOrder] = useState<string>('')
+  const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3)
+  const activeQuarterKey = `q${currentQuarter}` as 'q1' | 'q2' | 'q3' | 'q4'
+  const [quarterOrder, setQuarterOrder] = useState<string>('0')
   const [nominalSurvey, setNominalSurvey] = useState<any>()
   const [vendorType, setVendorType] = useState<any>()
 
@@ -489,6 +495,10 @@ const UpdateVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
   const handleChangeMaxOrder = (event: React.ChangeEvent<HTMLInputElement>) => {
     const updatedMaxOrder = event.target.value
     setMaxOrder(updatedMaxOrder)
+  }
+
+  const handleChangeQuarterOrder = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setQuarterOrder(event.target.value)
   }
 
   const handleChangeNominalSurvey = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -965,6 +975,8 @@ const UpdateVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
       formData.append('email_address', emailVendor)
       formData.append('join_date', joinDate)
       formData.append('max_order', maxOrder)
+      formData.append(activeQuarterKey, quarterOrder || '0')
+      formData.append('quarter_order', quarterOrder || '0')
       formData.append('bank_id', bankId)
       formData.append('account_number', accountNumber)
       formData.append('account_name', accountName)
@@ -1653,6 +1665,22 @@ const UpdateVendorHO: FC<{updatePageTitle: (vendor: Vendor) => void}> = ({update
                           type='number'
                           onChange={handleChangeMaxOrder}
                           value={maxOrder}
+                        />
+                      </Form.Group>
+                    </Row>
+
+                    <Row className='form-body'>
+                      <Form.Group>
+                        <Form.Label>
+                          Total Order Kuartal Berjalan (Q{currentQuarter})
+                        </Form.Label>
+
+                        <Form.Control
+                          min={0}
+                          type='number'
+                          placeholder={`Total Order Q${currentQuarter}`}
+                          onChange={handleChangeQuarterOrder}
+                          value={quarterOrder}
                         />
                       </Form.Group>
                     </Row>

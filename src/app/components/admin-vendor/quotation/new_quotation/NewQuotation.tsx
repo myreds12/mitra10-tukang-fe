@@ -135,7 +135,7 @@ const NewQuotationVendor: FC = () => {
       const statuses = desiredStatus.map((x) => x.value)
 
       const response = await axios.get(
-        `${apiUrl}/work-orders?order_by=desc&take=0&status=${statuses}&vendor_id=${vendorId}`,
+        `${apiUrl}/work-orders?order_by=desc&take=1000&status=${statuses}&vendor_id=${vendorId}`,
         {
           headers: {
             Accept: 'application/json',
@@ -150,7 +150,7 @@ const NewQuotationVendor: FC = () => {
         const tempWorkOrder = response.data.data.map((item: any) => ({
           value: item.id,
           label: item.order_id,
-          quotation: item?.order?.quotation,
+          quotation: item?.order?.quotation ?? [],
         }))
         const filteredWorkOrder = tempWorkOrder.filter((x: any) => x.quotation.length === 0)
         setWorkOrder(filteredWorkOrder)
@@ -178,8 +178,11 @@ const NewQuotationVendor: FC = () => {
 
           setWorkOrderDetail(data)
 
-          if (data?.work_order_status) {
-            const quotationDetails = data.work_order_status[0].work_order_items.map(
+          if (data?.work_order_status?.length) {
+            const statusWithItems =
+              data.work_order_status.find((s: any) => s?.work_order_items?.length > 0) ??
+              data.work_order_status[0]
+            const quotationDetails = (statusWithItems?.work_order_items ?? []).map(
               (item: any, index: number) => ({
                 id: item?.id,
                 index: Math.abs(stringToHash(`${Date.now() + index}-indexes`)),
