@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react'
 import axios from 'axios'
 import Chart from 'react-apexcharts'
 import './analytics.css'
-import {AnalyticsPrivacy, fields} from './AnalyticsPrivacy'
+import {AnalyticsPrivacy, fields, allFields} from './AnalyticsPrivacy'
 import {AnalyticsAnswer} from './AnalyticsAnswer'
 import {parseConversationsResponse, parseDashboardResponse, unwrapAnalyticsResponse} from './analyticsApi'
 import {downloadAnalyticsWorkbook, isExcelRequest, isExportableAnswer} from './analyticsExcel'
@@ -23,7 +23,7 @@ const chartOptions: any = {chart: {toolbar: {show: false}, fontFamily: 'Poppins,
 
 const DashboardAIAnalytics: React.FC = () => {
   const privacyKey = `analyticsAllowedFields:${localStorage.getItem('user_id') || localStorage.getItem('username') || 'user'}`
-  const [allowedFields, setAllowedFields] = useState<string[]>(() => {try {const saved = JSON.parse(localStorage.getItem(privacyKey) || 'null'); return Array.isArray(saved) ? fields.filter(key => saved.includes(key)) : fields} catch {return fields}})
+  const [allowedFields, setAllowedFields] = useState<string[]>(() => {try {const saved = JSON.parse(localStorage.getItem(privacyKey) || 'null'); return Array.isArray(saved) ? allFields.filter(key => saved.includes(key)) : fields} catch {return fields}})
   const changeAllowedFields = (next: string[]) => {setAllowedFields(next); localStorage.setItem(privacyKey, JSON.stringify(next))}
   const [tab, setTab] = useState<Tab>('analisa')
   const [question, setQuestion] = useState('')
