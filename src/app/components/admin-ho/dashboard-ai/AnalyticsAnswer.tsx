@@ -1,5 +1,12 @@
 import React from 'react'
 
+// Some older responses stored emoji as repeated question marks. Remove only
+// decorative prefixes, keeping normal question marks and data values intact.
+export function cleanAnalyticsAnswer(content: string): string {
+  const emoji = new RegExp('[\\p{Extended_Pictographic}\\p{Emoji_Presentation}\\uFE0F\\u200D]', 'gu')
+  return content.replace(emoji, '').replace(/^([ \t]*(?:#{1,6}[ \t]+|[-*•][ \t]+|>[ \t]*)?(?:\*\*)?)\?{2,}[ \t]+(?=\S)/gm, '$1')
+}
+
 type Block =
   | {kind: 'heading'; text: string}
   | {kind: 'paragraph'; text: string}
@@ -24,7 +31,7 @@ const tableDivider = (line: string) => {
 const listItem = (line: string) => line.match(/^\s*(?:([-*•])\s+|(\d+)[.)]\s+)(.*)$/)
 
 export function parseAnalyticsAnswer(content: string): Block[] {
-  const lines = content.replace(/\r\n?/g, '\n').split('\n')
+  const lines = cleanAnalyticsAnswer(content).replace(/\r\n?/g, '\n').split('\n')
   const blocks: Block[] = []
   let i = 0
   while (i < lines.length) {

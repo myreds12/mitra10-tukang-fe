@@ -3,7 +3,7 @@ import axios from 'axios'
 import Chart from 'react-apexcharts'
 import './analytics.css'
 import {AnalyticsPrivacy, fields, allFields} from './AnalyticsPrivacy'
-import {AnalyticsAnswer} from './AnalyticsAnswer'
+import {AnalyticsAnswer, cleanAnalyticsAnswer} from './AnalyticsAnswer'
 import {parseConversationsResponse, parseDashboardResponse, unwrapAnalyticsResponse} from './analyticsApi'
 import {downloadAnalyticsWorkbook, isExcelRequest, isExportableAnswer} from './analyticsExcel'
 
@@ -99,14 +99,14 @@ const DashboardAIAnalytics: React.FC = () => {
       const answer = result?.answer || result?.content
       if (typeof answer !== 'string') throw new Error('Format jawaban tidak dikenali')
       setConversationId(result.conversation_id || result.conversationId)
-      setMessages(current => [...current, {role: 'user', content: text}, {role: 'assistant', content: answer}]); loadRecent()
+      setMessages(current => [...current, {role: 'user', content: text}, {role: 'assistant', content: cleanAnalyticsAnswer(answer)}]); loadRecent()
     } catch (e: any) {
       const message = e.response?.data?.message
       setError(typeof message === 'string' ? message : 'Analisa belum dapat dijalankan. Periksa layanan AI Agent dan coba lagi.')
       setQuestion(text)
     } finally {setBusy(false); setPendingQuestion('')}
   }
-  const openConversation = (item: Conversation) => {setConversationId(item.id); setMessages(item.messages.filter(m => m.role === 'USER' || m.role === 'ASSISTANT').map(m => ({role: m.role === 'USER' ? 'user' : 'assistant', content: m.content}))); setError(''); setDownloadNotice('')}
+  const openConversation = (item: Conversation) => {setConversationId(item.id); setMessages(item.messages.filter(m => m.role === 'USER' || m.role === 'ASSISTANT').map(m => ({role: m.role === 'USER' ? 'user' : 'assistant', content: m.role === 'ASSISTANT' ? cleanAnalyticsAnswer(m.content) : m.content}))); setError(''); setDownloadNotice('')}
   const templatesList = <div className='analytics-template-grid'>{templates.map((t, i) => <button type='button' className='analytics-template' key={`${t.title}-${i}`} onClick={() => {setQuestion(t.prompt); setShowTemplates(false); window.scrollTo({top: 0, behavior: 'smooth'})}}><span className='analytics-template-body'><b>{i < defaults.length ? 'BAWAAN' : 'TEMPLATE SAYA'}</b><span>{t.prompt}</span></span><span className='analytics-template-foot'><strong>{t.title}</strong><span>Pakai</span></span></button>)}</div>
   return <div className='analytics-page'>
     <nav className='analytics-tabs' aria-label='Menu Analytics'>{([['analisa', 'Analisa AI'], ['dashboard', 'Dashboard'], ['privasi', 'Batasan & Privasi']] as [Tab, string][]).map(([id, label]) => <button type='button' key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>{label}</button>)}</nav>
@@ -116,7 +116,7 @@ const DashboardAIAnalytics: React.FC = () => {
       <p className='analytics-hint'>Pertanyaan dikirim ke layanan AI. Hindari memasukkan data pribadi. Tekan Enter untuk mengirim.</p>
       {error && <div className='analytics-error' role='alert'>{error}</div>}
       {downloadNotice && <div className='analytics-download-notice' role='status'>{downloadNotice}</div>}
-      {!messages.length && !busy && <div className='analytics-recent'><div className='analytics-segment'><button className={section === 'recent' ? 'selected' : ''} onClick={() => setSection('recent')}>Laporan terbaru</button><button className={section === 'templates' ? 'selected' : ''} onClick={() => setSection('templates')}>Template</button></div>{section === 'recent' && recent.length > 0 ? <div className='analytics-template-grid'>{recent.map(c => <button className='analytics-template' key={c.id} onClick={() => openConversation(c)}><span className='analytics-template-body'><b>LAPORAN</b><span>{c.messages.find(m => m.role === 'ASSISTANT')?.content || c.title}</span></span><span className='analytics-template-foot'><strong>{c.title}</strong><span>{new Date(c.created_at).toLocaleDateString('id-ID')}</span></span></button>)}</div> : <><p>{section === 'recent' ? (recentError || 'Belum ada laporan. Mulai dari salah satu template:') : 'Pilih template untuk memulai analisa:'}</p>{templatesList}</>}</div>}
+      {!messages.length && !busy && <div className='analytics-recent'><div className='analytics-segment'><button className={section === 'recent' ? 'selected' : ''} onClick={() => setSection('recent')}>Laporan terbaru</button><button className={section === 'templates' ? 'selected' : ''} onClick={() => setSection('templates')}>Template</button></div>{section === 'recent' && recent.length > 0 ? <div className='analytics-template-grid'>{recent.map(c => <button className='analytics-template' key={c.id} onClick={() => openConversation(c)}><span className='analytics-template-body'><b>LAPORAN</b><span>{cleanAnalyticsAnswer(c.messages.find(m => m.role === 'ASSISTANT')?.content || c.title)}</span></span><span className='analytics-template-foot'><strong>{c.title}</strong><span>{new Date(c.created_at).toLocaleDateString('id-ID')}</span></span></button>)}</div> : <><p>{section === 'recent' ? (recentError || 'Belum ada laporan. Mulai dari salah satu template:') : 'Pilih template untuk memulai analisa:'}</p>{templatesList}</>}</div>}
     </div>}
     {tab === 'dashboard' && <div className='analytics-dashboard'><div className='analytics-dash-head'><div><h1>Dashboard</h1><p>Sumber: data aplikasi · periode berdasarkan tanggal pembuatan</p></div><div className='analytics-dash-tools'><label><span className='analytics-sr'>Periode</span><select value={year} onChange={e => setYear(e.target.value)}><option value='all'>Semua periode</option>{Array.from({length: 6}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}</select></label><button onClick={() => setShowWidgets(!showWidgets)}>+ Tambah widget</button><button onClick={() => setEditing(!editing)}>{editing ? 'Selesai mengatur' : 'Atur widget'}</button></div></div>
       {showWidgets && <div className='analytics-widget-picker'><strong>Pilih widget</strong>{[['monthly', 'Order per bulan'], ['statuses', 'Status order'], ['stores', '10 toko dengan nilai order terbesar']].map(([id, label]) => <label key={id}><input type='checkbox' checked={widgets.includes(id)} onChange={e => saveWidgets(e.target.checked ? [...widgets, id] : widgets.filter(w => w !== id))}/> {label}</label>)}</div>}

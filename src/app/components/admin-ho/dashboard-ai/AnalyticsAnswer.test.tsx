@@ -1,6 +1,6 @@
 import React from 'react'
 import {render, screen, within} from '@testing-library/react'
-import {AnalyticsAnswer} from './AnalyticsAnswer'
+import {AnalyticsAnswer, cleanAnalyticsAnswer} from './AnalyticsAnswer'
 
 describe('AnalyticsAnswer', () => {
   it('presents a report table, heading and notes without losing values', () => {
@@ -22,5 +22,15 @@ describe('AnalyticsAnswer', () => {
     expect(container.querySelector('img')).toBeNull()
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument()
     expect(screen.getByRole('cell', {name: '3'})).toBeInTheDocument()
+  })
+  it('removes broken icon prefixes and emoji from saved answers without changing data or question marks', () => {
+    const saved = '?? Ringkasan Umum\n\n??? Kategori Layanan Terbanyak\n\n📊 Total: 1\nApakah data ini benar?\nKode ?? tetap tercatat.'
+    const cleaned = cleanAnalyticsAnswer(saved)
+    expect(cleaned).toContain('Ringkasan Umum')
+    expect(cleaned).toContain('Kategori Layanan Terbanyak')
+    expect(cleaned).not.toContain('?? Ringkasan')
+    expect(cleaned).not.toContain('📊')
+    expect(cleaned).toContain('Apakah data ini benar?')
+    expect(cleaned).toContain('Kode ?? tetap tercatat.')
   })
 })
