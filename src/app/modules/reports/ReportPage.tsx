@@ -1269,8 +1269,6 @@ const RefundPage: React.FC = () => {
         }
       />
 
-      <Route path='ai-analytics' element={<Navigate to='/analytics' replace />} />
-
       <Route index element={<Navigate to='/reports/view-report' />} />
     </Routes>
   )

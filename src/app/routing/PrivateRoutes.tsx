@@ -7,7 +7,6 @@ import {getCSSVariableValue} from '../../_metronic/assets/ts/_utils'
 import {WithChildren} from '../../_metronic/helpers'
 import {PageLink, PageTitle} from '../../../src/_metronic/layout/core'
 import VendorRegistrationPage from '../modules/vendor-registration/VendorRegistrationPage'
-import {DashboardAIAnalytics} from '../components/admin-ho/dashboard-ai/DashboardAIAnalytics'
 const chatBreadCrumbs: Array<PageLink> = [
   {
     title: 'Chat',
@@ -80,7 +79,6 @@ const HomeContentSettingsPage = lazy(() => import('../components/admin-ho/home-c
         {isRegistrant && <Route path='*' element={<Navigate to='/pendaftar/home' replace />} />}
 
         <Route path='home' element={<DashboardWrapper />} />
-        <Route path='analytics' element={['Admin HO', 'Super User'].includes(localStorage.getItem('userRole') || '') ? <><PageTitle breadcrumbs={[]}>Analytics Dashboard</PageTitle><DashboardAIAnalytics /></> : <Navigate to='/home' replace />} />
 
         {/* Lazy Modules */}
         <Route

@@ -360,12 +360,6 @@ export function AsideMenuMain() {
             role={['Super User']}
             hasBullet={true}
           />
-          <AsideMenuItem
-            to='/vendor-sp/reactivation'
-            title='Reaktivasi Vendor SP3'
-            role={['Admin HO', 'Super User']}
-            hasBullet={true}
-          />
         </AsideMenuItemWithSub>
       </AsideMenuItemWithSub>
 
@@ -561,14 +555,6 @@ export function AsideMenuMain() {
           hasBullet={true}
         />
       </AsideMenuItemWithSub>
-
-      <AsideMenuItem
-        to='/analytics'
-        title='Analytics'
-        role={['Admin HO', 'Super User']}
-        icon='/media/icons/duotune/graphs/gra008.svg'
-        fontIcon='bi-bar-chart'
-      />
 
       {/* Halaman Setting */}
       <AsideMenuItemWithSub

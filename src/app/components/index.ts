@@ -4,9 +4,6 @@ export * from './admin-store/dashboard/DashboardStore'
 // DASHBOARD PAGE ( Admin HO )
 export * from './admin-ho/dashboard/DashboardHO'
 
-// DASHBOARD AI ANALYTICS ( Admin HO )
-export * from './admin-ho/dashboard-ai/DashboardAIAnalytics'
-
 // DASHBOARD PAGE ( Admin Vendor )
 export * from './admin-vendor/dashboard/DashboardVendor'
 

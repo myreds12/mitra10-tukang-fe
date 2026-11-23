@@ -30,17 +30,6 @@ export const vendorSpService = {
   extend: (id: string | number, data: any) => apiClient.put(`/vendor-sp/extend/${id}`, data),
   updateNotes: (id: string | number, notes: string) =>
     apiClient.put(`/vendor-sp/${id}/notes`, { notes }),
-  reactivate: (data: any) => apiClient.post('/vendor-sp/reactivate', data),
-  getReactivationCandidates: () => apiClient.get('/vendor-sp/reactivation/candidates'),
-  getReactivationLogs: (params?: {
-    page?: number;
-    take?: number;
-    search?: string;
-    status?: 1 | 2 | 3;
-    date_from?: string;
-    date_to?: string;
-    vendor_id?: number;
-  }) => apiClient.get('/vendor-sp/reactivation', { params }),
 
   generatePenaltyReceipt: async (params: {
     vendor_id: number;
