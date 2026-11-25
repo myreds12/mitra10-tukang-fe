@@ -7,7 +7,6 @@ import {HeaderWrapper} from '../../../_metronic/layout/components/header/HeaderW
 import {ViewVendorSP} from './components/ViewVendorSP'
 import {ViewVendorViolationType} from './components/ViewVendorViolationType'
 import {ViewVendorViolationLog} from './components/ViewVendorViolationLog'
-import {VendorReactivation} from './components/VendorReactivation'
 import {VendorViolationRevisionRequests} from './components/VendorViolationRevisionRequests'
 import {DetailVendorSP} from './components/DetailVendorSP'
 
@@ -84,19 +83,6 @@ const VendorSPPage: React.FC = () => {
               {isVendorRole ? 'LOG SP & PELANGGARAN VENDOR' : 'LOG PELANGGARAN VENDOR'}
             </PageTitle>
             <ViewVendorViolationLog />
-          </>
-        }
-      />
-
-      <Route
-        path='reactivation'
-        element={
-          <>
-            {renderRoleHeader()}
-            <PageTitle breadcrumbs={orderBreadCrumbs}>
-              REAKTIVASI VENDOR SP3
-            </PageTitle>
-            <VendorReactivation />
           </>
         }
       />

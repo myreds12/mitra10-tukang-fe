@@ -360,12 +360,6 @@ export function AsideMenuMain() {
             role={['Super User']}
             hasBullet={true}
           />
-          <AsideMenuItem
-            to='/vendor-sp/reactivation'
-            title='Reaktivasi Vendor SP3'
-            role={['Admin HO', 'Super User']}
-            hasBullet={true}
-          />
         </AsideMenuItemWithSub>
       </AsideMenuItemWithSub>
 

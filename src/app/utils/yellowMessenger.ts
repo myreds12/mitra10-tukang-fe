@@ -9,6 +9,7 @@ declare global {
     ymConfig?: {
       bot: string
       host: string
+      payload?: Record<string, any>
       [key: string]: any
     }
     YellowMessenger?: ((action: string, data?: any) => void) & {
@@ -27,11 +28,29 @@ declare global {
   }
 }
 
-const DEFAULT_BOT_ID = 'x1657090256339'
+const STAGING_BOT_ID = 'x1657090256165'
+const PRODUCTION_BOT_ID = 'x1657090256339'
+const YELLOW_HOST = 'https://cloud.yellow.ai'
 const HIDE_STYLE_ID = 'hide-yellow-ai-style'
 const OLD_POSITION_STYLE_ID = 'yellow-ai-position-left-style'
 const POSITION_STYLE_ID = 'yellow-ai-position-right-style'
 const SCRIPT_ID = 'yellow-ai-web-widget-script'
+
+export function resolveYellowBotId(): string {
+  const envBotId = process.env.REACT_APP_YELLOW_BOT_ID?.trim()
+  if (envBotId) {
+    return envBotId
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase()
+    if (hostname === 'instalasi.mitra10.com' || hostname === 'www.instalasi.mitra10.com') {
+      return PRODUCTION_BOT_ID
+    }
+  }
+
+  return STAGING_BOT_ID
+}
 
 /**
  * Apply CSS rules to enforce Yellow.ai widget positioning on the bottom-right,
@@ -225,35 +244,39 @@ export function isPendaftarVendorUser(): boolean {
  * Initialize / show the Yellow.ai live chat widget for all users on all pages,
  * positioned on the right side and stacked vertically with the internal live chat.
  */
-export function initYellowChat(botId = DEFAULT_BOT_ID): void {
+export function initYellowChat(botId?: string): void {
   if (typeof window === 'undefined') return
 
-  // Remove any legacy custom launcher element if exists
+  const resolvedBotId = botId?.trim() || resolveYellowBotId()
+
   const legacyLauncher = document.getElementById('yellow-ai-custom-launcher')
   if (legacyLauncher) {
     legacyLauncher.remove()
   }
 
-  // Remove force-hide styles
   const hideStyle = document.getElementById(HIDE_STYLE_ID)
   if (hideStyle) {
     hideStyle.remove()
   }
 
-  // Apply right alignment & stacked styles
   applyRightPositionStyle()
 
+  const existingConfig = window.ymConfig || ({} as Record<string, any>)
   window.ymConfig = {
-    bot: botId,
-    host: 'https://cloud.yellow.ai',
+    ...existingConfig,
+    bot: resolvedBotId,
+    host: YELLOW_HOST,
+    payload: {
+      ...(existingConfig.payload || {}),
+      isInstallation: true,
+    },
     alignLeft: false,
     skin: {
       webIconType: 'circle',
       mobileIconType: 'circle',
-      ...(window.ymConfig?.skin || {}),
+      ...(existingConfig.skin || {}),
     },
     circleOpen: true,
-    ...(window.ymConfig || {}),
   }
 
   if (window.YellowMessengerPlugin?.show) {
@@ -264,7 +287,6 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
     }
   }
 
-  // Listener event buka/tutup chat Yellow.ai
   if (!window.hasYellowEventListener) {
     window.hasYellowEventListener = true
     window.addEventListener('message', (event) => {
@@ -288,6 +310,16 @@ export function initYellowChat(botId = DEFAULT_BOT_ID): void {
   }
 
   const existingScript = document.getElementById(SCRIPT_ID)
+  if (typeof window.YellowMessenger === 'function' && existingScript) {
+    try {
+      window.YellowMessenger('reattach_activator')
+      window.YellowMessenger('update', window.ymConfig)
+    } catch (e) {
+      // ignore
+    }
+    return
+  }
+
   if (!existingScript) {
     const d = document
     const w = window
