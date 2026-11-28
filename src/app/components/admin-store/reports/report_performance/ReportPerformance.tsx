@@ -1,7 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, {useState, useEffect} from 'react'
-import {useNavigate} from 'react-router-dom'
-import {formatDateWithTime, formatDateWithTimeZone} from '../../../../../_metronic/helpers'
+import React, {useState, useEffect, useRef} from 'react'
+import {formatDateWithTimeZone} from '../../../../../_metronic/helpers'
 
 import './ReportPerformance.css'
 
@@ -20,19 +19,21 @@ type Props = {
 
 interface DataType {
   order_id: number
-  date_order: Date
+  date_order: string
   costumer_name: string
-  phone_number: number
+  phone_number: number | string
   email: string
   address: string
   sales_name: string
   order_status: string
-  grand_total: number
+  grand_total: string
 }
+
+type SortField = 'created_at' | 'id'
+type SortOrder = 'asc' | 'desc'
 
 const ReportPerformanceStore: React.FC<Props> = ({className}) => {
   const apiUrl = process.env.REACT_APP_API_URL
-  const navigate = useNavigate()
 
   const userStore = localStorage.getItem('storeId')
   const staffStoreName = localStorage.getItem('storeName') as string
@@ -46,8 +47,93 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
   const [pageSize, setPageSize] = useState<number>(10)
   const [totalOrder, setTotalOrder] = useState<number>(0)
 
-  const [dateFrom, setDateFrom] = useState<any>('')
-  const [dateTo, setDateTo] = useState<any>('')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
+  const [sortField, setSortField] = useState<SortField>('created_at')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+
+  // Guard supaya response lama tidak menimpa response baru saat filter cepat.
+  const requestIdRef = useRef<number>(0)
+
+  const buildQuery = (
+    page: number,
+    size: number,
+    from: string,
+    to: string,
+    field: SortField,
+    order: SortOrder
+  ) => {
+    const query = new URLSearchParams()
+    query.set('page', String(page))
+    query.set('take', String(size))
+    query.set('sort_by', field)
+    query.set('order_by', order)
+    if (userStore) query.set('store_id', userStore)
+    if (from && to) {
+      query.set('date_from', from)
+      query.set('date_to', to)
+    }
+    return query.toString()
+  }
+
+  const mapRow = (item: any): DataType => {
+    const useQuotation = item?.payment_type === 'survey' && item?.quotation?.length > 0
+    const totalAmount = useQuotation ? item.quotation[0]?.quotation_grand_total : item?.grand_total
+
+    return {
+      order_id: item?.id,
+      date_order: formatDateWithTimeZone(item?.created_at),
+      costumer_name: item?.members?.full_name ?? '-',
+      phone_number: item?.project_number ?? '-',
+      email: item?.members?.email ?? '-',
+      address: item?.project_address ?? '-',
+      sales_name: item?.sales?.full_name ?? '-',
+      order_status: item?.status?.description ?? '-',
+      grand_total: `Rp. ${Number(totalAmount ?? 0).toLocaleString('id')}`,
+    }
+  }
+
+  const fetchData = async (
+    page: number,
+    size: number,
+    from: string,
+    to: string,
+    field: SortField,
+    order: SortOrder
+  ) => {
+    const requestId = ++requestIdRef.current
+    setLoadData(true)
+
+    try {
+      const query = buildQuery(page, size, from, to, field, order)
+      const response = await axios.get(`${apiUrl}/orders/performance?${query}`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      })
+
+      if (requestId !== requestIdRef.current) return
+
+      const rows: DataType[] = (response.data?.data ?? []).map(mapRow)
+      setOrderData(rows)
+      setTotalOrder(response.data?.total ?? 0)
+      setCurrentPage(response.data?.page ?? page)
+    } catch (error) {
+      if (requestId === requestIdRef.current) {
+        console.error('Error fetching report performance:', error)
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoadData(false)
+      }
+    }
+  }
+
+  useEffect(() => {
+    fetchData(1, pageSize, '', '', 'created_at', 'desc')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const columns: ColumnsType<DataType> = [
     {
@@ -57,16 +143,18 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       align: 'center',
       width: 110,
       className: 'col_order_id',
-      defaultSortOrder: 'descend',
-      sorter: (a, b) => a.order_id - b.order_id,
+      sorter: true,
+      sortOrder: sortField === 'id' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : null,
     },
     {
       title: 'Tanggal Order',
       dataIndex: 'date_order',
       key: 'date_order',
       align: 'left',
-      width: 110,
-      sorter: (a, b) => new Date(a.date_order).getTime() - new Date(b.date_order).getTime(),
+      width: 150,
+      sorter: true,
+      sortOrder:
+        sortField === 'created_at' ? (sortOrder === 'asc' ? 'ascend' : 'descend') : null,
     },
     {
       title: 'Nama Costumer',
@@ -74,8 +162,6 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'costumer_name',
       align: 'left',
       width: 140,
-      onFilter: (value, record) => record.costumer_name.includes(String(value)),
-      sorter: (a, b) => a.costumer_name.length - b.costumer_name.length,
     },
     {
       title: 'No Telepon',
@@ -83,7 +169,6 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'phone_number',
       align: 'center',
       width: 130,
-      sorter: (a, b) => a.phone_number - b.phone_number,
     },
     {
       title: 'Email',
@@ -91,8 +176,6 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'email',
       align: 'left',
       width: 170,
-      onFilter: (value, record) => record.email.includes(String(value)),
-      sorter: (a, b) => a.email.length - b.email.length,
     },
     {
       title: 'Alamat',
@@ -100,8 +183,6 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'address',
       align: 'left',
       width: 150,
-      onFilter: (value, record) => record.address.includes(String(value)),
-      sorter: (a, b) => a.address.length - b.address.length,
     },
     {
       title: 'Nama Sales',
@@ -109,8 +190,6 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'sales_name',
       align: 'left',
       width: 150,
-      onFilter: (value, record) => record.sales_name.includes(String(value)),
-      sorter: (a, b) => a.sales_name.length - b.sales_name.length,
     },
     {
       title: 'Status Order',
@@ -118,8 +197,6 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'order_status',
       align: 'left',
       width: 150,
-      onFilter: (value, record) => record.order_status.includes(String(value)),
-      sorter: (a, b) => a.order_status.length - b.order_status.length,
     },
     {
       title: 'Grand Total',
@@ -127,84 +204,8 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
       key: 'grand_total',
       align: 'center',
       width: 135,
-      sorter: (a, b) => a.grand_total - b.grand_total,
     },
   ]
-
-  const fetchOrderList = async (page: number, pageSize: number, queryparams: any) => {
-    let apiUrlWithParams = `${apiUrl}/orders?order_by=desc&store_id=${userStore}&page=${page}&take=${pageSize}${queryparams}`
-
-    try {
-      const response = await axios.get(apiUrlWithParams, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        //  // 'Access-Control-Allow-Origin': '*',
-        // // 'ngrok-skip-browser-warning':  'true',
-        },
-      })
-
-      setCurrentPage(response.data.page)
-      setTotalOrder(response?.data?.total ?? 0)
-      setLoadData(false)
-
-      return response.data.data
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    }
-  }
-
-  const ViewOrder = async (page: number, pageSize: number, queryparams: any) => {
-    try {
-      const apiData = await fetchOrderList(page, pageSize, queryparams)
-
-      if (!apiData) {
-        console.error('No data received from fetchOrderList')
-        return []
-      }
-
-      const orderData = apiData.map((item: any) => {
-        let data
-        let totalAmount = 0
-
-        if (item.quotation.length > 0 && item.payment_type === 'survey') {
-          totalAmount = item?.quotation[0]?.quotation_grand_total
-        } else {
-          totalAmount = item?.grand_total
-        }
-
-        const orderDate = formatDateWithTimeZone(item?.created_at)
-
-        data = {
-          order_id: item?.id,
-          date_order: orderDate,
-          costumer_name: item?.members?.full_name,
-          phone_number: item?.project_number,
-          email: item?.members?.email,
-          address: item?.project_address,
-          sales_name: item?.sales?.full_name,
-          order_status: item?.status?.description,
-          grand_total: `Rp. ${Number(totalAmount).toLocaleString('id')}`,
-        }
-
-        return data
-      })
-
-      return orderData
-    } catch (error) {
-      console.error('Error getting order list data:', error)
-      return []
-    }
-  }
-
-  const fetchData = async (page: number, pageSize: number, queryparams: any) => {
-    const data = await ViewOrder(page, pageSize, queryparams)
-    setOrderData(data)
-  }
-
-  useEffect(() => {
-    fetchData(1, 10, '')
-  }, [])
 
   const itemRender: PaginationProps['itemRender'] = (_, type, originalElement) => {
     if (type === 'prev') {
@@ -224,21 +225,19 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
 
   const handleSubmitFilter = async () => {
     setLoadingButton(true)
-    let queryparams = ``
-
-    const valueCheck = (key: any, value: any) => {
-      if (value !== null && value !== undefined && value !== '' && value !== 0) {
-        queryparams += `${key}${value}`
-      }
-    }
-
-    valueCheck(`&date_from=`, dateFrom)
-    valueCheck(`&date_to=`, dateTo)
-
-    const data = await ViewOrder(1, 10, queryparams)
-    setOrderData(data)
-
+    setCurrentPage(1)
+    await fetchData(1, pageSize, dateFrom, dateTo, sortField, sortOrder)
     setLoadingButton(false)
+  }
+
+  const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
+    if (!sorter || !sorter.order) return
+    const field: SortField = sorter.field === 'order_id' ? 'id' : 'created_at'
+    const order: SortOrder = sorter.order === 'ascend' ? 'asc' : 'desc'
+    setSortField(field)
+    setSortOrder(order)
+    setCurrentPage(1)
+    fetchData(1, pageSize, dateFrom, dateTo, field, order)
   }
 
   // Export To Excel
@@ -250,8 +249,15 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
 
     setLoadingExport(true)
 
+    const query = new URLSearchParams()
+    if (userStore) query.set('store_id', userStore)
+    if (dateFrom && dateTo) {
+      query.set('date_from', dateFrom)
+      query.set('date_to', dateTo)
+    }
+
     axios
-      .get(`${apiUrl}/orders/export-excel`, {
+      .get(`${apiUrl}/orders/export-excel?${query.toString()}`, {
         method: 'GET',
         responseType: 'blob',
         headers: {
@@ -305,11 +311,8 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
                   className='date-range ms-3 w-100'
                   onChange={(values) => {
                     if (values && values.length === 2) {
-                      const dateFromFormatted = values[0]?.format('YYYY-MM-DD')
-                      const dateToFormatted = values[1]?.format('YYYY-MM-DD')
-
-                      setDateFrom(dateFromFormatted)
-                      setDateTo(dateToFormatted)
+                      setDateFrom(values[0]?.format('YYYY-MM-DD') ?? '')
+                      setDateTo(values[1]?.format('YYYY-MM-DD') ?? '')
                     } else {
                       setDateFrom('')
                       setDateTo('')
@@ -349,6 +352,7 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
                 sticky={true}
                 tableLayout='auto'
                 scroll={{x: 'max-content'}}
+                onChange={handleTableChange}
               />
             </div>
           </Spin>
@@ -370,7 +374,7 @@ const ReportPerformanceStore: React.FC<Props> = ({className}) => {
               onChange={(page, newPageSize) => {
                 setPageSize(newPageSize)
                 setCurrentPage(page)
-                fetchData(page, newPageSize, '')
+                fetchData(page, newPageSize, dateFrom, dateTo, sortField, sortOrder)
               }}
             />
           </div>
