@@ -16,7 +16,7 @@ const App = () => {
       <I18nProvider>
         <LayoutProvider>
           <Outlet />
-          <MasterInit />
+          <MasterInit a/>
         </LayoutProvider>
       </I18nProvider>
     </Suspense>
